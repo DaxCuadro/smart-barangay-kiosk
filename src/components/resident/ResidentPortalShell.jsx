@@ -649,9 +649,11 @@ function ResidentPortalShell() {
       setAuthError('Enter your email and password.');
       return;
     }
-    const { error } = await supabase.auth.signUp({ email: sanitized, password });
-    if (error) {
-      setAuthError(error.message);
+    const { data, error } = await supabase.functions.invoke('create_resident_user', {
+      body: { email: sanitized, password },
+    });
+    if (error || data?.error) {
+      setAuthError(data?.error || error?.message || 'Failed to create account.');
       return;
     }
     setPassword('');
