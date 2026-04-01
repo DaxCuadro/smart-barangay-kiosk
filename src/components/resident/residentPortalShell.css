@@ -4,7 +4,7 @@
     radial-gradient(circle at 15% 15%, rgba(255, 236, 213, 0.8), transparent 55%),
     radial-gradient(circle at 85% 20%, rgba(205, 232, 255, 0.7), transparent 60%),
     linear-gradient(135deg, #fff7ef 0%, #f1f5ff 45%, #f7f1ff 100%);
-  padding: 2.5rem;
+  padding: 2rem;
   display: flex;
   justify-content: center;
 }
@@ -13,7 +13,7 @@
   width: min(1100px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.25rem;
 }
 
 .resident-header {
@@ -25,8 +25,8 @@
 }
 
 .resident-title {
-  font-size: clamp(2.1rem, 4vw, 3rem);
-  margin: 0.4rem 0 0.6rem;
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  margin: 0.25rem 0 0.35rem;
   color: #1f1f39;
   letter-spacing: -0.02em;
 }
@@ -41,33 +41,33 @@
 }
 
 .resident-body {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: #3f4255;
   max-width: 560px;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 .resident-card {
-  border-radius: 24px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 28px 70px rgba(25, 32, 61, 0.18);
-  padding: 2.4rem;
+  box-shadow: 0 16px 48px rgba(25, 32, 61, 0.12);
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.6rem;
+  gap: 1rem;
 }
 
 .resident-card-head h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   color: #15152a;
 }
 
 .resident-card-head p {
-  margin: 0.45rem 0 0;
+  margin: 0.25rem 0 0;
   color: #5b607a;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 .resident-signout {
@@ -163,19 +163,48 @@
 .resident-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .resident-portal {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .resident-tabs {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.resident-tabs--desktop {
+  display: flex;
+}
+
+.resident-bottom-nav {
+  display: none;
+}
+
+.resident-signout-profile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  padding: 0.75rem 1.25rem;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.resident-signout-profile:hover {
+  background: rgba(220, 38, 38, 0.15);
 }
 
 .resident-tab {
@@ -196,48 +225,49 @@
 }
 
 .resident-banner {
-  border-radius: 16px;
+  border-radius: 12px;
   background: rgba(250, 204, 21, 0.2);
   color: #92400e;
-  padding: 0.9rem 1.1rem;
+  padding: 0.65rem 0.9rem;
   font-weight: 600;
+  font-size: 0.88rem;
 }
 
 .resident-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  padding: 1rem 0;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
 }
 
 .resident-summary div {
-  border-radius: 16px;
+  border-radius: 12px;
   background: #f8f9ff;
-  padding: 0.9rem 1rem;
+  padding: 0.65rem 0.8rem;
   border: 1px solid #e2e8f0;
 }
 
 .resident-summary span {
   display: block;
   color: #6b7280;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .resident-summary strong {
   display: block;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   color: #1f1f39;
 }
 
 .resident-home-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .resident-home-grid h3 {
-  margin: 0 0 0.8rem;
-  font-size: 1rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
   color: #1f1f39;
 }
 
@@ -253,18 +283,18 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .resident-list li {
   border: 1px solid #e2e8f0;
   background: #fff;
-  border-radius: 14px;
-  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  font-size: 0.9rem;
+  gap: 0.75rem;
+  font-size: 0.85rem;
   color: #1f2937;
 }
 
@@ -276,7 +306,7 @@
 .resident-profile {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .resident-profile-grid {
@@ -286,24 +316,24 @@
 }
 
 .resident-profile-grid div {
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
   background: #fff;
-  padding: 0.75rem 0.9rem;
+  padding: 0.6rem 0.75rem;
 }
 
 .resident-profile-grid span {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: #6b7280;
 }
 
 .resident-profile-grid strong {
   display: block;
-  margin-top: 0.4rem;
-  font-size: 0.95rem;
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
   color: #1f2937;
 }
 
@@ -443,15 +473,267 @@
 
 @media (max-width: 720px) {
   .resident-shell {
-    padding: 1.5rem;
+    padding: 1rem 1rem 4.5rem;
   }
 
-  .resident-card {
-    padding: 1.6rem;
+  .resident-frame {
+    gap: 0.75rem;
   }
 
   .resident-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .resident-subhead {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    margin: 0;
+  }
+
+  .resident-title {
+    font-size: 1.25rem;
+    margin: 0.15rem 0 0.2rem;
+    line-height: 1.3;
+  }
+
+  .resident-body {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .resident-card {
+    padding: 1rem 1rem;
+    border-radius: 16px;
+    gap: 0.75rem;
+    box-shadow: 0 8px 24px rgba(25, 32, 61, 0.1);
+  }
+
+  .resident-card-head h2 {
+    font-size: 0.95rem;
+  }
+
+  .resident-card-head p {
+    font-size: 0.75rem;
+    margin-top: 0.1rem;
+  }
+
+  .resident-summary {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    padding: 0.25rem 0;
+  }
+
+  .resident-summary div {
+    padding: 0.4rem 0.5rem;
+    border-radius: 10px;
+  }
+
+  .resident-summary span {
+    font-size: 0.65rem;
+  }
+
+  .resident-summary strong {
+    font-size: 1rem;
+  }
+
+  .resident-home-grid {
+    gap: 0.75rem;
+  }
+
+  .resident-home-grid h3 {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .resident-scroll-list {
+    max-height: 12rem;
+  }
+
+  .resident-list {
+    gap: 0.4rem;
+  }
+
+  .resident-list li {
+    padding: 0.5rem 0.65rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    gap: 0.5rem;
+  }
+
+  .resident-list li p {
+    margin: 0;
+    font-size: 0.8rem;
+  }
+
+  .resident-list li span {
+    font-size: 0.7rem;
+  }
+
+  .resident-profile-grid {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .resident-profile-grid div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 10px;
+  }
+
+  .resident-profile-grid span {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .resident-profile-grid strong {
+    font-size: 0.78rem;
+    margin-top: 0;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .resident-profile {
+    gap: 0.75rem;
+  }
+
+  .resident-form {
+    gap: 0.6rem;
+  }
+
+  .resident-form-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .resident-field {
+    gap: 0.15rem;
+    font-size: 0.75rem;
+  }
+
+  .resident-field input,
+  .resident-field select,
+  .resident-field textarea {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .resident-submit {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .resident-note {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .resident-banner {
+    padding: 0.55rem 0.8rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+  }
+
+  .resident-grid {
+    gap: 0.75rem;
+  }
+
+  .resident-signout-profile {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .resident-tabs--desktop {
+    display: none;
+  }
+
+  .resident-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+    padding: 0.4rem 0 calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+  }
+
+  .resident-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.3rem 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .resident-bottom-nav-item.is-active {
+    color: #4f46e5;
+    background: rgba(79, 70, 229, 0.08);
+  }
+
+  .resident-bottom-nav-item svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.15s;
+  }
+
+  .resident-bottom-nav-item.is-active svg {
+    transform: scale(1.08);
+  }
+
+  .resident-modal {
+    border-radius: 16px;
+  }
+
+  .resident-modal-scroll {
+    padding: 1.25rem 1rem 1.25rem 1.25rem;
+  }
+
+  .resident-linked {
+    padding: 0.65rem 0.8rem;
+    border-radius: 10px;
+  }
+
+  .resident-linked-name {
+    font-size: 0.85rem;
+  }
+
+  .resident-linked-meta {
+    font-size: 0.78rem;
+  }
+
+  .resident-result {
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+  }
+
+  .resident-footnote {
+    font-size: 0.75rem;
   }
 }

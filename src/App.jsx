@@ -3,7 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import AdminLogin from './components/AdminLogin.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import { ToastProvider } from './components/ui/Toast.jsx';
-import { supabase } from './supabaseClient.js';
+import { SupabaseProvider } from './contexts/SupabaseContext.js';
+import { supabaseAdmin, supabaseResident, supabaseSuperAdmin } from './supabaseClient.js';
 import './App.css';
 
 const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
@@ -12,23 +13,26 @@ const KioskShell = lazy(() => import('./components/kiosk/KioskShell.jsx'));
 const ResidentPortalShell = lazy(() => import('./components/resident/ResidentPortalShell.jsx'));
 
 function App() {
-  const [session, setSession] = useState(null);
+  const [adminSession, setAdminSession] = useState(null);
+  const [superAdminSession, setSuperAdminSession] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [adminChecking, setAdminChecking] = useState(true);
+  const [superAdminChecking, setSuperAdminChecking] = useState(true);
 
+  // Admin session listener
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabaseAdmin.auth.getSession().then(({ data }) => {
       if (isMounted) {
-        setSession(data?.session ?? null);
+        setAdminSession(data?.session ?? null);
       }
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: authListener } = supabaseAdmin.auth.onAuthStateChange((_event, newSession) => {
       if (isMounted) {
-        setSession(newSession);
+        setAdminSession(newSession);
       }
     });
 
@@ -38,11 +42,34 @@ function App() {
     };
   }, []);
 
+  // SuperAdmin session listener
+  useEffect(() => {
+    let isMounted = true;
+
+    supabaseSuperAdmin.auth.getSession().then(({ data }) => {
+      if (isMounted) {
+        setSuperAdminSession(data?.session ?? null);
+      }
+    });
+
+    const { data: authListener } = supabaseSuperAdmin.auth.onAuthStateChange((_event, newSession) => {
+      if (isMounted) {
+        setSuperAdminSession(newSession);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Check admin role
   useEffect(() => {
     let isActive = true;
 
     async function loadAdminAccess() {
-      if (!session?.user?.id) {
+      if (!adminSession?.user?.id) {
         if (isActive) {
           setIsAdmin(false);
           setAdminChecking(false);
@@ -51,17 +78,16 @@ function App() {
       }
 
       setAdminChecking(true);
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('admin_users')
         .select('user_id, role')
-        .eq('user_id', session.user.id)
+        .eq('user_id', adminSession.user.id)
         .maybeSingle();
 
       if (!isActive) return;
 
       const hasAccess = Boolean(data && !error);
       setIsAdmin(hasAccess);
-      setIsSuperAdmin(hasAccess && data?.role === 'superadmin');
       setAdminChecking(false);
     }
 
@@ -69,15 +95,57 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [session]);
+  }, [adminSession]);
 
-  function handleLogin(newSession) {
-    setSession(newSession);
+  // Check superadmin role
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadSuperAdminAccess() {
+      if (!superAdminSession?.user?.id) {
+        if (isActive) {
+          setIsSuperAdmin(false);
+          setSuperAdminChecking(false);
+        }
+        return;
+      }
+
+      setSuperAdminChecking(true);
+      const { data, error } = await supabaseSuperAdmin
+        .from('admin_users')
+        .select('user_id, role')
+        .eq('user_id', superAdminSession.user.id)
+        .maybeSingle();
+
+      if (!isActive) return;
+
+      const hasAccess = Boolean(data && !error && data?.role === 'superadmin');
+      setIsSuperAdmin(hasAccess);
+      setSuperAdminChecking(false);
+    }
+
+    loadSuperAdminAccess();
+    return () => {
+      isActive = false;
+    };
+  }, [superAdminSession]);
+
+  function handleAdminLogin(newSession) {
+    setAdminSession(newSession);
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    setSession(null);
+  function handleSuperAdminLogin(newSession) {
+    setSuperAdminSession(newSession);
+  }
+
+  async function handleAdminLogout() {
+    await supabaseAdmin.auth.signOut();
+    setAdminSession(null);
+  }
+
+  async function handleSuperAdminLogout() {
+    await supabaseSuperAdmin.auth.signOut();
+    setSuperAdminSession(null);
   }
 
   const adminElement = adminChecking ? (
@@ -86,30 +154,30 @@ function App() {
         Checking admin access...
       </div>
     </div>
-  ) : !session || !isAdmin ? (
+  ) : !adminSession || !isAdmin ? (
     <AdminLogin
-      onLogin={handleLogin}
-      accessError={session && !isAdmin ? 'This account is not authorized for admin access.' : null}
-      onLogout={session && !isAdmin ? handleLogout : null}
+      onLogin={handleAdminLogin}
+      accessError={adminSession && !isAdmin ? 'This account is not authorized for admin access.' : null}
+      onLogout={adminSession && !isAdmin ? handleAdminLogout : null}
     />
   ) : (
-    <AdminDashboard onLogout={handleLogout} />
+    <AdminDashboard onLogout={handleAdminLogout} />
   );
 
-  const superAdminElement = adminChecking ? (
+  const superAdminElement = superAdminChecking ? (
     <div className="min-h-screen w-full bg-(--sbk-page-bg) px-4 py-8">
       <div className="mx-auto w-full max-w-md rounded-4xl border border-transparent bg-white/95 p-6 shadow-2xl text-center text-sm text-slate-600">
         Checking superadmin access...
       </div>
     </div>
-  ) : !session || !isSuperAdmin ? (
+  ) : !superAdminSession || !isSuperAdmin ? (
     <AdminLogin
-      onLogin={handleLogin}
-      accessError={session && !isSuperAdmin ? 'This account is not authorized for superadmin access.' : null}
-      onLogout={session && !isSuperAdmin ? handleLogout : null}
+      onLogin={handleSuperAdminLogin}
+      accessError={superAdminSession && !isSuperAdmin ? 'This account is not authorized for superadmin access.' : null}
+      onLogout={superAdminSession && !isSuperAdmin ? handleSuperAdminLogout : null}
     />
   ) : (
-    <SuperAdminDashboard onLogout={handleLogout} />
+    <SuperAdminDashboard onLogout={handleSuperAdminLogout} />
   );
 
   const loadingFallback = (
@@ -126,9 +194,9 @@ function App() {
         <div className="sbk-shell">
           <Suspense fallback={loadingFallback}>
             <Routes>
-              <Route path="/" element={<ResidentPortalShell />} />
-              <Route path="/admin" element={adminElement} />
-              <Route path="/superadmin" element={superAdminElement} />
+              <Route path="/" element={<SupabaseProvider client={supabaseResident}><ResidentPortalShell /></SupabaseProvider>} />
+              <Route path="/admin" element={<SupabaseProvider client={supabaseAdmin}>{adminElement}</SupabaseProvider>} />
+              <Route path="/superadmin" element={<SupabaseProvider client={supabaseSuperAdmin}>{superAdminElement}</SupabaseProvider>} />
               <Route path="/kiosk" element={<KioskShell />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

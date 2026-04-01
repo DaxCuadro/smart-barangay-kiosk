@@ -5,7 +5,7 @@ import { injectSpeedInsights } from '@vercel/speed-insights'
 import './index.css'
 import App from './App.jsx'
 
-try { injectSpeedInsights() } catch (_) { /* Speed Insights unsupported in this browser */ }
+try { injectSpeedInsights() } catch { /* Speed Insights unsupported in this browser */ }
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

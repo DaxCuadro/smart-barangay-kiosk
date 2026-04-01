@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import { BARANGAY_INFO_STORAGE_KEY, getBarangayZonesCount, setBarangayInfo } from '../../utils/barangayInfoStorage';
 
 const INITIAL_FORM = {
@@ -143,6 +143,7 @@ function normalizeDocumentOptions(value) {
 }
 
 export default function PrecheckScreen({ onClose, barangayId }) {
+  const supabase = useSupabase();
   const [searchOpen, setSearchOpen] = useState(false);
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -216,7 +217,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
     return () => {
       isActive = false;
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     let isActive = true;
@@ -239,7 +240,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -282,7 +283,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
     return () => {
       isActive = false;
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   function resetSearchState() {
     setQuery('');

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 
 const DEFAULT_DOCUMENT_OPTIONS = [
   'Barangay Clearance',
@@ -51,6 +51,7 @@ function enrichPricing(items) {
 }
 
 export default function PricingTab({ barangayId }) {
+  const supabase = useSupabase();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -101,7 +102,7 @@ export default function PricingTab({ barangayId }) {
     }
 
     loadPricing();
-  }, [barangayId, pricingKey]);
+  }, [supabase, barangayId, pricingKey]);
 
   function handleDelete(id) {
     const next = documentPrices.filter(item => item.id !== id);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { BARANGAY_INFO_STORAGE_KEY } from '../../utils/barangayInfoStorage';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import useModalA11y from '../../hooks/useModalA11y';
 
 const OFFICIAL_GROUPS = [
@@ -254,6 +254,7 @@ function OfficialModal({ open, group, initialData, onClose, onSave, loading }) {
 }
 
 export default function BarangayInfoTab({ onLogout, barangayId, barangayName }) {
+  const supabase = useSupabase();
   const { addToast } = useToast();
   const initialState = useMemo(() => loadInitialState(), []);
   const [data, setData] = useState(initialState);
@@ -318,7 +319,7 @@ export default function BarangayInfoTab({ onLogout, barangayId, barangayName }) 
       zonesCount: extractZonesCount(zoneRecord),
       officials: groupedOfficials,
     }));
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     let ignore = false;

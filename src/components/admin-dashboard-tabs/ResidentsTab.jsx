@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import ResidentModal from './ResidentModal';
@@ -135,6 +135,7 @@ function normalizeZoneValue(value) {
 }
 
 export default function ResidentsTab({ barangayId }) {
+  const supabase = useSupabase();
   const { addToast } = useToast();
   const [residents, setResidents] = useState([]);
   const [searchValue, setSearchValue] = useState('');
@@ -194,7 +195,7 @@ export default function ResidentsTab({ barangayId }) {
     }
 
     setLoading(false);
-  }, [applyZoneCount, barangayId]);
+  }, [supabase, applyZoneCount, barangayId]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

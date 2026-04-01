@@ -3,6 +3,16 @@ import React, { useState } from 'react';
 const MORE_DOCS_VALUE = '__more_documents__';
 const MORE_DOCS_NOTICE = 'Other document types are not yet available in this version of the system.';
 
+const HomeIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+);
+const RequestIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+);
+const ProfileIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+);
+
 export default function ResidentPortalTabs({
   activeTab,
   setActiveTab,
@@ -48,6 +58,7 @@ export default function ResidentPortalTabs({
   accountError,
   accountInfo,
   onUpdateAccount,
+  onSignOut,
 }) {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [moreDocsNotice, setMoreDocsNotice] = useState(false);
@@ -127,20 +138,42 @@ export default function ResidentPortalTabs({
     URL.revokeObjectURL(url);
   };
 
+  const tabMeta = [
+    { key: 'home', label: 'Home', Icon: HomeIcon },
+    { key: 'request', label: 'Request', Icon: RequestIcon },
+    { key: 'profile', label: 'Profile', Icon: ProfileIcon },
+  ];
+
   return (
     <div className="resident-portal">
-      <div className="resident-tabs">
-        {['home', 'request', 'profile'].map(tab => (
+      {/* Desktop pill tabs */}
+      <div className="resident-tabs resident-tabs--desktop">
+        {tabMeta.map(({ key, label }) => (
           <button
-            key={tab}
+            key={key}
             type="button"
-            className={`resident-tab ${activeTab === tab ? 'is-active' : ''}`}
-            onClick={() => setActiveTab(tab)}
+            className={`resident-tab ${activeTab === key ? 'is-active' : ''}`}
+            onClick={() => setActiveTab(key)}
           >
-            {tab === 'home' ? 'Home' : tab === 'request' ? 'Request' : 'Profile'}
+            {label}
           </button>
         ))}
       </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="resident-bottom-nav">
+        {tabMeta.map(item => (
+          <button
+            key={item.key}
+            type="button"
+            className={`resident-bottom-nav-item ${activeTab === item.key ? 'is-active' : ''}`}
+            onClick={() => setActiveTab(item.key)}
+          >
+            <item.Icon />
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
 
       {verificationStatus === 'pending_update' ? (
         <div className="resident-banner">
@@ -482,6 +515,12 @@ export default function ResidentPortalTabs({
               </button>
             </form>
           </div>
+          {onSignOut ? (
+            <button type="button" className="resident-signout-profile" onClick={onSignOut}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+              Sign out
+            </button>
+          ) : null}
         </section>
       ) : null}
 

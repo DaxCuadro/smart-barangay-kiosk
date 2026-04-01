@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import { SkeletonLine } from '../ui/Skeleton';
 
 const ANNOUNCEMENT_STATUS_META = {
@@ -111,6 +111,7 @@ function groupOfficials(entries) {
 }
 
 export default function DashboardTab({ barangayId }) {
+  const supabase = useSupabase();
   const today = useMemo(() => {
     const now = new Date();
     return startOfDay(now);
@@ -170,7 +171,7 @@ export default function DashboardTab({ barangayId }) {
     return () => {
       ignore = true;
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     if (!barangayId) return;
@@ -201,7 +202,7 @@ export default function DashboardTab({ barangayId }) {
     return () => {
       ignore = true;
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     if (!barangayId) return;
@@ -235,7 +236,7 @@ export default function DashboardTab({ barangayId }) {
     return () => {
       ignore = true;
     };
-  }, [today, barangayId]);
+  }, [supabase, today, barangayId]);
 
   useEffect(() => {
     if (!barangayId) return;
@@ -260,7 +261,7 @@ export default function DashboardTab({ barangayId }) {
     return () => {
       ignore = true;
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     if (!barangayId) return;
@@ -303,7 +304,7 @@ export default function DashboardTab({ barangayId }) {
       ignore = true;
       clearInterval(intervalId);
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   const activeAnnouncements = useMemo(() => {
     if (!announcements.length) return [];

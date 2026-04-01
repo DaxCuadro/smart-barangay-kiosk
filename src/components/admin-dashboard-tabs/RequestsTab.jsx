@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { generateClearancePdf } from '../../utils/generateClearancePdf';
@@ -176,6 +176,7 @@ function toRequestItem(record) {
 }
 
 export default function RequestsTab({ barangayId }) {
+  const supabase = useSupabase();
   const { addToast } = useToast();
   const [activeStatus, setActiveStatus] = useState('pending');
   const [requests, setRequests] = useState([]);
@@ -233,7 +234,7 @@ export default function RequestsTab({ barangayId }) {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     let isActive = true;
@@ -254,7 +255,7 @@ export default function RequestsTab({ barangayId }) {
       isActive = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase.auth]);
 
   useEffect(() => {
     let isActive = true;
@@ -285,7 +286,7 @@ export default function RequestsTab({ barangayId }) {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [authSession, barangayId]);
+  }, [supabase, authSession, barangayId]);
 
   const groupedRequests = useMemo(() => groupRequestsByStatus(requests), [requests]);
   const visibleRequests = useMemo(() => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import PrecheckScreen from './PrecheckScreen';
 import { getSelectedBarangayId, getSelectedBarangayName, setBarangayInfo } from '../../utils/barangayInfoStorage';
 import useIdleReset from '../../hooks/useIdleReset';
@@ -32,6 +32,7 @@ function mapFromSupabase(record, today) {
 }
 
 function KioskShell() {
+  const supabase = useSupabase();
   const [stage, setStage] = useState('welcome');
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +94,7 @@ function KioskShell() {
     return () => {
       isActive = false;
     };
-  }, [activeBarangayId]);
+  }, [supabase, activeBarangayId]);
 
   useEffect(() => {
     let isActive = true;
@@ -129,7 +130,7 @@ function KioskShell() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [supabase]);
 
   const activeBarangay = useMemo(() => {
     if (!activeBarangayId) return null;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 
@@ -53,6 +53,7 @@ function toResidentPayload(entry) {
 }
 
 export default function VerificationTab({ barangayId }) {
+  const supabase = useSupabase();
   const [requests, setRequests] = useState([]);
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -90,7 +91,7 @@ export default function VerificationTab({ barangayId }) {
     return () => {
       isActive = false;
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   const pendingRequests = useMemo(
     () => requests.filter(item => item.status === 'pending'),

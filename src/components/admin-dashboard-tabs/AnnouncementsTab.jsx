@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import AnnouncementModal from './AnnouncementModal';
@@ -69,6 +69,7 @@ function resolveStatus(announcement, today) {
 }
 
 export default function AnnouncementsTab({ barangayId }) {
+  const supabase = useSupabase();
   const { addToast } = useToast();
   const today = useMemo(() => {
     const now = new Date();
@@ -98,7 +99,7 @@ export default function AnnouncementsTab({ barangayId }) {
       setAnnouncements((data || []).map(mapFromSupabase));
     }
     setLoading(false);
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

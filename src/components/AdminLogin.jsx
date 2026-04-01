@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
-import { supabase } from '../supabaseClient';
+import { useSupabase } from '../contexts/SupabaseContext';
 
 // Finalized color palette
 // Primary: #2563eb (blue-600)
@@ -13,6 +13,7 @@ import { supabase } from '../supabaseClient';
 
 
 export default function AdminLogin({ onLogin, accessError, onLogout }) {
+  const supabase = useSupabase();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -44,7 +45,7 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase.auth]);
 
   async function handleLogin(e) {
     e.preventDefault();

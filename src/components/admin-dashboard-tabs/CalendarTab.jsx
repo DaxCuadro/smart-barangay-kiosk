@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Calendar from 'react-calendar';
 import Holidays from 'date-holidays';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import AddEventModal from './AddEventModal';
@@ -153,6 +153,7 @@ function formatRangeLabel(startValue, endValue) {
 }
 
 export default function CalendarTab({ barangayId }) {
+  const supabase = useSupabase();
   const { addToast } = useToast();
   const today = useMemo(() => new Date(), []);
   const todayKey = useMemo(() => formatDateFromDate(today), [today]);
@@ -187,7 +188,7 @@ export default function CalendarTab({ barangayId }) {
       setCustomEvents((data || []).map(normalizeCustomEvent));
     }
     setEventsLoading(false);
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

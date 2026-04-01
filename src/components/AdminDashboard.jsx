@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import logo from '../assets/logo.png';
-import { supabase } from '../supabaseClient';
+import { useSupabase } from '../contexts/SupabaseContext';
 
 const DashboardTab = React.lazy(() => import('./admin-dashboard-tabs/DashboardTab'));
 const ResidentsTab = React.lazy(() => import('./admin-dashboard-tabs/ResidentsTab'));
@@ -23,6 +23,7 @@ const TABS = [
 ];
 
 export default function AdminDashboard({ onLogout }) {
+  const supabase = useSupabase();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
@@ -56,7 +57,7 @@ export default function AdminDashboard({ onLogout }) {
     }
     loadAdminBarangay();
     return () => { isActive = false; };
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (!barangayId) return;
@@ -79,7 +80,7 @@ export default function AdminDashboard({ onLogout }) {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [barangayId]);
+  }, [supabase, barangayId]);
 
   function selectTab(tabKey) {
     setActiveTab(tabKey);
@@ -179,15 +180,14 @@ export default function AdminDashboard({ onLogout }) {
               className="fixed inset-0 z-40 flex lg:hidden"
               onClick={() => setDrawerOpen(false)}
             >
-              <div className="flex-1 bg-black/40 backdrop-blur-sm" />
               <div
-                className="h-full w-72 max-w-[80vw] bg-white p-6 shadow-2xl"
+                className="h-full w-64 max-w-[75vw] bg-white p-4 shadow-2xl"
                 onClick={event => event.stopPropagation()}
               >
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin</p>
-                    <p className="text-lg font-semibold text-slate-900">Smart Barangay</p>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400">Admin</p>
+                    <p className="text-base font-semibold text-slate-900">Smart Barangay</p>
                   </div>
                   <button
                     type="button"
@@ -200,12 +200,12 @@ export default function AdminDashboard({ onLogout }) {
                     </svg>
                   </button>
                 </div>
-                <nav className="flex flex-col gap-2">
+                <nav className="flex flex-col gap-1.5">
                   {TABS.map(tab => (
                     <button
                       key={tab.key}
                       type="button"
-                      className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
+                      className={`w-full rounded-xl px-3 py-2 text-left text-sm font-semibold ${
                         activeTab === tab.key
                           ? 'bg-slate-900 text-white'
                           : 'border border-slate-200 text-slate-600'
@@ -230,12 +230,13 @@ export default function AdminDashboard({ onLogout }) {
                 </nav>
                 <button
                   type="button"
-                  className="mt-6 w-full rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                  className="mt-4 w-full rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700"
                   onClick={onLogout}
                 >
                   Logout
                 </button>
               </div>
+              <div className="flex-1 bg-black/40 backdrop-blur-sm" />
             </div>
           )}
 

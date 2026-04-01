@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { supabase, supabaseAnonKey, supabaseUrl } from '../supabaseClient';
+import { supabaseAnonKey, supabaseUrl } from '../supabaseClient';
+import { useSupabase } from '../contexts/SupabaseContext';
 import ConfirmDialog from './ui/ConfirmDialog';
 import { useToast } from '../hooks/useToast';
 
@@ -9,16 +10,16 @@ const SUPERADMIN_TABS = [
   { key: 'tenants', label: 'Tenants' },
   { key: 'admins', label: 'Admins' },
   { key: 'residents', label: 'Residents' },
-  { key: 'access', label: 'Access & Security' },
   { key: 'documents', label: 'Documents' },
   { key: 'audit', label: 'Audit Log' },
+  { key: 'access', label: 'Access & Security' },
 ];
 
 /* ── Audit helper ─────────────────────────────────────────────── */
-async function logAudit({ action, targetType, targetId, targetLabel, metadata }) {
-  const { data: { session } } = await supabase.auth.getSession();
+async function logAudit(client, { action, targetType, targetId, targetLabel, metadata }) {
+  const { data: { session } } = await client.auth.getSession();
   if (!session) return;
-  await supabase.from('audit_logs').insert({
+  await client.from('audit_logs').insert({
     actor_id: session.user.id,
     actor_email: session.user.email,
     action,
@@ -124,8 +125,10 @@ function normalizeResidentAccount(record) {
 }
 
 export default function SuperAdminDashboard({ onLogout }) {
+  const supabase = useSupabase();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [barangays, setBarangays] = useState([]);
   const [adminUsers, setAdminUsers] = useState([]);
   const [zoneSettings, setZoneSettings] = useState([]);
@@ -286,7 +289,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [supabase]);
 
   /* ── Feature 3: Real-Time Activity Feed ──────────────────────── */
   useEffect(() => {
@@ -310,7 +313,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [supabase]);
 
   /* ── Feature 1: Audit Log loader ─────────────────────────────── */
   const loadAuditLogs = useCallback(async () => {
@@ -326,7 +329,7 @@ export default function SuperAdminDashboard({ onLogout }) {
       setAuditLogs(data || []);
     }
     setAuditLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (activeTab === 'audit') { const run = async () => { await loadAuditLogs(); }; run(); }
@@ -357,7 +360,7 @@ export default function SuperAdminDashboard({ onLogout }) {
       releases: relResult.data || [],
     });
     setAnalyticsLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (activeTab === 'analytics') { const run = async () => { await loadAnalytics(); }; run(); }
@@ -382,7 +385,7 @@ export default function SuperAdminDashboard({ onLogout }) {
       requests: reqRes.data || [],
     });
     setGlobalSearchLoading(false);
-  }, []);
+  }, [supabase]);
 
   /* ── Feature 4: Onboarding Wizard handlers ───────────────────── */
   function resetWizard() {
@@ -432,7 +435,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setWizardStep(WIZARD_STEPS.length - 1);
     setWizardSaving(false);
 
-    logAudit({ action: 'wizard_create_barangay', targetType: 'barangay', targetId: brgy.id, targetLabel: brgy.name, metadata: { adminCreated, zones: zonesValue } });
+    logAudit(supabase, { action: 'wizard_create_barangay', targetType: 'barangay', targetId: brgy.id, targetLabel: brgy.name, metadata: { adminCreated, zones: zonesValue } });
     addToast(`Barangay "${brgy.name}" onboarded successfully!`, 'success');
   }
 
@@ -491,9 +494,9 @@ export default function SuperAdminDashboard({ onLogout }) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [supabase]);
 
-  async function loadBarangayHealthSnapshot(barangayId, isCancelled = () => false) {
+  const loadBarangayHealthSnapshot = useCallback(async function loadBarangayHealthSnapshot(barangayId, isCancelled = () => false) {
     if (!barangayId) return;
     setBarangayHealthLoading(true);
     setBarangayHealthError('');
@@ -541,7 +544,7 @@ export default function SuperAdminDashboard({ onLogout }) {
       lastReleaseAt: lastReleaseResult.data?.[0]?.released_at || null,
     });
     setBarangayHealthLoading(false);
-  }
+  }, [supabase]);
 
   const barangayOptions = useMemo(() => {
     return barangays.map(item => ({ id: item.id, label: item.code ? `${item.name} (${item.code})` : item.name }));
@@ -564,7 +567,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     return () => {
       cancelled = true;
     };
-  }, [selectedHealthBarangay, barangayOptions]);
+  }, [selectedHealthBarangay, barangayOptions, loadBarangayHealthSnapshot]);
 
   const adminUserIds = useMemo(() => {
     return new Set(adminUsers.map(item => item.user_id));
@@ -632,7 +635,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setCreateForm({ name: '', code: '' });
     setSaving(false);
     addToast('Barangay created successfully.', 'success');
-    logAudit({ action: 'create_barangay', targetType: 'barangay', targetId: data.id, targetLabel: data.name });
+    logAudit(supabase, { action: 'create_barangay', targetType: 'barangay', targetId: data.id, targetLabel: data.name });
   }
 
   async function handleAssignAdmin(event) {
@@ -663,7 +666,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setAssignForm({ userId: '', email: '', barangayId: '', role: 'barangay_admin' });
     setSaving(false);
     addToast('Admin assigned successfully.', 'success');
-    logAudit({ action: 'assign_admin', targetType: 'admin', targetId: data.user_id, targetLabel: data.email, metadata: { role: data.role, barangay_id: data.barangay_id } });
+    logAudit(supabase, { action: 'assign_admin', targetType: 'admin', targetId: data.user_id, targetLabel: data.email, metadata: { role: data.role, barangay_id: data.barangay_id } });
   }
 
   async function handleDeleteAdmin(userId) {
@@ -678,7 +681,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     }
     setAdminUsers(prev => prev.filter(item => item.user_id !== userId));
     addToast('Admin assignment removed.', 'success');
-    logAudit({ action: 'remove_admin', targetType: 'admin', targetId: userId });
+    logAudit(supabase, { action: 'remove_admin', targetType: 'admin', targetId: userId });
   }
 
   async function handleCreateAdmin(event) {
@@ -744,7 +747,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setCreateAdminForm({ email: '', password: '', barangayId: '', role: 'barangay_admin' });
     setSaving(false);
     addToast('Admin account created.', 'success');
-    logAudit({ action: 'create_admin', targetType: 'admin', targetId: responseBody.user_id, targetLabel: createAdminForm.email.trim(), metadata: { role: createAdminForm.role } });
+    logAudit(supabase, { action: 'create_admin', targetType: 'admin', targetId: responseBody.user_id, targetLabel: createAdminForm.email.trim(), metadata: { role: createAdminForm.role } });
   }
 
   async function handleSaveZoneSettings(event) {
@@ -770,7 +773,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setZoneForm({ barangayId: '', zonesCount: '' });
     setSaving(false);
     addToast('Zone settings saved.', 'success');
-    logAudit({ action: 'save_zone_settings', targetType: 'barangay', targetId: data.barangay_id, metadata: { zones_count: data.zones_count } });
+    logAudit(supabase, { action: 'save_zone_settings', targetType: 'barangay', targetId: data.barangay_id, metadata: { zones_count: data.zones_count } });
   }
 
   function handleFeatureBarangayChange(event) {
@@ -809,7 +812,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setBarangays(prev => [data, ...prev.filter(item => item.id !== data.id)]);
     setSaving(false);
     addToast('Feature toggles saved.', 'success');
-    logAudit({ action: 'save_feature_toggles', targetType: 'barangay', targetId: data.id, targetLabel: data.name, metadata: { kiosk: data.enable_kiosk, portal: data.enable_portal, announcements: data.enable_announcements } });
+    logAudit(supabase, { action: 'save_feature_toggles', targetType: 'barangay', targetId: data.id, targetLabel: data.name, metadata: { kiosk: data.enable_kiosk, portal: data.enable_portal, announcements: data.enable_announcements } });
   }
 
   async function handleSaveKioskPassword(event) {
@@ -842,7 +845,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setKioskPasswordInput('');
     setSaving(false);
     addToast('Kiosk password updated.', 'success');
-    logAudit({ action: 'update_kiosk_password', targetType: 'setting', targetId: 'kiosk_change_password' });
+    logAudit(supabase, { action: 'update_kiosk_password', targetType: 'setting', targetId: 'kiosk_change_password' });
   }
 
   /* ── Seal & barangay header handlers ─────────────────────────── */
@@ -927,7 +930,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setSealFile(null);
     setSealSaving(false);
     addToast('Barangay seal and header info saved.', 'success');
-    logAudit({ action: 'update_barangay_seal', targetType: 'barangay', targetId: updated.id, targetLabel: updated.name });
+    logAudit(supabase, { action: 'update_barangay_seal', targetType: 'barangay', targetId: updated.id, targetLabel: updated.name });
   }
 
   function handleAddDocumentOption(event) {
@@ -973,7 +976,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setDocumentOptions(cleaned);
     setDocumentsSaving(false);
     addToast('Document options saved.', 'success');
-    logAudit({ action: 'save_document_options', targetType: 'setting', targetId: 'document_options', metadata: { count: cleaned.length } });
+    logAudit(supabase, { action: 'save_document_options', targetType: 'setting', targetId: 'document_options', metadata: { count: cleaned.length } });
   }
 
   async function handleSaveFees(event) {
@@ -1003,7 +1006,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setSmsFee(nextSms);
     setFeesInfo('Fees saved and will be used across admin, kiosk, and remote requests.');
     addToast('Platform fees updated.', 'success');
-    logAudit({ action: 'save_platform_fees', targetType: 'setting', metadata: { service_fee: nextService, sms_fee: nextSms } });
+    logAudit(supabase, { action: 'save_platform_fees', targetType: 'setting', metadata: { service_fee: nextService, sms_fee: nextSms } });
   }
 
   async function handleToggleResident(userId, nextStatus) {
@@ -1036,7 +1039,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     });
     setSaving(false);
     addToast(`Account ${nextStatus === 'disabled' ? 'disabled' : 'enabled'}.`, 'success');
-    logAudit({ action: nextStatus === 'disabled' ? 'disable_resident' : 'enable_resident', targetType: 'resident', targetId: userId });
+    logAudit(supabase, { action: nextStatus === 'disabled' ? 'disable_resident' : 'enable_resident', targetType: 'resident', targetId: userId });
   }
 
   async function handleDeleteResident(userId) {
@@ -1080,7 +1083,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     setResidentAccounts(prev => prev.filter(item => item.user_id !== userId));
     setSaving(false);
     addToast('Account deleted.', 'success');
-    logAudit({ action: 'delete_resident', targetType: 'resident', targetId: userId });
+    logAudit(supabase, { action: 'delete_resident', targetType: 'resident', targetId: userId });
   }
 
   async function handleDeleteBarangay(barangayId) {
@@ -1135,7 +1138,7 @@ export default function SuperAdminDashboard({ onLogout }) {
     await handleRefreshHealth();
     setSaving(false);
     addToast('Barangay and all tied data were deleted.', 'success');
-    logAudit({ action: 'delete_barangay', targetType: 'barangay', targetId: barangayId });
+    logAudit(supabase, { action: 'delete_barangay', targetType: 'barangay', targetId: barangayId });
   }
 
   function formatTimestamp(value) {
@@ -1200,8 +1203,77 @@ export default function SuperAdminDashboard({ onLogout }) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-(--sbk-page-bg) px-4 py-8">
+    <div className="sa-shell min-h-screen w-full bg-(--sbk-page-bg) px-4 py-8">
       <div className="mx-auto w-full max-w-6xl space-y-8">
+        {/* Mobile header with hamburger */}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 rounded-2xl shadow-sm lg:hidden">
+          <button
+            type="button"
+            className="flex flex-col gap-1.5 rounded-xl border border-slate-200 p-2 text-slate-700 shadow-sm"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation drawer"
+          >
+            <span className="h-0.5 w-6 rounded-full bg-slate-700" />
+            <span className="h-0.5 w-6 rounded-full bg-slate-700" />
+            <span className="h-0.5 w-6 rounded-full bg-slate-700" />
+          </button>
+          <p className="text-sm font-semibold text-slate-600">{SUPERADMIN_TABS.find(t => t.key === activeTab)?.label}</p>
+        </div>
+
+        {/* Mobile drawer */}
+        {drawerOpen && (
+          <div
+            className="fixed inset-0 z-40 flex lg:hidden"
+            onClick={() => setDrawerOpen(false)}
+          >
+            <div
+              className="h-full w-64 max-w-[75vw] bg-white p-4 shadow-2xl"
+              onClick={event => event.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400">Superadmin</p>
+                  <p className="text-base font-semibold text-slate-900">Developer Panel</p>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full border border-slate-200 p-2"
+                  aria-label="Close drawer"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <nav className="flex flex-col gap-1.5">
+                {SUPERADMIN_TABS.map(tab => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    className={`w-full rounded-xl px-3 py-2 text-left text-sm font-semibold ${
+                      activeTab === tab.key
+                        ? 'bg-slate-900 text-white'
+                        : 'border border-slate-200 text-slate-600'
+                    }`}
+                    onClick={() => { setActiveTab(tab.key); setDrawerOpen(false); }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+              <button
+                type="button"
+                className="mt-4 w-full rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700"
+                onClick={onLogout}
+              >
+                Sign out
+              </button>
+            </div>
+            <div className="flex-1 bg-black/40 backdrop-blur-sm" />
+          </div>
+        )}
+
         <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -1251,15 +1323,6 @@ export default function SuperAdminDashboard({ onLogout }) {
               ) : null}
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              onClick={onLogout}
-            >
-              Sign out
-            </button>
-          </div>
         </header>
 
         {error ? (
@@ -1267,7 +1330,7 @@ export default function SuperAdminDashboard({ onLogout }) {
             {error}
           </div>
         ) : null}
-        <nav className="flex flex-wrap gap-2">
+        <nav className="hidden flex-wrap gap-2 lg:flex">
           {SUPERADMIN_TABS.map(tab => (
             <button
               key={tab.key}
@@ -1471,13 +1534,13 @@ export default function SuperAdminDashboard({ onLogout }) {
                         const rows = analyticsData.requests.map(r => ({ id: r.id, barangay_id: r.barangay_id, document: r.document, status: r.status, created_at: r.created_at }));
                         downloadCSV(rows, ['id', 'barangay_id', 'document', 'status', 'created_at'], 'requests_export.csv');
                         addToast('Requests exported to CSV.', 'success');
-                        logAudit({ action: 'export_csv', targetType: 'requests', metadata: { count: rows.length } });
+                        logAudit(supabase, { action: 'export_csv', targetType: 'requests', metadata: { count: rows.length } });
                       }}>Export Requests CSV</button>
                       <button type="button" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={() => {
                         const rows = analyticsData.residents.map(r => ({ id: r.id, barangay_id: r.barangay_id, sex: r.sex, birthday: r.birthday, created_at: r.created_at }));
                         downloadCSV(rows, ['id', 'barangay_id', 'sex', 'birthday', 'created_at'], 'residents_export.csv');
                         addToast('Residents exported to CSV.', 'success');
-                        logAudit({ action: 'export_csv', targetType: 'residents', metadata: { count: rows.length } });
+                        logAudit(supabase, { action: 'export_csv', targetType: 'residents', metadata: { count: rows.length } });
                       }}>Export Residents CSV</button>
                     </>
                   ) : null}
@@ -2311,6 +2374,15 @@ export default function SuperAdminDashboard({ onLogout }) {
                 {saving ? 'Saving...' : 'Save password'}
               </button>
             </form>
+            <div className="mt-6 border-t border-amber-200 pt-4">
+              <button
+                type="button"
+                className="w-full rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100"
+                onClick={onLogout}
+              >
+                Sign out
+              </button>
+            </div>
           </section>
         ) : null}
 

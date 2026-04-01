@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import { useToast } from '../../hooks/useToast';
 import {
   BARANGAY_INFO_STORAGE_KEY,
@@ -111,6 +111,7 @@ const EMPTY_NEW_APPLICANT = {
 };
 
 function ResidentPortalShell() {
+  const supabase = useSupabase();
   const { addToast } = useToast();
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -201,7 +202,7 @@ function ResidentPortalShell() {
       isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase.auth]);
 
   useEffect(() => {
     let isActive = true;
@@ -223,7 +224,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -266,7 +267,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, [selectedBarangayId]);
+  }, [selectedBarangayId, supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -300,7 +301,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -471,7 +472,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, [session, barangays, selectedBarangayId, selectedBarangayName]);
+  }, [session, barangays, selectedBarangayId, selectedBarangayName, supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -498,7 +499,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, [selectedBarangayId, barangays]);
+  }, [selectedBarangayId, barangays, supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -523,7 +524,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, [selectedBarangayId]);
+  }, [selectedBarangayId, supabase]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -564,7 +565,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, [selectedResident, selectedBarangayId]);
+  }, [selectedResident, selectedBarangayId, supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -595,7 +596,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, [selectedResident, selectedBarangayId]);
+  }, [selectedResident, selectedBarangayId, supabase]);
 
   const canSubmitAuth = useMemo(() => {
     return sanitizeEmail(email).length > 0 && password.length >= 6 && Boolean(selectedBarangayId);
@@ -1157,11 +1158,6 @@ function ResidentPortalShell() {
                   : 'Sign in to submit barangay document requests online.'}
             </p>
           </div>
-          {session ? (
-            <button type="button" className="resident-signout" onClick={handleSignOut}>
-              Sign out
-            </button>
-          ) : null}
         </header>
 
         {recoveryMode ? (
@@ -1366,6 +1362,7 @@ function ResidentPortalShell() {
             accountError={accountError}
             accountInfo={accountInfo}
             onUpdateAccount={handleUpdateAccount}
+            onSignOut={handleSignOut}
           />
         ) : !recoveryMode ? (
           <section className="resident-card">
