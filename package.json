@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.93.3",
     "@tailwindcss/vite": "^4.1.18",
+    "@vercel/speed-insights": "^2.0.0",
     "date-holidays": "^3.26.8",
     "jspdf": "^4.2.1",
     "prop-types": "^15.8.1",
