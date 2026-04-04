@@ -27,7 +27,6 @@ function buildReceiptText(info) {
     queueNumber,
     residentName,
     document,
-    purpose,
     total,
     message,
   } = info;
@@ -57,25 +56,6 @@ function buildReceiptText(info) {
   // Resident details
   lines.push(`Name: ${residentName}`);
   lines.push(`Doc:  ${document}`);
-
-  const purposePrefix = 'Purpose: ';
-  const purposeText = purposePrefix + purpose;
-  if (purposeText.length <= W) {
-    lines.push(purposeText);
-  } else {
-    lines.push(purposePrefix);
-    const words = purpose.split(' ');
-    let cur = ' ';
-    for (const w of words) {
-      if (cur.length + w.length + 1 > W) {
-        lines.push(cur);
-        cur = ' ' + w;
-      } else {
-        cur += (cur.trim() ? ' ' : '') + w;
-      }
-    }
-    if (cur.trim()) lines.push(cur);
-  }
 
   lines.push(thin);
 

@@ -122,20 +122,122 @@ export default function ResidentPortalTabs({
   };
 
   const handleDownloadReceipt = () => {
-    const lines = [
-      'Barangay Document Request Receipt',
-      `Name: ${formatResidentName()}`,
-      `Document: ${successDocument || 'N/A'}`,
-      `Reference: ${successReference || 'N/A'}`,
-      `Price: ${successPrice !== null && successPrice !== undefined ? formatCurrency(successPrice) : 'Not available'}`,
+    const name = formatResidentName();
+    const doc = successDocument || 'N/A';
+    const ref = successReference || 'N/A';
+    const price = successPrice !== null && successPrice !== undefined ? formatCurrency(successPrice) : 'Not available';
+
+    const W = 380;
+    const PAD = 24;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Fonts
+    const fontBold = 'bold 16px "Segoe UI", Arial, sans-serif';
+    const fontNormal = '14px "Segoe UI", Arial, sans-serif';
+    const fontSmall = '12px "Segoe UI", Arial, sans-serif';
+    const fontTitle = 'bold 18px "Segoe UI", Arial, sans-serif';
+
+    // Calculate height first
+    canvas.width = W;
+    canvas.height = 500; // temp
+    ctx.font = fontNormal;
+
+    let y = PAD;
+    const lineH = 22;
+    const sectionGap = 14;
+
+    // Title block
+    y += 20; // Barangay Document Request Receipt
+    y += lineH; // subtitle
+    y += sectionGap;
+    y += 2; // separator line
+
+    // Details
+    const details = [
+      { label: 'Name:', value: name },
+      { label: 'Document:', value: doc },
+      { label: 'Reference:', value: ref },
+      { label: 'Price:', value: price },
     ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
+    y += sectionGap;
+    y += details.length * lineH;
+    y += sectionGap;
+    y += 2; // separator line
+
+    // Footer
+    y += sectionGap;
+    y += lineH; // thank you
+    y += PAD;
+
+    const totalH = y;
+    canvas.height = totalH;
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, totalH);
+
+    // Draw
+    y = PAD;
+
+    // Header
+    ctx.fillStyle = '#1d2b53';
+    ctx.font = fontTitle;
+    ctx.textAlign = 'center';
+    ctx.fillText('Document Request Receipt', W / 2, y + 16);
+    y += 20;
+    ctx.font = fontSmall;
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText(new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }), W / 2, y + 14);
+    y += lineH;
+    y += sectionGap;
+
+    // Separator
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, y);
+    ctx.lineTo(W - PAD, y);
+    ctx.stroke();
+    y += 2;
+    y += sectionGap;
+
+    // Details
+    ctx.textAlign = 'left';
+    for (const { label, value } of details) {
+      ctx.font = fontBold;
+      ctx.fillStyle = '#374151';
+      ctx.fillText(label, PAD, y + 14);
+      ctx.font = fontNormal;
+      ctx.fillStyle = '#1d2b53';
+      const labelW = ctx.measureText(label + ' ').width;
+      ctx.fillText(value, PAD + labelW, y + 14);
+      y += lineH;
+    }
+
+    y += sectionGap;
+
+    // Separator
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.beginPath();
+    ctx.moveTo(PAD, y);
+    ctx.lineTo(W - PAD, y);
+    ctx.stroke();
+    y += 2;
+    y += sectionGap;
+
+    // Footer
+    ctx.font = fontSmall;
+    ctx.fillStyle = '#6b7280';
+    ctx.textAlign = 'center';
+    ctx.fillText('Thank you! Please wait for the SMS notification.', W / 2, y + 12);
+
+    // Download
+    const dataUrl = canvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `request-receipt-${successReference || 'receipt'}.txt`;
+    link.href = dataUrl;
+    link.download = `request-receipt-${ref}.png`;
     link.click();
-    URL.revokeObjectURL(url);
   };
 
   const tabMeta = [
