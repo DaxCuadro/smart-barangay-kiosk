@@ -19,12 +19,6 @@ function center(text, width) {
   return ' '.repeat(pad) + text;
 }
 
-function priceLine(label, value, width) {
-  const price = `P${Number(value).toFixed(2)}`;
-  const gap = width - label.length - price.length;
-  return label + ' '.repeat(Math.max(1, gap)) + price;
-}
-
 function buildReceiptText(info) {
   const {
     barangayName = 'Barangay',
@@ -34,9 +28,6 @@ function buildReceiptText(info) {
     residentName,
     document,
     purpose,
-    documentFee,
-    serviceFee,
-    smsFee,
     total,
     message,
   } = info;
@@ -88,13 +79,12 @@ function buildReceiptText(info) {
 
   lines.push(thin);
 
-  // Pricing
-  if (documentFee !== null && documentFee !== undefined) {
-    lines.push(priceLine('Document Fee:', documentFee, W));
-    lines.push(priceLine('Service Fee:', serviceFee, W));
-    lines.push(priceLine('SMS Fee:', smsFee, W));
-    lines.push(thin);
-    lines.push(priceLine('TOTAL:', total, W));
+  // Total price only
+  if (total !== null && total !== undefined) {
+    const label = 'Total:';
+    const price = `P${Number(total).toFixed(2)}`;
+    const gap = W - label.length - price.length;
+    lines.push(label + ' '.repeat(Math.max(1, gap)) + price);
   }
 
   lines.push(sep);
@@ -111,11 +101,20 @@ function buildReceiptText(info) {
 // --- Public API ---
 
 /**
+ * Check if this device can use RawBT (Android only).
+ */
+export function isRawBTAvailable() {
+  if (typeof navigator === 'undefined') return false;
+  return /android/i.test(navigator.userAgent);
+}
+
+/**
  * Send receipt to RawBT for printing on the PT-210.
- * RawBT must be installed and paired with the printer.
- * Returns 'printed' on success attempt, 'no-rawbt' if intent fails.
+ * Returns 'printed' if sent, 'no-rawbt' if not on Android.
  */
 export function printReceipt(receiptInfo) {
+  if (!isRawBTAvailable()) return 'no-rawbt';
+
   const text = buildReceiptText(receiptInfo);
   const encoded = encodeURIComponent(text);
 
