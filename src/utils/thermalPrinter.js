@@ -11,8 +11,7 @@
  * Setup: Install RawBT from Play Store, pair PT-210, enable "Auto print", set paper width to 58mm.
  */
 
-const RAWBT_INTENT = 'intent:print?text=';
-const RAWBT_SUFFIX = '#Intent;scheme=rawbt;package=ru.a402.rawbtprinter;end;';
+const RAWBT_SCHEME = 'rawbt:';
 
 function center(text, width) {
   if (text.length >= width) return text.slice(0, width);
@@ -119,10 +118,9 @@ function buildReceiptText(info) {
 export function printReceipt(receiptInfo) {
   const text = buildReceiptText(receiptInfo);
   const encoded = encodeURIComponent(text);
-  const intentUrl = RAWBT_INTENT + encoded + RAWBT_SUFFIX;
 
   try {
-    window.location.href = intentUrl;
+    window.location.href = RAWBT_SCHEME + encoded;
     return 'printed';
   } catch {
     return 'no-rawbt';
