@@ -31,6 +31,8 @@ Deno.serve(async (req) => {
 
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
     const password = body?.password;
+    const phone = typeof body?.phone === 'string' ? body.phone.trim() : '';
+    const barangayId = typeof body?.barangay_id === 'string' ? body.barangay_id.trim() : '';
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: 'Missing email or password.' }), {
@@ -61,6 +63,20 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Store phone number in resident_profiles if provided
+    if (phone) {
+      await supabaseAdmin
+        .from('resident_profiles')
+        .upsert(
+          {
+            user_id: createData.user.id,
+            phone: phone,
+            barangay_id: barangayId || null,
+          },
+          { onConflict: 'user_id' },
+        );
     }
 
     return new Response(JSON.stringify({ user_id: createData.user.id }), {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
-import { BARANGAY_INFO_STORAGE_KEY, getBarangayZonesCount, setBarangayInfo } from '../../utils/barangayInfoStorage';
+import { BARANGAY_INFO_STORAGE_KEY, getBarangayZonesCount, getSelectedBarangayName, setBarangayInfo } from '../../utils/barangayInfoStorage';
+import { isPrinterConnected, printReceipt } from '../../utils/thermalPrinter';
 
 const INITIAL_FORM = {
   lastName: '',
@@ -166,7 +167,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
   const [requestSaving, setRequestSaving] = useState(false);
   const [pricingInfo, setPricingInfo] = useState({ prices: {}, serviceFee: 0, smsFee: 0 });
   const [secretaryPresent, setSecretaryPresent] = useState(true);
-  const [successNotice, setSuccessNotice] = useState({ open: false, title: '', message: '', queueNumber: null, reference: '' });
+  const [successNotice, setSuccessNotice] = useState({ open: false, title: '', message: '', queueNumber: null, reference: '', printStatus: '' });
   const [moreDocsNotice, setMoreDocsNotice] = useState(false);
 
   const safeZoneValue = useMemo(
@@ -305,7 +306,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
   }
 
   function closeSuccessNotice() {
-    setSuccessNotice({ open: false, title: '', message: '', queueNumber: null, reference: '' });
+    setSuccessNotice({ open: false, title: '', message: '', queueNumber: null, reference: '', printStatus: '' });
   }
 
   async function getNextQueueNumber() {
@@ -338,6 +339,31 @@ export default function PrecheckScreen({ onClose, barangayId }) {
       if (!count) return ref;
     }
     return `REQ-${datePart}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
+  }
+
+  async function tryPrintReceipt({ residentName, document, purpose, referenceNumber, queueNumber, docPrice }) {
+    if (!isPrinterConnected()) return 'no-printer';
+    try {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      await printReceipt({
+        barangayName: getSelectedBarangayName() || 'Barangay',
+        date: dateStr,
+        reference: referenceNumber,
+        queueNumber,
+        residentName,
+        document,
+        purpose,
+        documentFee: docPrice,
+        serviceFee,
+        smsFee,
+        total: docPrice !== null && docPrice !== undefined ? docPrice + serviceFee + smsFee : null,
+        message: secretaryPresent ? 'Please proceed to the secretary desk.' : '',
+      });
+      return 'printed';
+    } catch {
+      return 'error';
+    }
   }
 
   function handleOpenRequest(resident) {
@@ -476,6 +502,18 @@ export default function PrecheckScreen({ onClose, barangayId }) {
     setIntakeSaving(false);
     setIntakeReviewOpen(false);
     setIntakeOpen(false);
+
+    const residentName = [intakeForm.firstName, intakeForm.middleName, intakeForm.lastName].filter(Boolean).join(' ');
+    const docPrice = pricingInfo.prices?.[intakeForm.document] ?? null;
+    const printStatus = await tryPrintReceipt({
+      residentName,
+      document: intakeForm.document,
+      purpose: intakeForm.purpose,
+      referenceNumber,
+      queueNumber,
+      docPrice,
+    });
+
     setSuccessNotice({
       open: true,
       title: secretaryPresent ? 'Request submitted' : 'Request submitted successfully',
@@ -484,6 +522,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         : 'Please wait for the text message from the secretary.',
       queueNumber,
       reference: referenceNumber,
+      printStatus,
     });
     setIntakeForm(INITIAL_FORM);
   }
@@ -581,6 +620,18 @@ export default function PrecheckScreen({ onClose, barangayId }) {
 
     setRequestSaving(false);
     setRequestOpen(false);
+
+    const residentName = formatFullName(selectedResident);
+    const docPrice = pricingInfo.prices?.[requestForm.document] ?? null;
+    const printStatus = await tryPrintReceipt({
+      residentName,
+      document: requestForm.document,
+      purpose: requestForm.purpose.trim(),
+      referenceNumber,
+      queueNumber,
+      docPrice,
+    });
+
     setSuccessNotice({
       open: true,
       title: secretaryPresent ? 'Request submitted' : 'Request submitted successfully',
@@ -589,6 +640,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         : 'Please wait for the text message from the secretary.',
       queueNumber,
       reference: referenceNumber,
+      printStatus,
     });
     setRequestForm({ document: '', purpose: '' });
   }
@@ -609,6 +661,13 @@ export default function PrecheckScreen({ onClose, barangayId }) {
           </p>
         ) : null}
         <p className="kiosk-confirm-subtitle">{successNotice.message}</p>
+        {successNotice.printStatus === 'printed' ? (
+          <p className="kiosk-print-notice kiosk-print-notice--success">Receipt printed successfully.</p>
+        ) : successNotice.printStatus === 'error' ? (
+          <p className="kiosk-print-notice kiosk-print-notice--warn">Receipt could not be printed. Please ask at the desk.</p>
+        ) : successNotice.printStatus === 'no-printer' ? (
+          <p className="kiosk-print-notice kiosk-print-notice--warn">No printer connected. Receipt was not printed.</p>
+        ) : null}
         <div className="kiosk-confirm-actions">
           <button type="button" className="kiosk-intake-submit" onClick={() => { closeSuccessNotice(); handleCloseIntake(); }}>Done</button>
         </div>

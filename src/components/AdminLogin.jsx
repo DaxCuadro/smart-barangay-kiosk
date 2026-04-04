@@ -26,6 +26,10 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoveryCompleted, setRecoveryCompleted] = useState(false);
+  const [otpMode, setOtpMode] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpMaskedPhone, setOtpMaskedPhone] = useState('');
+  const [otpVerifying, setOtpVerifying] = useState(false);
 
   React.useEffect(() => {
     const hash = window.location.hash || '';
@@ -84,7 +88,7 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
   async function handleForgotPassword() {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setError('Enter your email first so we can send a reset link.');
+      setError('Enter your email first so we can send an OTP.');
       return;
     }
 
@@ -92,16 +96,59 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
     setError(null);
     setInfo('');
 
-    const redirectTo = `${window.location.origin}/admin`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, { redirectTo });
+    const { data, error: invokeError } = await supabase.functions.invoke('request_otp', {
+      body: { email: trimmedEmail, user_type: 'admin' },
+    });
 
     setForgotLoading(false);
-    if (resetError) {
-      setError(resetError.message);
+    if (invokeError || data?.error) {
+      setError(data?.error || invokeError?.message || 'Failed to send OTP.');
       return;
     }
 
-    setInfo('Password reset link sent. Check your email inbox.');
+    setOtpMaskedPhone(data?.masked_phone || '');
+    setOtpMode(true);
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setInfo(`OTP sent to ${data?.masked_phone || 'your phone'}. Enter it below.`);
+  }
+
+  async function handleVerifyOtpAndReset(event) {
+    event.preventDefault();
+    setError(null);
+    setInfo('');
+
+    if (!otpCode.trim()) {
+      setError('Enter the OTP code sent to your phone.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Password confirmation does not match.');
+      return;
+    }
+
+    setOtpVerifying(true);
+    const { data, error: invokeError } = await supabase.functions.invoke('verify_otp', {
+      body: { email: email.trim(), otp: otpCode.trim(), new_password: newPassword },
+    });
+    setOtpVerifying(false);
+
+    if (invokeError || data?.error) {
+      setError(data?.error || invokeError?.message || 'Failed to verify OTP.');
+      return;
+    }
+
+    setOtpMode(false);
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setRecoveryCompleted(true);
+    setInfo('Password updated successfully. Sign in with your new password.');
   }
 
   async function handleUpdatePassword(event) {
@@ -148,19 +195,19 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
       <div className="mx-auto flex w-full max-w-md items-center">
         <form
           className="sbk-panel w-full rounded-4xl border border-transparent bg-white/95 p-6 shadow-2xl"
-          onSubmit={recoveryMode ? handleUpdatePassword : handleLogin}
+          onSubmit={recoveryMode ? handleUpdatePassword : otpMode ? handleVerifyOtpAndReset : handleLogin}
         >
           <div className="mb-6 text-center">
             <img src={logo} alt="Smart Barangay Kiosk" className="mx-auto h-10 select-none" draggable="false" />
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-              {recoveryMode ? 'Account recovery' : 'Welcome back'}
+              {recoveryMode ? 'Account recovery' : otpMode ? 'Password reset' : 'Welcome back'}
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-slate-900">
-              {recoveryMode ? 'Set new password' : 'Admin login'}
+              {recoveryMode ? 'Set new password' : otpMode ? 'Enter OTP' : 'Admin login'}
             </h2>
           </div>
 
-          {!recoveryMode && !recoveryCompleted ? (
+          {!recoveryMode && !recoveryCompleted && !otpMode ? (
             <>
           <div className="mb-5">
             <label className="block text-sm font-semibold text-slate-700" htmlFor="admin-email">Email</label>
@@ -221,7 +268,7 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
               onClick={handleForgotPassword}
               disabled={forgotLoading}
             >
-              {forgotLoading ? 'Sending reset link...' : 'Forgot password?'}
+              {forgotLoading ? 'Sending OTP...' : 'Forgot password?'}
             </button>
           </div>
             </>
@@ -244,6 +291,53 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
                 <label className="block text-sm font-semibold text-slate-700" htmlFor="admin-confirm-password">Confirm password</label>
                 <input
                   id="admin-confirm-password"
+                  type="password"
+                  className="mt-2 block w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-(--sbk-accent)"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  minLength={8}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+            </>
+          ) : otpMode ? (
+            <>
+              <p className="mb-4 text-sm text-slate-600 text-center">
+                A 6-digit code was sent to <strong>{otpMaskedPhone || 'your registered phone'}</strong>.
+              </p>
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-slate-700" htmlFor="admin-otp">OTP Code</label>
+                <input
+                  id="admin-otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="123456"
+                  className="mt-2 block w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 tracking-[0.3em] text-center placeholder:text-slate-400 focus:border-(--sbk-accent)"
+                  value={otpCode}
+                  onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                />
+              </div>
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-slate-700" htmlFor="admin-otp-new-password">New password</label>
+                <input
+                  id="admin-otp-new-password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  className="mt-2 block w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-(--sbk-accent)"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  minLength={8}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-slate-700" htmlFor="admin-otp-confirm-password">Confirm password</label>
+                <input
+                  id="admin-otp-confirm-password"
                   type="password"
                   className="mt-2 block w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-(--sbk-accent)"
                   value={confirmPassword}
@@ -293,23 +387,25 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
                 <svg className="h-5 w-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
                 {recoveryMode ? 'Updating password…' : 'Checking credentials…'}
               </span>
-            ) : recoveryMode ? 'Update password' : 'Sign in'}
+            ) : recoveryMode ? 'Update password' : otpMode ? (otpVerifying ? 'Verifying...' : 'Reset password') : 'Sign in'}
           </button>
 
-          {recoveryMode || recoveryCompleted ? (
+          {recoveryMode || recoveryCompleted || otpMode ? (
             <button
               type="button"
               className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 py-2 text-sm font-semibold text-slate-700"
               onClick={() => {
                 setRecoveryMode(false);
                 setRecoveryCompleted(false);
+                setOtpMode(false);
+                setOtpCode('');
                 setNewPassword('');
                 setConfirmPassword('');
                 setError(null);
                 setInfo('');
               }}
             >
-              Continue to login
+              {recoveryCompleted ? 'Continue to login' : 'Back to login'}
             </button>
           ) : null}
         </form>

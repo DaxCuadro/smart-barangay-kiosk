@@ -381,6 +381,21 @@ export default function RequestsTab({ barangayId }) {
       return;
     }
 
+    // Send SMS notification when document is ready for pickup
+    if (nextStatus === 'done' && request.telephone) {
+      try {
+        await supabase.functions.invoke('send_sms', {
+          body: {
+            phone: request.telephone,
+            message: `Your ${request.document || 'document'} (Ref: ${request.reference}) is ready for pickup at the barangay hall. Please bring a valid ID.`,
+          },
+        });
+        addToast('SMS notification sent to resident.', 'success');
+      } catch {
+        addToast('Document marked ready, but SMS notification failed.', 'warning');
+      }
+    }
+
     setRequests(prev =>
       prev.map(item => (item.id === request.id ? { ...item, status: nextStatus, note: '' } : item)),
     );

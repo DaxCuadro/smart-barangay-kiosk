@@ -182,6 +182,21 @@ export default function VerificationTab({ barangayId }) {
     setSavingId(null);
     closeConfirm();
     addToast('Verification approved.', 'success');
+
+    // Send SMS notification on approval
+    if (entry.telephone) {
+      try {
+        await supabase.functions.invoke('send_sms', {
+          body: {
+            phone: entry.telephone,
+            message: `Your Smart Barangay resident verification has been approved. You may now request documents through the resident portal.`,
+          },
+        });
+        addToast('SMS notification sent to resident.', 'success');
+      } catch {
+        // Non-blocking: approval succeeded even if SMS fails
+      }
+    }
   }
 
   async function handleReject(entry) {
@@ -217,6 +232,20 @@ export default function VerificationTab({ barangayId }) {
     setSavingId(null);
     closeConfirm();
     addToast('Verification rejected.', 'info');
+
+    // Send SMS notification on rejection
+    if (entry.telephone) {
+      try {
+        await supabase.functions.invoke('send_sms', {
+          body: {
+            phone: entry.telephone,
+            message: `Your Smart Barangay resident verification was not approved. Please visit the barangay hall for assistance or resubmit your details.`,
+          },
+        });
+      } catch {
+        // Non-blocking: rejection succeeded even if SMS fails
+      }
+    }
   }
 
   return (

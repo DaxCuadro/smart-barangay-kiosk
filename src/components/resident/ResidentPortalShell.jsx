@@ -117,6 +117,7 @@ function ResidentPortalShell() {
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [authMode, setAuthMode] = useState('signin');
@@ -127,6 +128,11 @@ function ResidentPortalShell() {
   const [recoveryMode, setRecoveryMode] = useState(initialRecovery);
   const [recoverySaving, setRecoverySaving] = useState(false);
   const [recoveryCompleted, setRecoveryCompleted] = useState(false);
+  const [otpMode, setOtpMode] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpMaskedPhone, setOtpMaskedPhone] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
@@ -599,8 +605,10 @@ function ResidentPortalShell() {
   }, [selectedResident, selectedBarangayId, supabase]);
 
   const canSubmitAuth = useMemo(() => {
-    return sanitizeEmail(email).length > 0 && password.length >= 6 && Boolean(selectedBarangayId);
-  }, [email, password, selectedBarangayId]);
+    const baseValid = sanitizeEmail(email).length > 0 && password.length >= 6 && Boolean(selectedBarangayId);
+    if (authMode === 'signup') return baseValid && phone.trim().length >= 10;
+    return baseValid;
+  }, [email, password, phone, selectedBarangayId, authMode]);
 
   const verificationStatus = profile?.resident_id ? 'verified' : (profile?.status || 'new');
   const canAccessTabs = Boolean(profile?.resident_id) && verificationStatus !== 'pending';
@@ -651,13 +659,14 @@ function ResidentPortalShell() {
       return;
     }
     const { data, error } = await supabase.functions.invoke('create_resident_user', {
-      body: { email: sanitized, password },
+      body: { email: sanitized, password, phone: phone.trim(), barangay_id: selectedBarangayId || '' },
     });
     if (error || data?.error) {
       setAuthError(data?.error || error?.message || 'Failed to create account.');
       return;
     }
     setPassword('');
+    setPhone('');
     setAuthInfo('Account created. You can now sign in.');
     setAuthMode('signin');
     addToast('Account created. You can sign in now.', 'success');
@@ -666,7 +675,7 @@ function ResidentPortalShell() {
   async function handleForgotPassword() {
     const sanitized = sanitizeEmail(email);
     if (!sanitized) {
-      setAuthError('Enter your email first so we can send a reset link.');
+      setAuthError('Enter your email first so we can send an OTP.');
       return;
     }
 
@@ -674,17 +683,61 @@ function ResidentPortalShell() {
     setAuthError('');
     setAuthInfo('');
 
-    const redirectTo = `${window.location.origin}/`;
-    const { error } = await supabase.auth.resetPasswordForEmail(sanitized, { redirectTo });
+    const { data, error } = await supabase.functions.invoke('request_otp', {
+      body: { email: sanitized, user_type: 'resident' },
+    });
 
     setForgotLoading(false);
-    if (error) {
-      setAuthError(error.message);
+    if (error || data?.error) {
+      setAuthError(data?.error || error?.message || 'Failed to send OTP.');
       return;
     }
 
-    setAuthInfo('Password reset link sent. Check your email inbox.');
-    addToast('Password reset link sent.', 'success');
+    setOtpMaskedPhone(data?.masked_phone || '');
+    setOtpMode(true);
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setAuthInfo(`OTP sent to ${data?.masked_phone || 'your phone'}. Enter it below.`);
+    addToast('OTP sent to your phone.', 'success');
+  }
+
+  async function handleVerifyOtpAndReset(event) {
+    event.preventDefault();
+    setAuthError('');
+    setAuthInfo('');
+
+    if (!otpCode.trim()) {
+      setAuthError('Enter the OTP code sent to your phone.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setAuthError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setAuthError('Password confirmation does not match.');
+      return;
+    }
+
+    setOtpVerifying(true);
+    const { data, error } = await supabase.functions.invoke('verify_otp', {
+      body: { email: sanitizeEmail(email), otp: otpCode.trim(), new_password: newPassword },
+    });
+    setOtpVerifying(false);
+
+    if (error || data?.error) {
+      setAuthError(data?.error || error?.message || 'Failed to verify OTP.');
+      return;
+    }
+
+    setOtpMode(false);
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setRecoveryCompleted(true);
+    setAuthInfo('Password updated successfully. You can now sign in.');
+    addToast('Password updated successfully.', 'success');
   }
 
   async function handleRecoveryPasswordUpdate(event) {
@@ -1209,7 +1262,7 @@ function ResidentPortalShell() {
           </section>
         ) : null}
 
-        {recoveryCompleted ? (
+        {recoveryCompleted && !otpMode ? (
           <section className="resident-card">
             <div className="resident-card-head">
               <h2>Password updated</h2>
@@ -1229,7 +1282,72 @@ function ResidentPortalShell() {
           </section>
         ) : null}
 
-        {!recoveryMode && !recoveryCompleted && !session ? (
+        {otpMode && !session ? (
+          <section className="resident-card">
+            <div className="resident-card-head">
+              <h2>Reset password via OTP</h2>
+              <p>Enter the 6-digit code sent to {otpMaskedPhone || 'your phone'}.</p>
+            </div>
+            <form className="resident-form" onSubmit={handleVerifyOtpAndReset}>
+              <label className="resident-field">
+                <span>OTP Code</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={event => setOtpCode(event.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  required
+                />
+              </label>
+              <label className="resident-field">
+                <span>New password</span>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={event => setNewPassword(event.target.value)}
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  required
+                />
+              </label>
+              <label className="resident-field">
+                <span>Confirm new password</span>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={event => setConfirmPassword(event.target.value)}
+                  minLength={8}
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+              {authError ? <p className="resident-note resident-note--error">{authError}</p> : null}
+              {authInfo ? <p className="resident-note resident-note--info">{authInfo}</p> : null}
+              <button className="resident-submit" type="submit" disabled={otpVerifying}>
+                {otpVerifying ? 'Verifying...' : 'Reset password'}
+              </button>
+              <button
+                type="button"
+                className="resident-link"
+                onClick={() => {
+                  setOtpMode(false);
+                  setOtpCode('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setAuthError('');
+                  setAuthInfo('');
+                }}
+              >
+                Back to sign in
+              </button>
+            </form>
+          </section>
+        ) : null}
+
+        {!recoveryMode && !recoveryCompleted && !otpMode && !session ? (
           <section className="resident-card">
             <div className="resident-card-head">
               <h2>{authMode === 'signup' ? 'Create account' : 'Resident login'}</h2>
@@ -1284,6 +1402,18 @@ function ResidentPortalShell() {
                   required
                 />
               </label>
+              {authMode === 'signup' ? (
+                <label className="resident-field">
+                  <span>Phone number</span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={event => setPhone(event.target.value)}
+                    placeholder="09XX-XXX-XXXX"
+                    required
+                  />
+                </label>
+              ) : null}
               {authError ? <p className="resident-note resident-note--error">{authError}</p> : null}
               {authInfo ? <p className="resident-note resident-note--info">{authInfo}</p> : null}
               <button className="resident-submit" type="submit" disabled={!canSubmitAuth}>
@@ -1296,7 +1426,7 @@ function ResidentPortalShell() {
                   onClick={handleForgotPassword}
                   disabled={forgotLoading}
                 >
-                  {forgotLoading ? 'Sending reset link...' : 'Forgot password?'}
+                  {forgotLoading ? 'Sending OTP...' : 'Forgot password?'}
                 </button>
               ) : null}
               <button
