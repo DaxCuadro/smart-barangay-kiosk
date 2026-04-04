@@ -79,13 +79,11 @@ function buildReceiptText(info) {
 
   lines.push(thin);
 
-  // Total price only
-  if (total !== null && total !== undefined) {
-    const label = 'Total:';
-    const price = `P${Number(total).toFixed(2)}`;
-    const gap = W - label.length - price.length;
-    lines.push(label + ' '.repeat(Math.max(1, gap)) + price);
-  }
+  // Total price
+  const label = 'Total:';
+  const price = `P${Number(total || 0).toFixed(2)}`;
+  const gap = W - label.length - price.length;
+  lines.push(label + ' '.repeat(Math.max(1, gap)) + price);
 
   lines.push(sep);
   if (message) lines.push(center(message, W));
@@ -101,20 +99,11 @@ function buildReceiptText(info) {
 // --- Public API ---
 
 /**
- * Check if this device can use RawBT (Android only).
- */
-export function isRawBTAvailable() {
-  if (typeof navigator === 'undefined') return false;
-  return /android/i.test(navigator.userAgent);
-}
-
-/**
  * Send receipt to RawBT for printing on the PT-210.
- * Returns 'printed' if sent, 'no-rawbt' if not on Android.
+ * RawBT must be installed and paired with the printer.
+ * Returns 'printed' if sent, 'no-rawbt' on failure.
  */
 export function printReceipt(receiptInfo) {
-  if (!isRawBTAvailable()) return 'no-rawbt';
-
   const text = buildReceiptText(receiptInfo);
   const encoded = encodeURIComponent(text);
 

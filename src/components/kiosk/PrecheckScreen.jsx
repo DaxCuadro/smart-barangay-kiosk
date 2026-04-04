@@ -345,6 +345,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
     try {
       const now = new Date();
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const safeDocPrice = Number(docPrice) || 0;
       const result = printReceipt({
         barangayName: getSelectedBarangayName() || 'Barangay',
         date: dateStr,
@@ -353,10 +354,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         residentName,
         document,
         purpose,
-        documentFee: docPrice,
-        serviceFee,
-        smsFee,
-        total: docPrice !== null && docPrice !== undefined ? docPrice + serviceFee + smsFee : null,
+        total: safeDocPrice + serviceFee + smsFee,
         message: secretaryPresent ? 'Please proceed to the secretary desk.' : '',
       });
       return result;
