@@ -1,42 +1,32 @@
 /**
- * Bluetooth thermal printer utility for GOOJPRT PT-210.
- * Uses the Web Bluetooth API to discover, connect, and print ESC/POS receipts.
+ * Thermal printer utility for GOOJPRT PT-210 via RawBT.
+ *
+ * The PT-210 uses Classic Bluetooth (SPP) which is NOT supported by Web Bluetooth.
+ * Instead, we print through the RawBT Android app which acts as a bridge:
+ *   1. RawBT is installed on the Android kiosk device
+ *   2. RawBT is paired with the PT-210 via Bluetooth
+ *   3. We send print data via an Android intent URL
+ *   4. RawBT receives the text and forwards it to the printer
+ *
+ * Setup: Install RawBT from Play Store, pair PT-210, enable "Auto print", set paper width to 58mm.
  */
 
-const KNOWN_PRINTER_SERVICES = [
-  '000018f0-0000-1000-8000-00805f9b34fb',
-  'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-];
+const RAWBT_INTENT = 'intent:print?text=';
+const RAWBT_SUFFIX = '#Intent;scheme=rawbt;package=ru.a402.rawbtprinter;end;';
 
-const KNOWN_WRITE_CHARACTERISTICS = [
-  '00002af1-0000-1000-8000-00805f9b34fb',
-  'bef8d6c9-9c21-4c9e-b632-bd58c1009f9f',
-  '49535343-8841-43f4-a8d4-ecbe34729bb3',
-];
-
-let cachedDevice = null;
-let cachedCharacteristic = null;
-let disconnectListeners = [];
-
-// --- ESC/POS command bytes ---
-const ESC = 0x1b;
-const GS = 0x1d;
-const INIT = [ESC, 0x40];
-const ALIGN_CENTER = [ESC, 0x61, 0x01];
-const ALIGN_LEFT = [ESC, 0x61, 0x00];
-const BOLD_ON = [ESC, 0x45, 0x01];
-const BOLD_OFF = [ESC, 0x45, 0x00];
-const DOUBLE_SIZE = [GS, 0x21, 0x11];
-const NORMAL_SIZE = [GS, 0x21, 0x00];
-const LF = [0x0a];
-const FEED_CUT = [ESC, 0x64, 0x05, GS, 0x56, 0x00];
-
-function textToBytes(text) {
-  return Array.from(new TextEncoder().encode(text));
+function center(text, width) {
+  if (text.length >= width) return text.slice(0, width);
+  const pad = Math.floor((width - text.length) / 2);
+  return ' '.repeat(pad) + text;
 }
 
-function buildReceiptBytes(info) {
+function priceLine(label, value, width) {
+  const price = `P${Number(value).toFixed(2)}`;
+  const gap = width - label.length - price.length;
+  return label + ' '.repeat(Math.max(1, gap)) + price;
+}
+
+function buildReceiptText(info) {
   const {
     barangayName = 'Barangay',
     date,
@@ -55,194 +45,86 @@ function buildReceiptBytes(info) {
   const W = 32; // 58 mm paper ≈ 32 chars
   const sep = '='.repeat(W);
   const thin = '-'.repeat(W);
-
-  const buf = [];
-  const push = (...arrays) => arrays.forEach(a => buf.push(...a));
-  const line = (str) => push(textToBytes(str), LF);
-
-  push(INIT);
+  const lines = [];
 
   // Header
-  push(ALIGN_CENTER, BOLD_ON, DOUBLE_SIZE);
-  line(barangayName.length > 16 ? barangayName.slice(0, 16) : barangayName);
-  push(NORMAL_SIZE);
-  line('Document Request Receipt');
-  push(BOLD_OFF);
-  line(sep);
-  push(ALIGN_LEFT);
+  lines.push(center(barangayName.toUpperCase(), W));
+  lines.push(center('Document Request Receipt', W));
+  lines.push(sep);
 
   // Date & reference
-  line(`Date: ${date}`);
-  push(BOLD_ON);
-  line(`Ref: ${reference}`);
-  push(BOLD_OFF);
+  lines.push(`Date: ${date}`);
+  lines.push(`Ref:  ${reference}`);
 
   if (queueNumber) {
-    push(ALIGN_CENTER, BOLD_ON, DOUBLE_SIZE);
-    line(`Queue #${queueNumber}`);
-    push(NORMAL_SIZE, BOLD_OFF, ALIGN_LEFT);
+    lines.push('');
+    lines.push(center(`QUEUE #${queueNumber}`, W));
+    lines.push('');
   }
 
-  line(thin);
+  lines.push(thin);
 
   // Resident details
-  line(`Name: ${residentName}`);
-  line(`Document: ${document}`);
-  // Wrap purpose if needed
+  lines.push(`Name: ${residentName}`);
+  lines.push(`Doc:  ${document}`);
+
   const purposePrefix = 'Purpose: ';
   const purposeText = purposePrefix + purpose;
   if (purposeText.length <= W) {
-    line(purposeText);
+    lines.push(purposeText);
   } else {
-    line(purposePrefix);
+    lines.push(purposePrefix);
     const words = purpose.split(' ');
     let cur = ' ';
     for (const w of words) {
       if (cur.length + w.length + 1 > W) {
-        line(cur);
+        lines.push(cur);
         cur = ' ' + w;
       } else {
         cur += (cur.trim() ? ' ' : '') + w;
       }
     }
-    if (cur.trim()) line(cur);
+    if (cur.trim()) lines.push(cur);
   }
 
-  line(thin);
+  lines.push(thin);
 
   // Pricing
   if (documentFee !== null && documentFee !== undefined) {
-    const fmtLine = (label, val) => {
-      const price = `P${Number(val).toFixed(2)}`;
-      const gap = W - label.length - price.length;
-      return label + ' '.repeat(Math.max(1, gap)) + price;
-    };
-    line(fmtLine('Document Fee:', documentFee));
-    line(fmtLine('Service Fee:', serviceFee));
-    line(fmtLine('SMS Fee:', smsFee));
-    line(thin);
-    push(BOLD_ON);
-    line(fmtLine('TOTAL:', total));
-    push(BOLD_OFF);
+    lines.push(priceLine('Document Fee:', documentFee, W));
+    lines.push(priceLine('Service Fee:', serviceFee, W));
+    lines.push(priceLine('SMS Fee:', smsFee, W));
+    lines.push(thin);
+    lines.push(priceLine('TOTAL:', total, W));
   }
 
-  line(sep);
-  push(ALIGN_CENTER);
-  if (message) line(message);
-  line('Thank you!');
-  line(sep);
-  push(ALIGN_LEFT);
+  lines.push(sep);
+  if (message) lines.push(center(message, W));
+  lines.push(center('Thank you!', W));
+  lines.push(sep);
+  lines.push('');
+  lines.push('');
+  lines.push('');
 
-  push(FEED_CUT);
-
-  return new Uint8Array(buf);
+  return lines.join('\n');
 }
 
 // --- Public API ---
 
-export function isPrinterSupported() {
-  return typeof navigator !== 'undefined' && !!navigator.bluetooth;
-}
+/**
+ * Send receipt to RawBT for printing on the PT-210.
+ * RawBT must be installed and paired with the printer.
+ * Returns 'printed' on success attempt, 'no-rawbt' if intent fails.
+ */
+export function printReceipt(receiptInfo) {
+  const text = buildReceiptText(receiptInfo);
+  const encoded = encodeURIComponent(text);
+  const intentUrl = RAWBT_INTENT + encoded + RAWBT_SUFFIX;
 
-export function isPrinterConnected() {
-  return !!(cachedDevice?.gatt?.connected && cachedCharacteristic);
-}
-
-export function getPrinterName() {
-  return cachedDevice?.name || null;
-}
-
-export function onPrinterDisconnect(fn) {
-  disconnectListeners.push(fn);
-  return () => {
-    disconnectListeners = disconnectListeners.filter(l => l !== fn);
-  };
-}
-
-function notifyDisconnect() {
-  disconnectListeners.forEach(fn => {
-    try { fn(); } catch { /* ignore */ }
-  });
-}
-
-export async function connectPrinter() {
-  if (!isPrinterSupported()) {
-    throw new Error('Web Bluetooth is not supported in this browser.');
+  try {
+    window.location.href = intentUrl;
+    return 'printed';
+  } catch {
+    return 'no-rawbt';
   }
-
-  const device = await navigator.bluetooth.requestDevice({
-    filters: [
-      { namePrefix: 'PT-210' },
-      { namePrefix: 'GOOJPRT' },
-      { namePrefix: 'Gprinter' },
-      { namePrefix: 'BlueTooth Printer' },
-    ],
-    optionalServices: KNOWN_PRINTER_SERVICES,
-  });
-
-  device.addEventListener('gattserverdisconnected', () => {
-    cachedCharacteristic = null;
-    notifyDisconnect();
-  });
-
-  const server = await device.gatt.connect();
-  cachedDevice = device;
-
-  for (const svcUuid of KNOWN_PRINTER_SERVICES) {
-    try {
-      const service = await server.getPrimaryService(svcUuid);
-      const chars = await service.getCharacteristics();
-      // Try known UUIDs first
-      for (const charUuid of KNOWN_WRITE_CHARACTERISTICS) {
-        const match = chars.find(c => c.uuid === charUuid);
-        if (match && (match.properties.write || match.properties.writeWithoutResponse)) {
-          cachedCharacteristic = match;
-          return { name: device.name || 'Thermal Printer', connected: true };
-        }
-      }
-      // Fallback: use any writable characteristic
-      const writable = chars.find(c => c.properties.write || c.properties.writeWithoutResponse);
-      if (writable) {
-        cachedCharacteristic = writable;
-        return { name: device.name || 'Thermal Printer', connected: true };
-      }
-    } catch {
-      // service not found on device, try next
-    }
-  }
-
-  throw new Error('No writable print characteristic found on the device.');
-}
-
-export async function disconnectPrinter() {
-  if (cachedDevice?.gatt?.connected) {
-    cachedDevice.gatt.disconnect();
-  }
-  cachedDevice = null;
-  cachedCharacteristic = null;
-}
-
-async function writeChunked(data) {
-  if (!cachedCharacteristic) throw new Error('Printer not connected.');
-  const CHUNK = 100;
-  for (let i = 0; i < data.length; i += CHUNK) {
-    const slice = data.slice(i, i + CHUNK);
-    if (cachedCharacteristic.properties.writeWithoutResponse) {
-      await cachedCharacteristic.writeValueWithoutResponse(slice);
-    } else {
-      await cachedCharacteristic.writeValue(slice);
-    }
-    if (i + CHUNK < data.length) {
-      await new Promise(r => setTimeout(r, 20));
-    }
-  }
-}
-
-export async function printReceipt(receiptInfo) {
-  if (!isPrinterConnected()) {
-    throw new Error('Printer is not connected.');
-  }
-  const data = buildReceiptBytes(receiptInfo);
-  await writeChunked(data);
-  return true;
 }

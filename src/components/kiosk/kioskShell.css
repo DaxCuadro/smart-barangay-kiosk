@@ -934,20 +934,6 @@
   }
 }
 
-/* ── Printer button ── */
-.kiosk-printer-button {
-  margin-left: 0.25rem;
-  white-space: nowrap;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kiosk-printer-button--on {
-  background: #dcfce7;
-  color: #166534;
-}
-
 /* ── Print status notices ── */
 .kiosk-print-notice {
   font-size: 0.8rem;

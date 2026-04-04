@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { BARANGAY_INFO_STORAGE_KEY, getBarangayZonesCount, getSelectedBarangayName, setBarangayInfo } from '../../utils/barangayInfoStorage';
-import { isPrinterConnected, printReceipt } from '../../utils/thermalPrinter';
+import { printReceipt } from '../../utils/thermalPrinter';
 
 const INITIAL_FORM = {
   lastName: '',
@@ -341,12 +341,11 @@ export default function PrecheckScreen({ onClose, barangayId }) {
     return `REQ-${datePart}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
   }
 
-  async function tryPrintReceipt({ residentName, document, purpose, referenceNumber, queueNumber, docPrice }) {
-    if (!isPrinterConnected()) return 'no-printer';
+  function tryPrintReceipt({ residentName, document, purpose, referenceNumber, queueNumber, docPrice }) {
     try {
       const now = new Date();
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      await printReceipt({
+      const result = printReceipt({
         barangayName: getSelectedBarangayName() || 'Barangay',
         date: dateStr,
         reference: referenceNumber,
@@ -360,7 +359,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         total: docPrice !== null && docPrice !== undefined ? docPrice + serviceFee + smsFee : null,
         message: secretaryPresent ? 'Please proceed to the secretary desk.' : '',
       });
-      return 'printed';
+      return result;
     } catch {
       return 'error';
     }
@@ -662,11 +661,11 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         ) : null}
         <p className="kiosk-confirm-subtitle">{successNotice.message}</p>
         {successNotice.printStatus === 'printed' ? (
-          <p className="kiosk-print-notice kiosk-print-notice--success">Receipt printed successfully.</p>
+          <p className="kiosk-print-notice kiosk-print-notice--success">Receipt sent to printer via RawBT.</p>
+        ) : successNotice.printStatus === 'no-rawbt' ? (
+          <p className="kiosk-print-notice kiosk-print-notice--warn">Could not send to printer. Make sure RawBT is installed and paired with the printer.</p>
         ) : successNotice.printStatus === 'error' ? (
           <p className="kiosk-print-notice kiosk-print-notice--warn">Receipt could not be printed. Please ask at the desk.</p>
-        ) : successNotice.printStatus === 'no-printer' ? (
-          <p className="kiosk-print-notice kiosk-print-notice--warn">No printer connected. Receipt was not printed.</p>
         ) : null}
         <div className="kiosk-confirm-actions">
           <button type="button" className="kiosk-intake-submit" onClick={() => { closeSuccessNotice(); handleCloseIntake(); }}>Done</button>

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import PrecheckScreen from './PrecheckScreen';
 import { getSelectedBarangayId, getSelectedBarangayName, setBarangayInfo } from '../../utils/barangayInfoStorage';
-import { isPrinterSupported, isPrinterConnected, connectPrinter, disconnectPrinter, getPrinterName, onPrinterDisconnect } from '../../utils/thermalPrinter';
 import useIdleReset from '../../hooks/useIdleReset';
 import './kioskShell.css';
 
@@ -50,38 +49,6 @@ function KioskShell() {
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
   const [requiresPassword, setRequiresPassword] = useState(true);
   const [unlockLoading, setUnlockLoading] = useState(false);
-  const [printerConnected, setPrinterConnected] = useState(() => isPrinterConnected());
-  const [printerName, setPrinterName] = useState(() => getPrinterName());
-  const [printerBusy, setPrinterBusy] = useState(false);
-
-  useEffect(() => {
-    if (!isPrinterSupported()) return undefined;
-    const unsubscribe = onPrinterDisconnect(() => {
-      setPrinterConnected(false);
-      setPrinterName(null);
-    });
-    return unsubscribe;
-  }, []);
-
-  async function handleTogglePrinter() {
-    if (printerBusy) return;
-    setPrinterBusy(true);
-    try {
-      if (isPrinterConnected()) {
-        await disconnectPrinter();
-        setPrinterConnected(false);
-        setPrinterName(null);
-      } else {
-        const result = await connectPrinter();
-        setPrinterConnected(true);
-        setPrinterName(result.name);
-      }
-    } catch {
-      setPrinterConnected(false);
-      setPrinterName(null);
-    }
-    setPrinterBusy(false);
-  }
 
   // Auto-reset to welcome screen after 2 minutes of inactivity
   useIdleReset(() => {
@@ -274,17 +241,6 @@ function KioskShell() {
           >
             Change
           </button>
-          {isPrinterSupported() ? (
-            <button
-              type="button"
-              className={`kiosk-toolbar-button kiosk-printer-button ${printerConnected ? 'kiosk-printer-button--on' : ''}`}
-              onClick={handleTogglePrinter}
-              disabled={printerBusy}
-              title={printerConnected ? `Printer: ${printerName || 'Connected'}` : 'Connect printer'}
-            >
-              {printerBusy ? '...' : printerConnected ? `🖨 ${printerName || 'Printer'}` : '🖨 Connect Printer'}
-            </button>
-          ) : null}
         </div>
         {activeBarangay?.enable_announcements !== false && (
         <div className="kiosk-panel kiosk-panel--announcements">
