@@ -1282,7 +1282,7 @@ function ResidentPortalShell() {
           </section>
         ) : null}
 
-        {otpMode && !session ? (
+        {otpMode && !session && !authLoading ? (
           <section className="resident-card">
             <div className="resident-card-head">
               <h2>Reset password via OTP</h2>
@@ -1347,7 +1347,7 @@ function ResidentPortalShell() {
           </section>
         ) : null}
 
-        {!recoveryMode && !recoveryCompleted && !otpMode && !session ? (
+        {!recoveryMode && !recoveryCompleted && !otpMode && !session && !authLoading ? (
           <section className="resident-card">
             <div className="resident-card-head">
               <h2>{authMode === 'signup' ? 'Create account' : 'Resident login'}</h2>
@@ -1494,7 +1494,7 @@ function ResidentPortalShell() {
             onUpdateAccount={handleUpdateAccount}
             onSignOut={handleSignOut}
           />
-        ) : !recoveryMode ? (
+        ) : !recoveryMode && !authLoading ? (
           <section className="resident-card">
             <div className="resident-card-head">
               <h2>Get verified</h2>
@@ -1707,7 +1707,11 @@ function ResidentPortalShell() {
           </section>
         ) : null}
       </div>
-      {authLoading ? <div className="resident-loading">Loading...</div> : null}
+      {authLoading ? (
+        <section className="resident-card">
+          <p className="resident-note" style={{ textAlign: 'center' }}>Checking session...</p>
+        </section>
+      ) : null}
     </div>
   );
 }

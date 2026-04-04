@@ -19,6 +19,8 @@ function App() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [adminChecking, setAdminChecking] = useState(true);
   const [superAdminChecking, setSuperAdminChecking] = useState(true);
+  const [adminSessionLoaded, setAdminSessionLoaded] = useState(false);
+  const [superAdminSessionLoaded, setSuperAdminSessionLoaded] = useState(false);
 
   // Admin session listener
   useEffect(() => {
@@ -27,6 +29,7 @@ function App() {
     supabaseAdmin.auth.getSession().then(({ data }) => {
       if (isMounted) {
         setAdminSession(data?.session ?? null);
+        setAdminSessionLoaded(true);
       }
     });
 
@@ -49,6 +52,7 @@ function App() {
     supabaseSuperAdmin.auth.getSession().then(({ data }) => {
       if (isMounted) {
         setSuperAdminSession(data?.session ?? null);
+        setSuperAdminSessionLoaded(true);
       }
     });
 
@@ -72,7 +76,7 @@ function App() {
       if (!adminSession?.user?.id) {
         if (isActive) {
           setIsAdmin(false);
-          setAdminChecking(false);
+          if (adminSessionLoaded) setAdminChecking(false);
         }
         return;
       }
@@ -95,7 +99,7 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [adminSession]);
+  }, [adminSession, adminSessionLoaded]);
 
   // Check superadmin role
   useEffect(() => {
@@ -105,7 +109,7 @@ function App() {
       if (!superAdminSession?.user?.id) {
         if (isActive) {
           setIsSuperAdmin(false);
-          setSuperAdminChecking(false);
+          if (superAdminSessionLoaded) setSuperAdminChecking(false);
         }
         return;
       }
@@ -128,7 +132,7 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [superAdminSession]);
+  }, [superAdminSession, superAdminSessionLoaded]);
 
   function handleAdminLogin(newSession) {
     setAdminSession(newSession);

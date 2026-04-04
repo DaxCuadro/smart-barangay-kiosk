@@ -155,10 +155,10 @@ export default function ResidentPortalTabs({
 
     // Details
     const details = [
-      { label: 'Name:', value: name },
-      { label: 'Document:', value: doc },
-      { label: 'Reference:', value: ref },
-      { label: 'Price:', value: price },
+      { label: 'Name: ', value: name },
+      { label: 'Document: ', value: doc },
+      { label: 'Reference: ', value: ref },
+      { label: 'Price: ', value: price },
     ];
     y += sectionGap;
     y += details.length * lineH;
