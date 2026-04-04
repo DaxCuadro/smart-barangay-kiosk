@@ -204,14 +204,15 @@ export default function ResidentPortalTabs({
 
     // Details
     ctx.textAlign = 'left';
+    const labelX = PAD;
+    const valueX = PAD + 100;
     for (const { label, value } of details) {
       ctx.font = fontBold;
       ctx.fillStyle = '#374151';
-      ctx.fillText(label, PAD, y + 14);
+      ctx.fillText(label, labelX, y + 14);
       ctx.font = fontNormal;
       ctx.fillStyle = '#1d2b53';
-      const labelW = ctx.measureText(label + ' ').width;
-      ctx.fillText(value, PAD + labelW, y + 14);
+      ctx.fillText(value, valueX, y + 14);
       y += lineH;
     }
 
@@ -731,13 +732,18 @@ export default function ResidentPortalTabs({
                 <h2>Request submitted</h2>
                 {successMessage && successMessage !== 'Request submitted' ? <p>{successMessage}</p> : null}
               </div>
-              <div className="resident-receipt">
-                <div className="resident-price-lines">
-                  <div><span>Reference number: </span><span>{successReference || 'N/A'}</span></div>
-                  <div><span>Document: </span><span>{successDocument || 'N/A'}</span></div>
-                  <div><span>Price: </span><span>{successPrice !== null && successPrice !== undefined ? formatCurrency(successPrice) : 'Not available'}</span></div>
+              <div className="resident-receipt" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '12px', rowGap: '8px', fontSize: '0.95rem' }}>
+                  <span style={{ fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Name:</span>
+                  <span style={{ color: '#1d2b53' }}>{selectedResident ? `${selectedResident.last_name || ''}, ${selectedResident.first_name || ''}${selectedResident.middle_name ? ` ${selectedResident.middle_name}` : ''}`.trim() : 'N/A'}</span>
+                  <span style={{ fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Document:</span>
+                  <span style={{ color: '#1d2b53' }}>{successDocument || 'N/A'}</span>
+                  <span style={{ fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Reference:</span>
+                  <span style={{ color: '#1d2b53' }}>{successReference || 'N/A'}</span>
+                  <span style={{ fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Price:</span>
+                  <span style={{ color: '#1d2b53' }}>{successPrice !== null && successPrice !== undefined ? formatCurrency(successPrice) : 'Not available'}</span>
                 </div>
-                <p style={{ marginTop: '12px' }}>A secretary will text once it is ready.</p>
+                <p style={{ marginTop: '8px', fontSize: '0.85rem', color: '#6b7280', textAlign: 'center' }}>A secretary will text once it is ready.</p>
               </div>
               <div className="resident-modal-actions">
                 <button className="resident-link" type="button" onClick={handleDownloadReceipt}>

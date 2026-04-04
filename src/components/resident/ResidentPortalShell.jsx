@@ -316,8 +316,10 @@ function ResidentPortalShell() {
         setProfile(null);
         setSelectedResident(null);
         setProfileForm(EMPTY_NEW_APPLICANT);
+        setProfileLoading(false);
         return;
       }
+      setProfileLoading(true);
       const { data: accountRow, error: accountError } = await supabase
         .from(RESIDENT_ACCOUNTS_TABLE)
         .select('status')
@@ -345,7 +347,6 @@ function ResidentPortalShell() {
         setProfileLoading(false);
         return;
       }
-      setProfileLoading(true);
       setProfileError('');
       const { data, error } = await supabase
         .from(PROFILE_TABLE)
