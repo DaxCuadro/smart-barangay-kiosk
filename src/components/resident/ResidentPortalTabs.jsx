@@ -59,18 +59,41 @@ export default function ResidentPortalTabs({
   accountInfo,
   onUpdateAccount,
   onSignOut,
+  onCancelRequest,
+  onSubmitFeedback,
+  supabase,
 }) {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [moreDocsNotice, setMoreDocsNotice] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [announcementIndex, setAnnouncementIndex] = useState(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyDateFrom, setHistoryDateFrom] = useState('');
+  const [historyDateTo, setHistoryDateTo] = useState('');
+  const [cancellingId, setCancellingId] = useState(null);
+  const [feedbackModal, setFeedbackModal] = useState(null);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [submittedFeedbackIds, setSubmittedFeedbackIds] = useState(new Set());
+  const [feedbackBannerDismissed, setFeedbackBannerDismissed] = useState(false);
   const addressValue = selectedResident?.address || '';
   const zoneValue = extractZoneFromAddress(addressValue);
   const addressDisplay = /^\s*Zone\s+\d+\s*$/i.test(addressValue) ? 'N/A' : (addressValue || 'N/A');
   const ongoingRequests = requests.filter(item => ['pending', 'current', 'done'].includes(item.status || 'pending'));
   const recentRequests = ongoingRequests;
   const historyRequests = releaseLogs || [];
+  const unratedCount = historyRequests.filter(item => !submittedFeedbackIds.has(item.id)).length;
+  const filteredHistory = historyRequests.filter(item => {
+    const q = historySearch.trim().toLowerCase();
+    if (q && !(item.document || '').toLowerCase().includes(q)) return false;
+    const relDate = item.released_at || item.created_at;
+    if (historyDateFrom && relDate && new Date(relDate) < new Date(historyDateFrom)) return false;
+    if (historyDateTo && relDate && new Date(relDate) > new Date(historyDateTo + 'T23:59:59')) return false;
+    return true;
+  });
   const statusLabel = status => {
     if (status === 'current') return 'In Progress';
     if (status === 'done') return 'Ready';
@@ -84,10 +107,19 @@ export default function ResidentPortalTabs({
     setAccountShowPassword(false);
   };
 
-  const closeAnnouncementModal = () => setAnnouncementIndex(null);
-  const openAnnouncement = index => setAnnouncementIndex(index);
+  const closeAnnouncementModal = () => {
+    setAnnouncementIndex(null);
+    setAnnouncementDismissed(true);
+  };
   const hasAnnouncements = announcements && announcements.length > 0;
   const currentAnnouncement = hasAnnouncements && announcementIndex !== null ? announcements[announcementIndex] : null;
+
+  // Auto-show announcements modal on mount (once per session)
+  React.useEffect(() => {
+    if (hasAnnouncements && !announcementDismissed && announcementIndex === null) {
+      setAnnouncementIndex(0);
+    }
+  }, [hasAnnouncements, announcementDismissed, announcementIndex]);
   const goPrevAnnouncement = () => {
     if (!hasAnnouncements || announcementIndex === null) return;
     setAnnouncementIndex(prev => (prev - 1 + announcements.length) % announcements.length);
@@ -95,6 +127,43 @@ export default function ResidentPortalTabs({
   const goNextAnnouncement = () => {
     if (!hasAnnouncements || announcementIndex === null) return;
     setAnnouncementIndex(prev => (prev + 1) % announcements.length);
+  };
+
+  // Load already-submitted feedback IDs so we can hide the feedback button
+  React.useEffect(() => {
+    if (!supabase || !selectedResident?.id || !releaseLogs?.length) return;
+    let isActive = true;
+    const releaseIds = releaseLogs.map(r => r.id);
+    supabase
+      .from('resident_feedback')
+      .select('release_log_id')
+      .in('release_log_id', releaseIds)
+      .then(({ data }) => {
+        if (!isActive) return;
+        if (data) setSubmittedFeedbackIds(new Set(data.map(r => r.release_log_id)));
+      });
+    return () => { isActive = false; };
+  }, [supabase, selectedResident?.id, releaseLogs]);
+
+  const handleCancelClick = async (requestId) => {
+    setCancellingId(requestId);
+    await onCancelRequest(requestId);
+    setCancellingId(null);
+  };
+
+  const openFeedbackModal = (releaseLog) => {
+    setFeedbackModal(releaseLog);
+    setFeedbackRating(0);
+    setFeedbackComment('');
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackModal || feedbackRating < 1) return;
+    setFeedbackSubmitting(true);
+    await onSubmitFeedback(feedbackModal.id, feedbackRating, feedbackComment);
+    setSubmittedFeedbackIds(prev => new Set([...prev, feedbackModal.id]));
+    setFeedbackSubmitting(false);
+    setFeedbackModal(null);
   };
 
   const handlePasswordUpdate = async event => {
@@ -284,6 +353,23 @@ export default function ResidentPortalTabs({
         </div>
       ) : null}
 
+      {activeTab === 'home' && unratedCount > 0 && !feedbackBannerDismissed ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '10px 16px', fontSize: '0.82rem', color: '#1e40af', marginBottom: '0' }}>
+          <span style={{ flexShrink: 0, fontSize: '1rem' }}>⭐</span>
+          <span style={{ flex: 1 }}>
+            You have <strong>{unratedCount}</strong> unrated {unratedCount === 1 ? 'document' : 'documents'} in your request history. Help us improve by rating your experience!
+          </span>
+          <button
+            type="button"
+            onClick={() => setFeedbackBannerDismissed(true)}
+            style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: '#64748b', lineHeight: 1, padding: '2px 4px' }}
+            aria-label="Dismiss notice"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       {activeTab === 'home' ? (
         <section className="resident-card">
           <div className="resident-card-head">
@@ -304,7 +390,7 @@ export default function ResidentPortalTabs({
               <strong>{requestCounts.done}</strong>
             </div>
           </div>
-          <div className="resident-home-grid">
+          <div className="resident-home-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
             <div>
               <h3>Ongoing requests</h3>
               {requestsLoading ? (
@@ -314,11 +400,24 @@ export default function ResidentPortalTabs({
                   <ul className="resident-list">
                     {recentRequests.map(item => (
                       <li key={item.id}>
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <p>{item.document}</p>
                           <span>Status: {statusLabel(item.status)}</span>
                         </div>
-                        <span>{new Date(item.created_at).toLocaleDateString('en-PH')}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <span style={{ fontSize: '0.8rem' }}>{new Date(item.created_at).toLocaleDateString('en-PH')}</span>
+                          {item.status === 'pending' ? (
+                            <button
+                              type="button"
+                              className="resident-link"
+                              style={{ fontSize: '0.75rem', color: '#ef4444' }}
+                              disabled={cancellingId === item.id}
+                              onClick={() => handleCancelClick(item.id)}
+                            >
+                              {cancellingId === item.id ? 'Cancelling...' : 'Cancel'}
+                            </button>
+                          ) : null}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -328,49 +427,62 @@ export default function ResidentPortalTabs({
               )}
             </div>
             <div>
-              <h3>Announcements</h3>
-              {announcements.length ? (
-                <div className="resident-scroll-list">
-                  <ul className="resident-list">
-                    {announcements.map((item, index) => (
-                      <li key={item.id}>
-                        <div>
-                          <p>{item.title || 'Announcement'}</p>
-                          <span>{item.description || 'Details will be posted soon.'}</span>
-                        </div>
-                        <button
-                          type="button"
-                          className="resident-link"
-                          onClick={() => openAnnouncement(index)}
-                        >
-                          View
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p className="resident-note">No announcements yet.</p>
-              )}
-            </div>
-            <div>
               <h3>Request history</h3>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <input
+                  type="search"
+                  value={historySearch}
+                  onChange={e => setHistorySearch(e.target.value)}
+                  placeholder="Search document..."
+                  style={{ flex: 1, minWidth: '120px', padding: '4px 8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.8rem' }}
+                />
+                <input
+                  type="date"
+                  value={historyDateFrom}
+                  onChange={e => setHistoryDateFrom(e.target.value)}
+                  style={{ padding: '4px 6px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.8rem' }}
+                  title="From date"
+                />
+                <input
+                  type="date"
+                  value={historyDateTo}
+                  onChange={e => setHistoryDateTo(e.target.value)}
+                  style={{ padding: '4px 6px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.8rem' }}
+                  title="To date"
+                />
+              </div>
               {releaseLogsLoading ? (
                 <p className="resident-note">Loading requests...</p>
-              ) : historyRequests.length ? (
+              ) : filteredHistory.length ? (
                 <div className="resident-scroll-list">
                   <ul className="resident-list">
-                    {historyRequests.map(item => (
+                    {filteredHistory.map(item => (
                       <li key={item.id}>
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <p>{item.document || 'Document'}</p>
                           <span>Status: Claimed</span>
                         </div>
-                        <span>{new Date(item.released_at || item.created_at).toLocaleDateString('en-PH')}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <span style={{ fontSize: '0.8rem' }}>{new Date(item.released_at || item.created_at).toLocaleDateString('en-PH')}</span>
+                          {!submittedFeedbackIds.has(item.id) ? (
+                            <button
+                              type="button"
+                              className="resident-link"
+                              style={{ fontSize: '0.75rem' }}
+                              onClick={() => openFeedbackModal(item)}
+                            >
+                              Rate
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.7rem', color: '#16a34a' }}>✓ Rated</span>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>
                 </div>
+              ) : historyRequests.length ? (
+                <p className="resident-note">No results match your filter.</p>
               ) : (
                 <p className="resident-note">No claimed requests yet.</p>
               )}
@@ -693,6 +805,9 @@ export default function ResidentPortalTabs({
           <div className="resident-modal" onClick={event => event.stopPropagation()}>
             <div className="resident-modal-scroll">
               <div className="resident-card-head">
+                <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>
+                  Announcement {announcementIndex + 1} of {announcements.length}
+                </p>
                 <h2>{currentAnnouncement.title || 'Announcement'}</h2>
               </div>
               {currentAnnouncement.image_data || currentAnnouncement.imageData ? (
@@ -769,6 +884,65 @@ export default function ResidentPortalTabs({
               <div className="resident-modal-actions">
                 <button className="resident-submit" type="button" onClick={() => setMoreDocsNotice(false)}>
                   OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {feedbackModal ? (
+        <div className="resident-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="resident-modal" onClick={event => event.stopPropagation()}>
+            <div className="resident-modal-scroll">
+              <div className="resident-card-head">
+                <h2>Rate your experience</h2>
+                <p>How was your experience with <strong>{feedbackModal.document || 'this document'}</strong>?</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', margin: '16px 0' }}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setFeedbackRating(star)}
+                    style={{
+                      fontSize: '2rem',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: star <= feedbackRating ? '#f59e0b' : '#d1d5db',
+                      transition: 'color 0.15s',
+                    }}
+                    aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>
+                {feedbackRating === 0 ? 'Tap a star to rate' : `${feedbackRating} out of 5 stars`}
+              </p>
+              <label className="resident-field" style={{ marginTop: '12px' }}>
+                <span>Comment (optional)</span>
+                <textarea
+                  value={feedbackComment}
+                  onChange={e => setFeedbackComment(e.target.value)}
+                  placeholder="Share your thoughts about the service..."
+                  rows={3}
+                  style={{ resize: 'vertical' }}
+                />
+              </label>
+              <div className="resident-modal-actions">
+                <button className="resident-link" type="button" onClick={() => setFeedbackModal(null)}>
+                  Cancel
+                </button>
+                <button
+                  className="resident-submit"
+                  type="button"
+                  disabled={feedbackRating < 1 || feedbackSubmitting}
+                  onClick={handleFeedbackSubmit}
+                >
+                  {feedbackSubmitting ? 'Submitting...' : 'Submit feedback'}
                 </button>
               </div>
             </div>

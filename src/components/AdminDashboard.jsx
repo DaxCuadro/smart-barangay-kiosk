@@ -10,6 +10,7 @@ const CalendarTab = React.lazy(() => import('./admin-dashboard-tabs/CalendarTab'
 const AnnouncementsTab = React.lazy(() => import('./admin-dashboard-tabs/AnnouncementsTab'));
 const BarangayInfoTab = React.lazy(() => import('./admin-dashboard-tabs/BarangayInfoTab'));
 const PricingTab = React.lazy(() => import('./admin-dashboard-tabs/PricingTab'));
+const FeedbackTab = React.lazy(() => import('./admin-dashboard-tabs/FeedbackTab'));
 
 const TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -19,6 +20,7 @@ const TABS = [
   { key: 'calendar', label: 'Calendar' },
   { key: 'announcements', label: 'Announcements' },
   { key: 'pricing', label: 'Pricing' },
+  { key: 'feedback', label: 'Feedback' },
   { key: 'barangay', label: 'Barangay Info' },
 ];
 
@@ -28,6 +30,11 @@ export default function AdminDashboard({ onLogout }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
   const [verificationCount, setVerificationCount] = useState(0);
+  const [announcementCount, setAnnouncementCount] = useState(0);
+  const [pricingCount, setPricingCount] = useState(0);
+  const [feedbackCount, setFeedbackCount] = useState(0);
+  const [feedbackLastSeen, setFeedbackLastSeen] = useState(() => localStorage.getItem('sbk-feedback-last-seen') || null);
+  const [officialsCount, setOfficialsCount] = useState(0);
   const [barangayId, setBarangayId] = useState(null);
   const [barangayName, setBarangayName] = useState('');
   const activeTabMeta = useMemo(() => TABS.find(tab => tab.key === activeTab), [activeTab]);
@@ -64,14 +71,71 @@ export default function AdminDashboard({ onLogout }) {
     let isActive = true;
 
     async function loadCounts() {
-      const [requestsResult, verificationResult] = await Promise.all([
-        supabase.from('resident_intake_requests').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId),
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const pricingKey = `pricing_${barangayId}`;
+
+      const [requestsResult, verificationResult, announcementsResult, pricingResult, docOptionsResult, feedbackResult, officialsResult] = await Promise.all([
+        supabase.from('resident_intake_requests').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId).neq('status', 'cancelled'),
         supabase.from('resident_verification_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending').eq('barangay_id', barangayId),
+        supabase.from('announcements').select('id, start_date, end_date').eq('barangay_id', barangayId),
+        supabase.from('app_settings').select('value').eq('key', pricingKey).single(),
+        supabase.from('app_settings').select('value').eq('key', 'document_options').single(),
+        supabase.from('resident_feedback').select('id, created_at').eq('barangay_id', barangayId),
+        supabase.from('barangay_officials').select('id, role, name').eq('barangay_id', barangayId),
       ]);
 
       if (!isActive) return;
+
       setRequestCount(requestsResult.count || 0);
       setVerificationCount(verificationResult.count || 0);
+
+      // Announcements: count ongoing (live)
+      if (announcementsResult.data) {
+        const liveCount = announcementsResult.data.filter(a => {
+          if (!a.start_date || !a.end_date) return false;
+          return a.start_date <= todayStr && a.end_date >= todayStr;
+        }).length;
+        setAnnouncementCount(liveCount);
+      }
+
+      // Pricing: count documents without a price set
+      const docOptions = docOptionsResult.data?.value
+        ? (() => { try { const v = JSON.parse(docOptionsResult.data.value); return Array.isArray(v) ? v : []; } catch { return []; } })()
+        : ['Barangay Clearance', 'Certificate of Indigency', 'Residency Certification', 'Barangay ID', 'Business Clearance', 'Solo Parent Certification'];
+      const pricedDocs = pricingResult.data?.value
+        ? (() => { try { const v = JSON.parse(pricingResult.data.value); return Array.isArray(v) ? v.map(i => i.document) : []; } catch { return []; } })()
+        : [];
+      const pricedSet = new Set(pricedDocs);
+      const unpricedCount = docOptions.filter(d => !pricedSet.has(d)).length;
+      setPricingCount(unpricedCount);
+
+      // Feedback: count new since last seen
+      if (feedbackResult.data) {
+        const lastSeen = localStorage.getItem('sbk-feedback-last-seen');
+        if (lastSeen) {
+          const newCount = feedbackResult.data.filter(f => f.created_at > lastSeen).length;
+          setFeedbackCount(newCount);
+        } else {
+          setFeedbackCount(feedbackResult.data.length);
+        }
+      }
+
+      // Officials: count missing required roles
+      if (officialsResult.data) {
+        const REQUIRED_ROLES = [
+          { key: 'punong', limit: 1 },
+          { key: 'kagawad', limit: 7 },
+          { key: 'sk', limit: 1 },
+          { key: 'treasurer', limit: 1 },
+          { key: 'secretary', limit: 1 },
+        ];
+        let missingCount = 0;
+        for (const role of REQUIRED_ROLES) {
+          const filled = officialsResult.data.filter(o => (o.role || '').toLowerCase() === role.key && o.name && o.name.trim());
+          missingCount += Math.max(0, role.limit - filled.length);
+        }
+        setOfficialsCount(missingCount);
+      }
     }
 
     loadCounts();
@@ -85,6 +149,12 @@ export default function AdminDashboard({ onLogout }) {
   function selectTab(tabKey) {
     setActiveTab(tabKey);
     setDrawerOpen(false);
+    if (tabKey === 'feedback') {
+      const now = new Date().toISOString();
+      localStorage.setItem('sbk-feedback-last-seen', now);
+      setFeedbackLastSeen(now);
+      setFeedbackCount(0);
+    }
   }
 
   function renderTabContent() {
@@ -105,6 +175,8 @@ export default function AdminDashboard({ onLogout }) {
         return <BarangayInfoTab onLogout={onLogout} barangayId={barangayId} barangayName={barangayName} />;
       case 'pricing':
         return <PricingTab barangayId={barangayId} />;
+      case 'feedback':
+        return <FeedbackTab barangayId={barangayId} />;
       default:
         return null;
     }
@@ -142,6 +214,26 @@ export default function AdminDashboard({ onLogout }) {
                     {tab.key === 'verification' && verificationCount > 0 ? (
                       <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-semibold text-white">
                         {verificationCount}
+                      </span>
+                    ) : null}
+                    {tab.key === 'announcements' && announcementCount > 0 ? (
+                      <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                        {announcementCount}
+                      </span>
+                    ) : null}
+                    {tab.key === 'pricing' && pricingCount > 0 ? (
+                      <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+                        {pricingCount}
+                      </span>
+                    ) : null}
+                    {tab.key === 'feedback' && feedbackCount > 0 ? (
+                      <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                        {feedbackCount}
+                      </span>
+                    ) : null}
+                    {tab.key === 'barangay' && officialsCount > 0 ? (
+                      <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+                        {officialsCount}
                       </span>
                     ) : null}
                   </span>
@@ -222,6 +314,26 @@ export default function AdminDashboard({ onLogout }) {
                         {tab.key === 'verification' && verificationCount > 0 ? (
                           <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-semibold text-white">
                             {verificationCount}
+                          </span>
+                        ) : null}
+                        {tab.key === 'announcements' && announcementCount > 0 ? (
+                          <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                            {announcementCount}
+                          </span>
+                        ) : null}
+                        {tab.key === 'pricing' && pricingCount > 0 ? (
+                          <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+                            {pricingCount}
+                          </span>
+                        ) : null}
+                        {tab.key === 'feedback' && feedbackCount > 0 ? (
+                          <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                            {feedbackCount}
+                          </span>
+                        ) : null}
+                        {tab.key === 'barangay' && officialsCount > 0 ? (
+                          <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+                            {officialsCount}
                           </span>
                         ) : null}
                       </span>

@@ -12,6 +12,7 @@ const SUPERADMIN_TABS = [
   { key: 'residents', label: 'Residents' },
   { key: 'documents', label: 'Documents' },
   { key: 'audit', label: 'Audit Log' },
+  { key: 'feedback', label: 'Feedback' },
   { key: 'access', label: 'Access & Security' },
 ];
 
@@ -195,6 +196,13 @@ export default function SuperAdminDashboard({ onLogout }) {
   const [globalSearchResults, setGlobalSearchResults] = useState(null);
   const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
 
+  // ── Feedback state ──
+  const [allFeedback, setAllFeedback] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSearch, setFeedbackSearch] = useState('');
+  const [feedbackRatingFilter, setFeedbackRatingFilter] = useState('all');
+  const [feedbackBarangayFilter, setFeedbackBarangayFilter] = useState('all');
+
   // ── Feature 4: Onboarding Wizard state ──
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
@@ -365,6 +373,50 @@ export default function SuperAdminDashboard({ onLogout }) {
   useEffect(() => {
     if (activeTab === 'analytics') { const run = async () => { await loadAnalytics(); }; run(); }
   }, [activeTab, loadAnalytics]);
+
+  /* ── Feedback loader ─────────────────────────────────────────── */
+  const loadAllFeedback = useCallback(async () => {
+    setFeedbackLoading(true);
+    const { data, error: fbError } = await supabase
+      .from('resident_feedback')
+      .select(`
+        id,
+        rating,
+        comment,
+        created_at,
+        barangay_id,
+        release_log_id,
+        resident_id,
+        release_logs!inner ( document, resident_name, released_at )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (fbError) { setAllFeedback([]); } else { setAllFeedback(data || []); }
+    setFeedbackLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    if (activeTab === 'feedback') { loadAllFeedback(); }
+  }, [activeTab, loadAllFeedback]);
+
+  const filteredFeedback = useMemo(() => {
+    const q = feedbackSearch.trim().toLowerCase();
+    return allFeedback.filter(item => {
+      if (feedbackRatingFilter !== 'all' && String(item.rating) !== feedbackRatingFilter) return false;
+      if (feedbackBarangayFilter !== 'all' && item.barangay_id !== feedbackBarangayFilter) return false;
+      if (!q) return true;
+      const release = item.release_logs;
+      return [release?.document, release?.resident_name, item.comment].join(' ').toLowerCase().includes(q);
+    });
+  }, [allFeedback, feedbackSearch, feedbackRatingFilter, feedbackBarangayFilter]);
+
+  const feedbackStats = useMemo(() => {
+    if (!allFeedback.length) return { avg: 0, total: 0, distribution: [0, 0, 0, 0, 0] };
+    const dist = [0, 0, 0, 0, 0];
+    let sum = 0;
+    allFeedback.forEach(item => { sum += item.rating; dist[item.rating - 1] += 1; });
+    return { avg: sum / allFeedback.length, total: allFeedback.length, distribution: dist };
+  }, [allFeedback]);
 
   /* ── Feature 5: Global Search ────────────────────────────────── */
   const handleGlobalSearch = useCallback(async (query) => {
@@ -2516,6 +2568,143 @@ export default function SuperAdminDashboard({ onLogout }) {
               </div>
             </div>
 
+          </section>
+        ) : null}
+
+        {/* ── Feedback Tab ── */}
+        {activeTab === 'feedback' ? (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-amber-600 font-semibold">Feedback</p>
+                <h2 className="text-xl font-bold text-gray-900">Resident Feedback & Ratings</h2>
+                <p className="text-sm text-gray-500">All ratings submitted by residents across barangays.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className="rounded-full border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50" onClick={loadAllFeedback} disabled={feedbackLoading}>
+                  {feedbackLoading ? 'Loading…' : 'Refresh'}
+                </button>
+                {allFeedback.length ? (
+                  <button type="button" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={() => {
+                    const barangayMap = Object.fromEntries(barangays.map(b => [b.id, b.name]));
+                    const rows = allFeedback.map(item => ({
+                      date: formatTimestamp(item.created_at),
+                      barangay: barangayMap[item.barangay_id] || item.barangay_id,
+                      resident: item.release_logs?.resident_name || 'N/A',
+                      document: item.release_logs?.document || 'N/A',
+                      rating: item.rating,
+                      comment: item.comment || '',
+                    }));
+                    downloadCSV(rows, ['date', 'barangay', 'resident', 'document', 'rating', 'comment'], 'all_feedback_export.csv');
+                    addToast('Feedback exported.', 'success');
+                  }}>Export CSV</button>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Summary stats */}
+            {allFeedback.length > 0 ? (
+              <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
+                  <p className="text-2xl font-bold text-gray-900">{feedbackStats.avg.toFixed(1)}</p>
+                  <p className="text-xs text-gray-500">Average Rating</p>
+                  <span style={{ letterSpacing: '2px' }}>
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <span key={s} style={{ color: s <= Math.round(feedbackStats.avg) ? '#f59e0b' : '#d1d5db' }}>★</span>
+                    ))}
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
+                  <p className="text-2xl font-bold text-gray-900">{feedbackStats.total}</p>
+                  <p className="text-xs text-gray-500">Total Reviews</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center col-span-2">
+                  <p className="text-xs text-gray-500 mb-2">Rating Distribution</p>
+                  <div className="space-y-1">
+                    {[5, 4, 3, 2, 1].map(star => {
+                      const count = feedbackStats.distribution[star - 1];
+                      const pct = feedbackStats.total ? (count / feedbackStats.total) * 100 : 0;
+                      return (
+                        <div key={star} className="flex items-center gap-2 text-xs">
+                          <span className="w-4 text-right font-semibold text-gray-700">{star}</span>
+                          <span style={{ color: '#f59e0b' }}>★</span>
+                          <div className="relative flex-1 h-3 rounded-full bg-slate-100 overflow-hidden">
+                            <div className="absolute inset-y-0 left-0 rounded-full bg-amber-400 transition-all" style={{ width: `${Math.max(pct, 1)}%` }} />
+                          </div>
+                          <span className="w-8 text-right text-gray-500">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Filters */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <input
+                type="search"
+                value={feedbackSearch}
+                onChange={e => setFeedbackSearch(e.target.value)}
+                placeholder="Search name, document, comment…"
+                className="w-full max-w-xs rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+              <select value={feedbackRatingFilter} onChange={e => setFeedbackRatingFilter(e.target.value)} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900">
+                <option value="all">All ratings</option>
+                {[5, 4, 3, 2, 1].map(r => (<option key={r} value={String(r)}>{r} star{r > 1 ? 's' : ''}</option>))}
+              </select>
+              <select value={feedbackBarangayFilter} onChange={e => setFeedbackBarangayFilter(e.target.value)} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900">
+                <option value="all">All barangays</option>
+                {barangays.map(b => (<option key={b.id} value={b.id}>{b.name}</option>))}
+              </select>
+            </div>
+
+            {/* Feedback list */}
+            {feedbackLoading ? (
+              <p className="mt-4 text-sm text-gray-400">Loading feedback…</p>
+            ) : filteredFeedback.length ? (
+              <div className="mt-4 max-h-130 overflow-y-auto space-y-2">
+                {filteredFeedback.map(item => {
+                  const release = item.release_logs;
+                  const brgyName = barangays.find(b => b.id === item.barangay_id)?.name || 'Unknown';
+                  const starLabels = ['', 'Very Poor', 'Poor', 'Average', 'Good', 'Excellent'];
+                  return (
+                    <div key={item.id} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span style={{ letterSpacing: '2px' }}>
+                              {[1, 2, 3, 4, 5].map(s => (
+                                <span key={s} style={{ color: s <= item.rating ? '#f59e0b' : '#d1d5db' }}>★</span>
+                              ))}
+                            </span>
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                              {starLabels[item.rating]}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {release?.resident_name || 'Resident'} — {release?.document || 'Document'}
+                          </p>
+                          <p className="text-xs text-gray-500">{brgyName}</p>
+                          {item.comment ? (
+                            <p className="text-sm text-gray-600 mt-1">"{item.comment}"</p>
+                          ) : null}
+                        </div>
+                        <span className="text-xs text-gray-400 whitespace-nowrap">{formatTimestamp(item.created_at)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : allFeedback.length ? (
+              <p className="mt-4 rounded-2xl border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500">
+                No feedback matches your filter.
+              </p>
+            ) : (
+              <p className="mt-4 rounded-2xl border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500">
+                No feedback received yet. Residents can rate their experience after claiming a document.
+              </p>
+            )}
           </section>
         ) : null}
 

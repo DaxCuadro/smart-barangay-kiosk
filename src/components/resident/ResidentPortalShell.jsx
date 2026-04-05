@@ -557,6 +557,7 @@ function ResidentPortalShell() {
         .select('id, document, status, created_at')
         .eq('resident_id', selectedResident.id)
         .eq('barangay_id', selectedBarangayId)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(10);
       if (!isActive) return;
@@ -569,8 +570,24 @@ function ResidentPortalShell() {
       setRequestsLoading(false);
     }
     loadRequests();
+    // Real-time subscription for request status changes
+    let channel;
+    if (selectedResident?.id && selectedBarangayId) {
+      channel = supabase
+        .channel(`resident-requests-${selectedResident.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: REQUESTS_TABLE,
+          filter: `resident_id=eq.${selectedResident.id}`,
+        }, () => {
+          loadRequests();
+        })
+        .subscribe();
+    }
     return () => {
       isActive = false;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [selectedResident, selectedBarangayId, supabase]);
 
@@ -600,8 +617,24 @@ function ResidentPortalShell() {
       setReleaseLogsLoading(false);
     }
     loadReleaseLogs();
+    // Real-time subscription for release logs
+    let channel;
+    if (selectedResident?.id && selectedBarangayId) {
+      channel = supabase
+        .channel(`resident-releases-${selectedResident.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: RELEASE_LOGS_TABLE,
+          filter: `resident_id=eq.${selectedResident.id}`,
+        }, () => {
+          loadReleaseLogs();
+        })
+        .subscribe();
+    }
     return () => {
       isActive = false;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [selectedResident, selectedBarangayId, supabase]);
 
@@ -1197,6 +1230,43 @@ function ResidentPortalShell() {
     setRequestSuccessModal({ open: false, message: '', reference: '', price: null, document: '' });
   }
 
+  async function handleCancelRequest(requestId) {
+    if (!requestId || !session?.user?.id) return;
+    const { error } = await supabase
+      .from(REQUESTS_TABLE)
+      .update({ status: 'cancelled', cancelled_by: 'resident', cancelled_at: new Date().toISOString() })
+      .eq('id', requestId)
+      .eq('status', 'pending');
+    if (error) {
+      addToast(error.message || 'Failed to cancel request.', 'error');
+      return;
+    }
+    setRequests(prev => prev.filter(r => r.id !== requestId));
+    addToast('Request cancelled.', 'success');
+  }
+
+  async function handleSubmitFeedback(releaseLogId, rating, comment) {
+    if (!releaseLogId || !selectedResident?.id || !selectedBarangayId) return;
+    const { error } = await supabase
+      .from('resident_feedback')
+      .insert({
+        release_log_id: releaseLogId,
+        resident_id: selectedResident.id,
+        barangay_id: selectedBarangayId,
+        rating,
+        comment: (comment || '').trim(),
+      });
+    if (error) {
+      if (error.code === '23505') {
+        addToast('You already submitted feedback for this request.', 'info');
+        return;
+      }
+      addToast(error.message || 'Failed to submit feedback.', 'error');
+      return;
+    }
+    addToast('Thank you for your feedback!', 'success');
+  }
+
   return (
     <div className="resident-shell">
       <div className="resident-frame">
@@ -1206,7 +1276,7 @@ function ResidentPortalShell() {
             <h1 className="resident-title">{`${selectedBarangayName || 'Barangay'} Document Request Portal`}</h1>
             <p className="resident-body">
               {session
-                ? 'You are signed in. Track requests, submit new documents, and update your profile.'
+                ? 'Request barangay documents, check your request status, and manage your profile — all from your device.'
                 : authMode === 'signup'
                   ? 'Create your account to submit barangay document requests online.'
                   : 'Sign in to submit barangay document requests online.'}
@@ -1494,6 +1564,9 @@ function ResidentPortalShell() {
             accountInfo={accountInfo}
             onUpdateAccount={handleUpdateAccount}
             onSignOut={handleSignOut}
+            onCancelRequest={handleCancelRequest}
+            onSubmitFeedback={handleSubmitFeedback}
+            supabase={supabase}
           />
         ) : !recoveryMode && !authLoading ? (
           <section className="resident-card">

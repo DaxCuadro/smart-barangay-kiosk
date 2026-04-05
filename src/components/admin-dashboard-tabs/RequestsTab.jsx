@@ -194,6 +194,7 @@ export default function RequestsTab({ barangayId }) {
   const [authSession, setAuthSession] = useState(null);
   const [expandedLogId, setExpandedLogId] = useState(null);
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
+  const [cancelledRequests, setCancelledRequests] = useState([]);
 
   useEffect(() => {
     if (!barangayId) return;
@@ -210,6 +211,7 @@ export default function RequestsTab({ barangayId }) {
           'id, created_at, status, resident_id, request_source, first_name, last_name, middle_name, sex, civil_status, birthday, birthplace, address, zone, occupation, education, religion, telephone, email, document, purpose, reference_number, queue_number',
         )
         .eq('barangay_id', barangayId)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (!isActive) return;
@@ -278,9 +280,39 @@ export default function RequestsTab({ barangayId }) {
       }
     }
 
+    async function loadCancelledRequests() {
+      if (!authSession || !barangayId) return;
+      const { data, error: fetchError } = await supabase
+        .from(INTAKE_REQUESTS_TABLE)
+        .select('id, first_name, last_name, middle_name, document, telephone, email, zone, address, request_source, reference_number, cancelled_by, cancelled_at')
+        .eq('barangay_id', barangayId)
+        .eq('status', 'cancelled')
+        .order('cancelled_at', { ascending: false });
+
+      if (!isActive) return;
+
+      if (fetchError) {
+        setCancelledRequests([]);
+      } else {
+        setCancelledRequests((data || []).map(record => ({
+          id: record.id,
+          resident: formatResidentName(record),
+          document: record.document || 'Document',
+          contact: record.telephone || record.email || 'N/A',
+          zone: formatZoneLabel(record.zone, record.address),
+          source: record.request_source || '',
+          reference: record.reference_number || 'N/A',
+          cancelledAt: record.cancelled_at || new Date().toISOString(),
+          cancelledBy: record.cancelled_by || 'unknown',
+        })));
+      }
+    }
+
     loadLogs();
+    loadCancelledRequests();
     const intervalId = setInterval(() => {
       loadLogs();
+      loadCancelledRequests();
     }, REFRESH_MS);
     return () => {
       isActive = false;
@@ -300,16 +332,30 @@ export default function RequestsTab({ barangayId }) {
     count: (groupedRequests[tab.key] || []).length,
   }));
   const logYears = useMemo(() => {
-    const years = logs.map(entry => new Date(entry.releasedAt).getFullYear());
+    const releaseDates = logs.map(entry => new Date(entry.releasedAt).getFullYear());
+    const cancelDates = cancelledRequests.map(entry => new Date(entry.cancelledAt).getFullYear());
     const currentYear = new Date().getFullYear();
-    return Array.from(new Set([...years, currentYear])).sort((a, b) => b - a);
-  }, [logs]);
+    return Array.from(new Set([...releaseDates, ...cancelDates, currentYear])).sort((a, b) => b - a);
+  }, [logs, cancelledRequests]);
   const filteredLogs = useMemo(() => {
-    return logs.filter(entry => {
-      const date = new Date(entry.releasedAt);
-      return date.getFullYear() === activeLogYear && date.getMonth() === activeLogMonth;
-    });
-  }, [logs, activeLogMonth, activeLogYear]);
+    const released = logs
+      .filter(entry => {
+        const date = new Date(entry.releasedAt);
+        return date.getFullYear() === activeLogYear && date.getMonth() === activeLogMonth;
+      })
+      .map(entry => ({ ...entry, logType: 'released' }));
+    const cancelled = cancelledRequests
+      .filter(entry => {
+        const date = new Date(entry.cancelledAt);
+        return date.getFullYear() === activeLogYear && date.getMonth() === activeLogMonth;
+      })
+      .map(entry => ({
+        ...entry,
+        logType: 'cancelled',
+        releasedAt: entry.cancelledAt,
+      }));
+    return [...released, ...cancelled].sort((a, b) => new Date(b.releasedAt).getTime() - new Date(a.releasedAt).getTime());
+  }, [logs, cancelledRequests, activeLogMonth, activeLogYear]);
   const loggedRequestIds = useMemo(
     () => new Set(logs.map(entry => entry.requestId)),
     [logs],
@@ -426,18 +472,34 @@ export default function RequestsTab({ barangayId }) {
   async function confirmCancel() {
     if (!cancelState.request) return;
     setCancelingId(cancelState.request.id);
-    const { error: deleteError } = await supabase
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabase
       .from(INTAKE_REQUESTS_TABLE)
-      .delete()
+      .update({ status: 'cancelled', cancelled_by: 'admin', cancelled_at: now })
       .eq('id', cancelState.request.id);
 
-    if (deleteError) {
-      addToast(deleteError.message, 'error');
+    if (updateError) {
+      addToast(updateError.message, 'error');
       setCancelingId(null);
       return;
     }
 
-    setRequests(prev => prev.filter(item => item.id !== cancelState.request.id));
+    const cancelled = cancelState.request;
+    setRequests(prev => prev.filter(item => item.id !== cancelled.id));
+    setCancelledRequests(prev => [
+      {
+        id: cancelled.id,
+        resident: cancelled.resident,
+        document: cancelled.document,
+        contact: cancelled.contact,
+        zone: cancelled.zone,
+        source: cancelled.source || '',
+        reference: cancelled.reference,
+        cancelledAt: now,
+        cancelledBy: 'admin',
+      },
+      ...prev,
+    ]);
     setCancelingId(null);
     setCancelState({ open: false, request: null });
     addToast('Request cancelled.', 'success');
@@ -787,8 +849,8 @@ export default function RequestsTab({ barangayId }) {
       <ConfirmDialog
         open={cancelState.open}
         title="Cancel this request?"
-        description={cancelState.request ? `This will permanently delete ${cancelState.request.resident}'s request.` : ''}
-        confirmLabel="Delete request"
+        description={cancelState.request ? `${cancelState.request.resident}'s request will be cancelled and recorded in the monthly release history.` : ''}
+        confirmLabel="Cancel request"
         tone="danger"
         loading={cancelingId === cancelState.request?.id}
         onConfirm={confirmCancel}
@@ -834,15 +896,21 @@ export default function RequestsTab({ barangayId }) {
           {filteredLogs.length ? (
             <ul className="divide-y divide-gray-100">
               {filteredLogs.map(entry => (
-                <li key={entry.id} className="p-4 text-sm text-gray-700">
+                <li key={`${entry.logType}-${entry.id}`} className="p-4 text-sm text-gray-700">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-semibold text-gray-900">{entry.document}</p>
                       <p className="text-xs text-gray-500">{entry.resident} • {entry.zone}</p>
                     </div>
-                    <span className="text-[11px] rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700">
-                      Logged {formatDateTime(entry.releasedAt)}
-                    </span>
+                    {entry.logType === 'cancelled' ? (
+                      <span className="text-[11px] rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-red-700">
+                        Cancelled by {entry.cancelledBy} · {formatDateTime(entry.cancelledAt)}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700">
+                        Logged {formatDateTime(entry.releasedAt)}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-gray-500">
                     <span>Ref {entry.reference}</span>
@@ -855,12 +923,12 @@ export default function RequestsTab({ barangayId }) {
                     <button
                       type="button"
                       className="text-blue-600 hover:text-blue-700"
-                      onClick={() => toggleLogExpanded(entry.id)}
+                      onClick={() => toggleLogExpanded(`${entry.logType}-${entry.id}`)}
                     >
-                      {expandedLogId === entry.id ? 'Hide info' : 'View info'}
+                      {expandedLogId === `${entry.logType}-${entry.id}` ? 'Hide info' : 'View info'}
                     </button>
                   </div>
-                  {expandedLogId === entry.id ? (
+                  {expandedLogId === `${entry.logType}-${entry.id}` ? (
                     <div className="mt-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-xs text-gray-600">
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
@@ -895,7 +963,7 @@ export default function RequestsTab({ barangayId }) {
             </ul>
           ) : (
             <div className="px-4 py-8 text-center text-sm text-gray-500">
-              No release logs yet for {MONTHS[activeLogMonth]} {activeLogYear}.
+              No release logs or cancellations for {MONTHS[activeLogMonth]} {activeLogYear}.
             </div>
           )}
         </div>
