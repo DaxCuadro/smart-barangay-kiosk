@@ -47,7 +47,7 @@ export default defineConfig({
           },
         ],
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'favicon.png', 'pwa-192x192.png'],
       manifest: {
         name: 'Smart Barangay Kiosk',
         short_name: 'Barangay Kiosk',
