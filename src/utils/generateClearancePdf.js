@@ -66,81 +66,85 @@ async function loadImageAsDataUrl(url) {
  * Draw left-side officials sidebar.
  *  officials: { punong: [{ name, alternateTitle }], kagawad: [...], sk: [...], treasurer: [...], secretary: [...] }
  */
-function drawOfficialsSidebar(doc, officials, startY) {
-  const x = 10;
+function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
+  const cx = sidebarX + sideWidth / 2;
   let y = startY;
-  const sideWidth = 48;
 
   doc.setFont('helvetica', 'normal');
 
   // Punong Barangay
   const punong = officials?.punong?.[0];
   if (punong) {
-    doc.setFontSize(7);
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(punong.name.toUpperCase(), x + sideWidth / 2, y, { align: 'center' });
-    y += 3;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
-    doc.text('Punong Barangay', x + sideWidth / 2, y, { align: 'center' });
-    y += 5;
+    doc.text(punong.name.toUpperCase(), cx, y, { align: 'center' });
+    y += 3.5;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.text('Punong Barangay', cx, y, { align: 'center' });
+    y += 6;
   }
 
   // KAGAWAD header
   const kagawads = officials?.kagawad || [];
   if (kagawads.length) {
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('KAGAWAD', x + sideWidth / 2, y, { align: 'center' });
-    y += 4;
+    doc.text('KAGAWAD', cx, y, { align: 'center' });
+    y += 5;
 
-    doc.setFontSize(6);
+    doc.setFontSize(7.5);
     for (const k of kagawads) {
       doc.setFont('helvetica', 'bold');
-      doc.text(k.name.toUpperCase(), x + sideWidth / 2, y, { align: 'center' });
-      y += 2.5;
+      doc.text(k.name.toUpperCase(), cx, y, { align: 'center' });
+      y += 3;
       if (k.alternateTitle) {
         doc.setFont('helvetica', 'italic');
-        doc.text(k.alternateTitle, x + sideWidth / 2, y, { align: 'center' });
-        y += 2.5;
+        doc.setFontSize(7);
+        doc.text(k.alternateTitle, cx, y, { align: 'center' });
+        y += 3;
+        doc.setFontSize(7.5);
       }
-      y += 1.5;
+      y += 2;
     }
   }
 
   // SK Chair
   const sk = officials?.sk?.[0];
   if (sk) {
-    doc.setFontSize(6);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(sk.name.toUpperCase(), x + sideWidth / 2, y, { align: 'center' });
-    y += 2.5;
-    doc.setFont('helvetica', 'normal');
-    doc.text('SK Chairman', x + sideWidth / 2, y, { align: 'center' });
-    y += 4;
+    doc.text(sk.name.toUpperCase(), cx, y, { align: 'center' });
+    y += 3;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.text('SK Chairman', cx, y, { align: 'center' });
+    y += 5;
   }
 
   // Treasurer
   const treasurer = officials?.treasurer?.[0];
   if (treasurer) {
-    doc.setFontSize(6);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(treasurer.name.toUpperCase(), x + sideWidth / 2, y, { align: 'center' });
-    y += 2.5;
-    doc.setFont('helvetica', 'normal');
-    doc.text('Treasurer', x + sideWidth / 2, y, { align: 'center' });
-    y += 4;
+    doc.text(treasurer.name.toUpperCase(), cx, y, { align: 'center' });
+    y += 3;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.text('Treasurer', cx, y, { align: 'center' });
+    y += 5;
   }
 
   // Secretary
   const secretary = officials?.secretary?.[0];
   if (secretary) {
-    doc.setFontSize(6);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(secretary.name.toUpperCase(), x + sideWidth / 2, y, { align: 'center' });
-    y += 2.5;
-    doc.setFont('helvetica', 'normal');
-    doc.text('Secretary', x + sideWidth / 2, y, { align: 'center' });
+    doc.text(secretary.name.toUpperCase(), cx, y, { align: 'center' });
+    y += 3;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.text('Secretary', cx, y, { align: 'center' });
   }
 }
 
@@ -157,29 +161,43 @@ function drawOfficialsSidebar(doc, officials, startY) {
 export async function generateClearancePdf({ request, barangay, officials, amount }) {
   const doc = new jsPDF({ unit: 'mm', format: 'letter' }); // 215.9 x 279.4mm
 
-  const pageW = doc.internal.pageSize.getWidth();
-  const contentLeft = 62; // right of sidebar
-  const contentRight = pageW - 15;
+  const pageW = doc.internal.pageSize.getWidth();   // ~215.9
+  const pageH = doc.internal.pageSize.getHeight();   // ~279.4
+
+  // ── Margins ──
+  const marginTop = 10;
+  const marginLeft = 15;
+  const marginRight = 15;
+  const marginBottom = 12;
+
+  // ── Sidebar dimensions ──
+  const sidebarW = 50;
+
+  // ── Content area (right of sidebar) ──
+  const contentLeft = marginLeft + sidebarW + 4;
+  const contentRight = pageW - marginRight;
+  const bodyWidth = contentRight - contentLeft;
   const contentCenterX = (contentLeft + contentRight) / 2;
 
-  // ── Seal image ──
+  // ── Seal image (top-left corner) ──
   const sealDataUrl = await loadImageAsDataUrl(barangay?.seal_url);
+  const sealSize = 20;
   if (sealDataUrl) {
-    doc.addImage(sealDataUrl, 'PNG', contentCenterX - 30, 8, 18, 18);
+    doc.addImage(sealDataUrl, 'PNG', contentLeft, marginTop, sealSize, sealSize);
   }
 
-  // ── Header ──
-  let y = 12;
-  doc.setFontSize(10);
+  // ── Header (centered in content area) ──
+  let y = marginTop + 3;
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('REPUBLIC OF THE PHILIPPINES', contentCenterX, y, { align: 'center' });
-  y += 5;
+  y += 4.5;
 
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'italic');
   if (barangay?.province) {
     doc.text(`Province of ${barangay.province}`, contentCenterX, y, { align: 'center' });
-    y += 4.5;
+    y += 4;
   }
   if (barangay?.municipality) {
     doc.text(`Municipality of ${barangay.municipality}`, contentCenterX, y, { align: 'center' });
@@ -187,10 +205,12 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   }
 
   doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
   doc.text('OFFICE OF THE PUNONG BARANGAY', contentCenterX, y, { align: 'center' });
   y += 5;
 
   doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
   if (barangay?.barangay_address) {
     doc.text(barangay.barangay_address.toUpperCase(), contentCenterX, y, { align: 'center' });
     y += 4.5;
@@ -206,27 +226,34 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
     y += 4;
   }
 
-  // ── Divider line ──
-  y += 2;
+  // ── Divider line (full page width) ──
+  y += 1;
+  const dividerY = y;
   doc.setDrawColor(0);
-  doc.setLineWidth(0.3);
-  doc.line(contentLeft, y, contentRight, y);
-  y += 8;
+  doc.setLineWidth(0.4);
+  doc.line(marginLeft, dividerY, pageW - marginRight, dividerY);
+  y += 10;
 
   // ── Title ──
-  doc.setFontSize(14);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text('BARANGAY CLEARANCE', contentCenterX, y, { align: 'center' });
   y += 10;
 
-  // ── Certification body ──
-  doc.setFontSize(9);
+  // ── Certification body (with tab indent) ──
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  const bodyWidth = contentRight - contentLeft;
   const certText = 'This is to certify that the person whose name, signature and thumb marks appeared herein below has requested CLEARANCE from this office.';
-  const lines = doc.splitTextToSize(certText, bodyWidth);
-  doc.text(lines, contentLeft, y, { align: 'justify' });
-  y += lines.length * 4.5 + 4;
+  const certLines = doc.splitTextToSize(certText, bodyWidth - 8);
+  // First line indented
+  if (certLines.length > 0) {
+    doc.text(certLines[0], contentLeft + 10, y);
+    for (let i = 1; i < certLines.length; i++) {
+      y += 4.5;
+      doc.text(certLines[i], contentLeft, y);
+    }
+  }
+  y += 8;
 
   // ── Personal info fields ──
   const fullName = request.resident || '';
@@ -237,12 +264,12 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   const address = request.address || '';
   const purpose = request.purpose || '';
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
 
   const fieldLeft = contentLeft;
-  const valueLeft = contentLeft + 30;
-  const col2Label = contentLeft + bodyWidth * 0.6;
-  const col2Value = col2Label + 22;
+  const valueLeft = contentLeft + 35;
+  const col2Label = contentLeft + bodyWidth * 0.58;
+  const col2Value = col2Label + 25;
   const lineH = 5.5;
 
   // Row 1: NAME / AGE
@@ -286,120 +313,140 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   doc.text('ADDRESS', fieldLeft, y);
   doc.text(':', valueLeft - 2, y);
   doc.setFont('helvetica', 'normal');
-  const addrLines = doc.splitTextToSize(address, bodyWidth - 32);
+  const addrLines = doc.splitTextToSize(address, bodyWidth - 37);
   doc.text(addrLines, valueLeft, y);
-  y += addrLines.length * 4 + 1;
+  y += addrLines.length * 4.5 + 1;
 
   // Row 5: PURPOSE
   doc.setFont('helvetica', 'bold');
   doc.text('PURPOSE', fieldLeft, y);
   doc.text(':', valueLeft - 2, y);
   doc.setFont('helvetica', 'normal');
-  const purposeLines = doc.splitTextToSize(purpose || 'N/A', bodyWidth - 32);
+  const purposeLines = doc.splitTextToSize(purpose || 'N/A', bodyWidth - 37);
   doc.text(purposeLines, valueLeft, y);
-  y += purposeLines.length * 4 + 6;
+  y += purposeLines.length * 4.5 + 8;
 
-  // ── Certification paragraph ──
-  doc.setFontSize(9);
+  // ── Second certification paragraph (indented) ──
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
   const certPara = 'This is to certify further that he/she is known to me of good moral character and is a law-abiding citizen. He/she has no pending case or derogatory record in this office.';
-  const certLines = doc.splitTextToSize(certPara, bodyWidth);
-  doc.text(certLines, contentLeft + 8, y);
-  y += certLines.length * 4.5 + 8;
+  const cert2Lines = doc.splitTextToSize(certPara, bodyWidth - 16);
+  // First line indented
+  if (cert2Lines.length > 0) {
+    doc.text(cert2Lines[0], contentLeft + 16, y);
+    for (let i = 1; i < cert2Lines.length; i++) {
+      y += 4.5;
+      doc.text(cert2Lines[i], contentLeft + 8, y);
+    }
+  }
+  y += 10;
 
   // ── Thumb marks area ──
   const thumbBoxW = 20;
-  const thumbBoxH = 16;
-  const thumbGap = 8;
-  const thumbStartX = contentCenterX + 2;
+  const thumbBoxH = 18;
+  const thumbGap = 10;
+  const thumbAreaW = thumbBoxW * 2 + thumbGap;
+  const thumbStartX = contentRight - thumbAreaW - 5;
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
-  // Left thumb box
-  doc.rect(thumbStartX, y, thumbBoxW, thumbBoxH);
-  // Right thumb box
-  doc.rect(thumbStartX + thumbBoxW + thumbGap, y, thumbBoxW, thumbBoxH);
   // Labels above boxes
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Left', thumbStartX + thumbBoxW / 2, y - 1.5, { align: 'center' });
-  doc.text('Right', thumbStartX + thumbBoxW + thumbGap + thumbBoxW / 2, y - 1.5, { align: 'center' });
-  y += thumbBoxH + 6;
+  doc.text('Left', thumbStartX + thumbBoxW / 2, y - 2, { align: 'center' });
+  doc.text('Right', thumbStartX + thumbBoxW + thumbGap + thumbBoxW / 2, y - 2, { align: 'center' });
+  // Boxes
+  doc.rect(thumbStartX, y, thumbBoxW, thumbBoxH);
+  doc.rect(thumbStartX + thumbBoxW + thumbGap, y, thumbBoxW, thumbBoxH);
+  y += thumbBoxH + 10;
 
   // ── Signature line ──
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.3);
+  doc.line(contentLeft + 6, y - 1, contentLeft + 60, y - 1);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text(fullName.toUpperCase(), contentLeft + 6, y);
-  y += 3.5;
-  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(fullName.toUpperCase(), contentLeft + 6, y + 3);
+  y += 7;
+  doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
-  doc.text('Signature over Printed Name', contentLeft + 4, y);
-  y += 10;
+  doc.text('Signature over Printed Name', contentLeft + 6, y);
+  y += 12;
 
-  // ── Issued date ──
+  // ── Issued date (indented, wrapped) ──
   const issuedDate = formatIssueDate();
-  const locationName = barangay?.barangay_address || (barangay?.name ? `Barangay ${barangay.name}` : '');
+  const locationName = barangay?.name ? `Barangay ${barangay.name}` : (barangay?.barangay_address || '');
+  const regionStr = barangay?.province ? `, Region V` : '';
   const municipalityStr = barangay?.municipality ? `, ${barangay.municipality}` : '';
-  const provinceStr = barangay?.province ? `, ${barangay.province}` : '';
-  const issueLine = `Issued this ${issuedDate} at ${locationName}${municipalityStr}${provinceStr}, Philippines.`;
-  doc.setFontSize(8.5);
-  const issueLines = doc.splitTextToSize(issueLine, bodyWidth - 10);
+  const provinceStr = barangay?.province ? `,\n${barangay.province}, Philippines.` : ', Philippines.';
+  const issueLine = `Issued this ${issuedDate} at ${locationName}${municipalityStr}${regionStr}${provinceStr}`;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const issueLines = doc.splitTextToSize(issueLine, bodyWidth - 20);
   doc.text(issueLines, contentLeft + 10, y);
-  y += issueLines.length * 4 + 8;
+  y += issueLines.length * 4.5 + 10;
 
-  // ── Prepared by / Signatures ──
-  doc.setFontSize(8);
+  // ── Prepared by ──
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
   doc.text('Prepared by:', contentLeft, y);
-  y += 10;
+  y += 12;
 
+  // ── Secretary & Punong Barangay (centered in their halves) ──
   const secretary = officials?.secretary?.[0];
   const punong = officials?.punong?.[0];
+  const halfW = bodyWidth / 2;
+  const leftCenter = contentLeft + halfW / 2;
+  const rightCenter = contentLeft + halfW + halfW / 2;
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   if (secretary) {
-    doc.text(secretary.name.toUpperCase(), contentLeft, y);
+    doc.text(secretary.name.toUpperCase(), leftCenter, y, { align: 'center' });
   }
   if (punong) {
-    doc.text(`HON. ${punong.name.toUpperCase()}`, contentRight, y, { align: 'right' });
+    doc.text(`HON. ${punong.name.toUpperCase()}`, rightCenter, y, { align: 'center' });
   }
-  y += 3.5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  y += 4;
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(8.5);
   if (secretary) {
-    doc.text('Barangay Secretary', contentLeft, y);
+    doc.text('Barangay Secretary', leftCenter, y, { align: 'center' });
   }
   if (punong) {
-    doc.text('Punong Barangay', contentRight, y, { align: 'right' });
+    doc.text('Punong Barangay', rightCenter, y, { align: 'center' });
   }
   y += 12;
 
   // ── Footer: Amount / O.R. / Note ──
-  doc.setFontSize(8);
+  const footerLeft = contentLeft;
+  const indentLeft = footerLeft + 6;
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
   const displayAmount = amount != null ? Number(amount).toFixed(2) : '___';
-  doc.text(`Amount: ${displayAmount}`, contentLeft, y);
-  y += 4;
-  doc.text('O.R. No.: _____________', contentLeft + 10, y);
-  y += 4;
-  doc.text('Date Issued: _____________', contentLeft + 10, y);
-  y += 4;
+  doc.text(`Amount: ${displayAmount}`, footerLeft, y);
+  y += 4.5;
+  doc.text('O.R. No.: _____________', indentLeft, y);
+  y += 4.5;
+  doc.text('Date Issued:', indentLeft, y);
+  y += 4.5;
   const placeName = barangay?.name ? `BTO – ${barangay.name}` : '___________';
-  doc.text(`Place of Issued: ${placeName}`, contentLeft + 10, y);
+  doc.text(`Place of Issued: ${placeName}`, indentLeft, y);
   y += 8;
 
-  doc.setFontSize(7);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'italic');
   const noteText = 'NOTE: This clearance is good only for ninety (90) days from date of issued. Not valid without official dry seal.';
-  const noteLines = doc.splitTextToSize(noteText, bodyWidth - 15);
-  doc.text(noteLines, contentLeft + 10, y);
+  const noteLines = doc.splitTextToSize(noteText, bodyWidth - 10);
+  doc.text(noteLines, footerLeft, y);
 
-  // ── Left sidebar (officials list) ──
-  const sidebarX = 5;
-  const sidebarY = 30;
-  const sidebarW = 52;
-  const sidebarH = 240;
+  // ── Left sidebar (officials box starts at divider line) ──
+  const sidebarX = marginLeft;
+  const sidebarTop = dividerY + 1;
+  const sidebarBottom = Math.min(y + 8, pageH - marginBottom);
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
-  doc.rect(sidebarX, sidebarY, sidebarW, sidebarH);
-  drawOfficialsSidebar(doc, officials, sidebarY + 5);
+  doc.rect(sidebarX, sidebarTop, sidebarW, sidebarBottom - sidebarTop);
+  drawOfficialsSidebar(doc, officials, sidebarTop + 6, sidebarX, sidebarW);
 
   return doc;
 }

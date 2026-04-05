@@ -6,20 +6,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  *  SMS PROVIDER SWITCHING GUIDE (request_otp)
  * ═══════════════════════════════════════════════════════════════════
  *
- *  CURRENT PROVIDER: Semaphore OTP endpoint (semaphore.co)
- *    - ₱1.00/OTP (priority queue, dedicated OTP route)
- *    - Secret needed: SEMAPHORE_API_KEY
+ *  CURRENT PROVIDER: PhilSMS (philsms.com)
+ *    - Starts at ₱0.35/SMS, Philippine networks
+ *    - Secret needed: PHILSMS_API_TOKEN
  *
- *  TO SWITCH TO TWILIO:
- *    1. Comment out the "── SEMAPHORE OTP ──" block
- *    2. Uncomment the "── TWILIO OTP ──" block
- *    3. Set secrets: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
- *    4. Redeploy: npx supabase functions deploy request_otp --no-verify-jwt
- *
- *  TO SWITCH BACK TO SEMAPHORE:
- *    1. Comment out the "── TWILIO OTP ──" block
+ *  TO SWITCH TO SEMAPHORE:
+ *    1. Comment out the "── PHILSMS OTP ──" block
  *    2. Uncomment the "── SEMAPHORE OTP ──" block
- *    3. Redeploy: npx supabase functions deploy request_otp --no-verify-jwt
+ *    3. Set secret: npx supabase secrets set SEMAPHORE_API_KEY=xxx
+ *    4. Redeploy: npx supabase functions deploy request_otp --no-verify-jwt
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -36,45 +31,47 @@ function normalizePHPhone(raw) {
   return phone;
 }
 
-// ── SEMAPHORE OTP ── (currently active)
+// ── PHILSMS OTP ── (currently active)
 async function sendOtp(phone, otp) {
-  const apiKey = Deno.env.get('SEMAPHORE_API_KEY');
-  if (!apiKey) throw new Error('SEMAPHORE_API_KEY secret not set.');
-  const res = await fetch('https://api.semaphore.co/api/v4/otp', {
+  const apiToken = Deno.env.get('PHILSMS_API_TOKEN');
+  if (!apiToken) throw new Error('PHILSMS_API_TOKEN secret not set.');
+  const message = `Your Smart Barangay password reset code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+  const res = await fetch('https://dashboard.philsms.com/api/v3/sms/send', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      apikey: apiKey,
-      number: phone,
-      message: `Your Smart Barangay password reset code is: {otp}. Valid for 5 minutes. Do not share this code.`,
-      code: otp,
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      recipient: phone,
+      sender_id: 'PhilSMS',
+      type: 'plain',
+      message,
     }),
   });
-  if (!res.ok) throw new Error('SMS provider returned an error.');
+  const data = await res.json();
+  if (data.status === 'error') throw new Error(data.message || 'SMS provider returned an error.');
 }
-// ── END SEMAPHORE OTP ──
+// ── END PHILSMS OTP ──
 
-// ── TWILIO OTP ── (uncomment to use Twilio instead)
+// ── SEMAPHORE OTP ── (uncomment to use Semaphore instead)
 // async function sendOtp(phone, otp) {
-//   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-//   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-//   const fromNumber = Deno.env.get('TWILIO_FROM_NUMBER');
-//   if (!accountSid || !authToken || !fromNumber) throw new Error('Twilio secrets not set.');
-//   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+//   const apiKey = Deno.env.get('SEMAPHORE_API_KEY');
+//   if (!apiKey) throw new Error('SEMAPHORE_API_KEY secret not set.');
+//   const res = await fetch('https://semaphore.co/api/v4/otp', {
 //     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/x-www-form-urlencoded',
-//       'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
-//     },
+//     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 //     body: new URLSearchParams({
-//       To: '+' + phone,
-//       From: fromNumber,
-//       Body: `Your Smart Barangay password reset code is: ${otp}. Valid for 5 minutes. Do not share this code.`,
+//       apikey: apiKey,
+//       number: phone,
+//       message: `Your Smart Barangay password reset code is: {otp}. Valid for 5 minutes. Do not share this code.`,
+//       code: otp,
 //     }),
 //   });
 //   if (!res.ok) throw new Error('SMS provider returned an error.');
 // }
-// ── END TWILIO OTP ──
+// ── END SEMAPHORE OTP ──
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -143,10 +140,20 @@ Deno.serve(async (req) => {
     if (!targetPhone && (userType === 'resident' || !targetPhone)) {
       const { data: profileRow } = await supabase
         .from('resident_profiles')
-        .select('phone')
+        .select('phone, resident_id')
         .eq('user_id', matchedUser.id)
         .maybeSingle();
       targetPhone = profileRow?.phone || '';
+
+      // Fallback: check the linked residents table for telephone
+      if (!targetPhone && profileRow?.resident_id) {
+        const { data: residentRow } = await supabase
+          .from('residents')
+          .select('telephone')
+          .eq('id', profileRow.resident_id)
+          .maybeSingle();
+        targetPhone = residentRow?.telephone || '';
+      }
     }
 
     if (!targetPhone) {

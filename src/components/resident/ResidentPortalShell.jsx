@@ -672,7 +672,13 @@ function ResidentPortalShell() {
     }
     const { error } = await supabase.auth.signInWithPassword({ email: sanitized, password });
     if (error) {
-      setAuthError(error.message);
+      if (error.message === 'Invalid login credentials') {
+        setAuthError('Incorrect email or password. Please check and try again.');
+      } else if (error.message?.includes('Email not confirmed')) {
+        setAuthError('Your email has not been confirmed. Check your inbox.');
+      } else {
+        setAuthError(error.message);
+      }
       return;
     }
     setPassword('');
@@ -723,7 +729,12 @@ function ResidentPortalShell() {
 
     setForgotLoading(false);
     if (error || data?.error) {
-      setAuthError(data?.error || error?.message || 'Failed to send OTP.');
+      const msg = data?.error || '';
+      if (msg.includes('No phone number')) {
+        setAuthError('No phone number is linked to this account. Contact your barangay admin to add one.');
+      } else {
+        setAuthError(msg || error?.message || 'Failed to send OTP. Please try again.');
+      }
       return;
     }
 
@@ -1568,7 +1579,8 @@ function ResidentPortalShell() {
             onSubmitFeedback={handleSubmitFeedback}
             supabase={supabase}
           />
-        ) : !recoveryMode && !authLoading ? (
+        ) : !recoveryMode && !recoveryCompleted && !otpMode && !authLoading ? (
+          <>
           <section className="resident-card">
             <div className="resident-card-head">
               <h2>Get verified</h2>
@@ -1590,7 +1602,7 @@ function ResidentPortalShell() {
 
             {onboardingTab === 'verify' ? (
               <>
-                {profile?.status === 'pending' && !profile?.resident_id ? (
+                {profile?.status === 'pending' && !profile?.resident_id && profile?.verification_request_id ? (
                   <div className="resident-banner">
                     Your information is pending verification. Please wait for admin confirmation.
                   </div>
@@ -1684,7 +1696,7 @@ function ResidentPortalShell() {
             ) : null}
 
             {onboardingTab === 'new' ? (
-              profile?.status === 'pending' ? (
+              profile?.status === 'pending' && profile?.verification_request_id ? (
                 <div className="resident-banner">
                   Your information is pending verification. Please wait for admin confirmation.
                 </div>
@@ -1779,6 +1791,15 @@ function ResidentPortalShell() {
               )
             ) : null}
           </section>
+          <button
+            type="button"
+            className="resident-submit"
+            style={{ marginTop: '1rem', background: '#e74c3c', width: '100%', maxWidth: '200px', alignSelf: 'center' }}
+            onClick={handleSignOut}
+          >
+            Log out
+          </button>
+          </>
         ) : null}
       </div>
       {authLoading ? (

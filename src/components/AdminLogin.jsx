@@ -59,7 +59,13 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
-      setError(error.message);
+      if (error.message === 'Invalid login credentials') {
+        setError('Incorrect email or password. Please check and try again.');
+      } else if (error.message?.includes('Email not confirmed')) {
+        setError('Your email has not been confirmed. Check your inbox.');
+      } else {
+        setError(error.message);
+      }
       return;
     }
 
@@ -102,7 +108,12 @@ export default function AdminLogin({ onLogin, accessError, onLogout }) {
 
     setForgotLoading(false);
     if (invokeError || data?.error) {
-      setError(data?.error || invokeError?.message || 'Failed to send OTP.');
+      const msg = data?.error || '';
+      if (msg.includes('No phone number')) {
+        setError('No phone number is linked to this account. Contact your administrator to add one.');
+      } else {
+        setError(msg || invokeError?.message || 'Failed to send OTP. Please try again.');
+      }
       return;
     }
 

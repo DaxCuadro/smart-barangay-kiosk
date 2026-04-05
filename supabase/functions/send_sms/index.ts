@@ -6,21 +6,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  *  SMS PROVIDER SWITCHING GUIDE (send_sms)
  * ═══════════════════════════════════════════════════════════════════
  *
- *  CURRENT PROVIDER: Semaphore (semaphore.co)
- *    - ₱0.50/SMS, Philippine networks only
- *    - Secret needed: SEMAPHORE_API_KEY
+ *  CURRENT PROVIDER: PhilSMS (philsms.com)
+ *    - Starts at ₱0.35/SMS, Philippine networks
+ *    - Secret needed: PHILSMS_API_TOKEN
+ *    - Sender ID: must be registered & active in PhilSMS dashboard
  *
- *  TO SWITCH TO TWILIO:
- *    1. Comment out the entire "── SEMAPHORE PROVIDER ──" block
- *    2. Uncomment the entire "── TWILIO PROVIDER ──" block
- *    3. Set secrets: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
- *       npx supabase secrets set TWILIO_ACCOUNT_SID=xxx TWILIO_AUTH_TOKEN=xxx TWILIO_FROM_NUMBER=+1xxx
- *    4. Redeploy: npx supabase functions deploy send_sms --no-verify-jwt
- *
- *  TO SWITCH BACK TO SEMAPHORE:
- *    1. Comment out the "── TWILIO PROVIDER ──" block
+ *  TO SWITCH TO SEMAPHORE:
+ *    1. Comment out the "── PHILSMS PROVIDER ──" block
  *    2. Uncomment the "── SEMAPHORE PROVIDER ──" block
- *    3. Ensure SEMAPHORE_API_KEY secret is set
+ *    3. Set secret: npx supabase secrets set SEMAPHORE_API_KEY=xxx
  *    4. Redeploy: npx supabase functions deploy send_sms --no-verify-jwt
  * ═══════════════════════════════════════════════════════════════════
  */
@@ -38,41 +32,44 @@ function normalizePHPhone(raw) {
   return phone;
 }
 
-// ── SEMAPHORE PROVIDER ── (currently active)
-async function sendViaSemaphore(phone, message) {
-  const apiKey = Deno.env.get('SEMAPHORE_API_KEY');
-  if (!apiKey) throw new Error('SEMAPHORE_API_KEY secret not set.');
-  const res = await fetch('https://api.semaphore.co/api/v4/messages', {
+// ── PHILSMS PROVIDER ── (currently active)
+async function sendViaSms(phone, message) {
+  const apiToken = Deno.env.get('PHILSMS_API_TOKEN');
+  if (!apiToken) throw new Error('PHILSMS_API_TOKEN secret not set.');
+  const res = await fetch('https://dashboard.philsms.com/api/v3/sms/send', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ apikey: apiKey, number: phone, message }),
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      recipient: phone,
+      sender_id: 'PhilSMS',
+      type: 'plain',
+      message,
+    }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(JSON.stringify(data));
+  if (data.status === 'error') throw new Error(data.message || JSON.stringify(data));
   return data;
 }
-// ── END SEMAPHORE PROVIDER ──
+// ── END PHILSMS PROVIDER ──
 
-// ── TWILIO PROVIDER ── (uncomment to use Twilio instead)
-// async function sendViaTwilio(phone, message) {
-//   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-//   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-//   const fromNumber = Deno.env.get('TWILIO_FROM_NUMBER');
-//   if (!accountSid || !authToken || !fromNumber) throw new Error('Twilio secrets not set.');
-//   const toNumber = '+' + phone; // Twilio needs +63 format
-//   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+// ── SEMAPHORE PROVIDER ── (uncomment to use Semaphore instead)
+// async function sendViaSms(phone, message) {
+//   const apiKey = Deno.env.get('SEMAPHORE_API_KEY');
+//   if (!apiKey) throw new Error('SEMAPHORE_API_KEY secret not set.');
+//   const res = await fetch('https://semaphore.co/api/v4/messages', {
 //     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/x-www-form-urlencoded',
-//       'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
-//     },
-//     body: new URLSearchParams({ To: toNumber, From: fromNumber, Body: message }),
+//     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+//     body: new URLSearchParams({ apikey: apiKey, number: phone, message }),
 //   });
 //   const data = await res.json();
 //   if (!res.ok) throw new Error(JSON.stringify(data));
 //   return data;
 // }
-// ── END TWILIO PROVIDER ──
+// ── END SEMAPHORE PROVIDER ──
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -134,8 +131,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Send SMS (swap the function call when switching providers) ──
-    const smsResult = await sendViaSemaphore(normalizedPhone, message);
-    // const smsResult = await sendViaTwilio(normalizedPhone, message); // ← uncomment for Twilio
+    const smsResult = await sendViaSms(normalizedPhone, message);
 
     return new Response(JSON.stringify({ success: true, data: smsResult }), {
       status: 200,
