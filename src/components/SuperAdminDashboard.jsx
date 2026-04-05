@@ -13,7 +13,19 @@ const SUPERADMIN_TABS = [
   { key: 'documents', label: 'Documents' },
   { key: 'audit', label: 'Audit Log' },
   { key: 'feedback', label: 'Feedback' },
+  { key: 'cleanup', label: 'Data Cleanup' },
   { key: 'access', label: 'Access & Security' },
+];
+
+const CLEANUP_CATEGORIES = [
+  { key: 'feedback', label: 'Feedback', table: 'resident_feedback', description: 'All resident feedback/ratings on released documents' },
+  { key: 'requests', label: 'Document Requests', table: 'resident_intake_requests', description: 'All document requests (pending, current, done, cancelled)' },
+  { key: 'releases', label: 'Release Logs', table: 'release_logs', description: 'Released document history (also removes linked feedback)' },
+  { key: 'verifications', label: 'Verification Requests', table: 'resident_verification_requests', description: 'New/update resident verification submissions' },
+  { key: 'announcements', label: 'Announcements', table: 'announcements', description: 'All barangay announcements' },
+  { key: 'events', label: 'Calendar Events', table: 'admin_events', description: 'All calendar events added by admins' },
+  { key: 'residents', label: 'Residents', table: 'residents', description: 'All registered residents (also removes linked requests, releases, feedback)' },
+  { key: 'audit_logs', label: 'Audit Logs', table: 'audit_logs', description: 'All audit log entries (superadmin action history)' },
 ];
 
 /* ── Audit helper ─────────────────────────────────────────────── */
@@ -202,6 +214,13 @@ export default function SuperAdminDashboard({ onLogout }) {
   const [feedbackSearch, setFeedbackSearch] = useState('');
   const [feedbackRatingFilter, setFeedbackRatingFilter] = useState('all');
   const [feedbackBarangayFilter, setFeedbackBarangayFilter] = useState('all');
+
+  // ── Data Cleanup state ──
+  const [cleanupBarangayId, setCleanupBarangayId] = useState('');
+  const [cleanupCategories, setCleanupCategories] = useState({});
+  const [cleanupRunning, setCleanupRunning] = useState(false);
+  const [cleanupResults, setCleanupResults] = useState(null);
+  const [pendingCleanup, setPendingCleanup] = useState(null);
 
   // ── Feature 4: Onboarding Wizard state ──
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -1191,6 +1210,60 @@ export default function SuperAdminDashboard({ onLogout }) {
     setSaving(false);
     addToast('Barangay and all tied data were deleted.', 'success');
     logAudit(supabase, { action: 'delete_barangay', targetType: 'barangay', targetId: barangayId });
+  }
+
+  /* ── Data Cleanup handler ───────────────────────────────────── */
+  async function handleCleanupData(barangayId, selectedCategories) {
+    if (!barangayId || !selectedCategories) return;
+    setCleanupRunning(true);
+    setCleanupResults(null);
+
+    const selected = CLEANUP_CATEGORIES.filter(c => selectedCategories[c.key]);
+    if (!selected.length) {
+      setCleanupRunning(false);
+      return;
+    }
+
+    // Order matters: feedback → releases → requests → verifications → residents → others
+    const deleteOrder = ['feedback', 'requests', 'releases', 'verifications', 'announcements', 'events', 'residents', 'audit_logs'];
+    const sorted = [...selected].sort((a, b) => deleteOrder.indexOf(a.key) - deleteOrder.indexOf(b.key));
+
+    const results = {};
+    for (const category of sorted) {
+      let result;
+      if (category.table === 'audit_logs') {
+        // Audit logs don't have a direct barangay_id column — delete all when selected
+        result = await supabase.from(category.table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } else {
+        result = await supabase.from(category.table).delete().eq('barangay_id', barangayId);
+      }
+      if (result.error) {
+        results[category.key] = { success: false, error: result.error.message };
+      } else {
+        results[category.key] = { success: true };
+      }
+    }
+
+    setCleanupResults(results);
+    setCleanupRunning(false);
+
+    const failedCount = Object.values(results).filter(r => !r.success).length;
+    const successCount = Object.values(results).filter(r => r.success).length;
+    const barangayName = barangays.find(b => b.id === barangayId)?.name || barangayId;
+
+    if (failedCount === 0) {
+      addToast(`Cleaned ${successCount} data categor${successCount === 1 ? 'y' : 'ies'} for ${barangayName}.`, 'success');
+    } else {
+      addToast(`${successCount} cleared, ${failedCount} failed. Check results below.`, 'error');
+    }
+
+    logAudit(supabase, {
+      action: 'cleanup_barangay_data',
+      targetType: 'barangay',
+      targetId: barangayId,
+      targetLabel: barangayName,
+      metadata: { categories: sorted.map(c => c.key), results },
+    });
   }
 
   function formatTimestamp(value) {
@@ -2393,6 +2466,113 @@ export default function SuperAdminDashboard({ onLogout }) {
           </section>
         ) : null}
 
+        {/* ── Data Cleanup Tab ── */}
+        {activeTab === 'cleanup' ? (
+          <section className="rounded-3xl border border-red-100 bg-white p-6 shadow-lg">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-red-500 font-semibold">Maintenance</p>
+              <h2 className="text-xl font-bold text-gray-900">Data Cleanup</h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Selectively clear test or unwanted data for a specific barangay before deployment. This permanently deletes records and cannot be undone.
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              <label className="block text-sm font-semibold text-gray-700">
+                Select barangay
+                <select
+                  className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  value={cleanupBarangayId}
+                  onChange={e => {
+                    setCleanupBarangayId(e.target.value);
+                    setCleanupCategories({});
+                    setCleanupResults(null);
+                  }}
+                >
+                  <option value="">Choose a barangay…</option>
+                  {barangayOptions.map(option => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              {cleanupBarangayId && (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 mb-3">Select data to clear</p>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <button
+                        type="button"
+                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                        onClick={() => {
+                          const allSelected = CLEANUP_CATEGORIES.every(c => cleanupCategories[c.key]);
+                          const next = {};
+                          CLEANUP_CATEGORIES.forEach(c => { next[c.key] = !allSelected; });
+                          setCleanupCategories(next);
+                        }}
+                      >
+                        {CLEANUP_CATEGORIES.every(c => cleanupCategories[c.key]) ? 'Deselect all' : 'Select all'}
+                      </button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {CLEANUP_CATEGORIES.map(cat => (
+                        <label
+                          key={cat.key}
+                          className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition-colors ${cleanupCategories[cat.key] ? 'border-red-300 bg-red-50' : 'border-gray-100 bg-gray-50 hover:border-gray-200'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                            checked={!!cleanupCategories[cat.key]}
+                            onChange={e => setCleanupCategories(prev => ({ ...prev, [cat.key]: e.target.checked }))}
+                          />
+                          <div>
+                            <span className="text-sm font-semibold text-gray-900">{cat.label}</span>
+                            <p className="text-xs text-gray-500 mt-0.5">{cat.description}</p>
+                            {cleanupResults?.[cat.key] && (
+                              <p className={`text-xs font-semibold mt-1 ${cleanupResults[cat.key].success ? 'text-green-600' : 'text-red-600'}`}>
+                                {cleanupResults[cat.key].success ? '✓ Cleared' : `✗ ${cleanupResults[cat.key].error}`}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      className="rounded-full bg-red-600 px-6 py-2.5 text-sm font-semibold text-white shadow hover:bg-red-500 disabled:opacity-60"
+                      disabled={cleanupRunning || !Object.values(cleanupCategories).some(Boolean)}
+                      onClick={() => {
+                        const selected = CLEANUP_CATEGORIES.filter(c => cleanupCategories[c.key]).map(c => c.label);
+                        const brgyName = barangays.find(b => b.id === cleanupBarangayId)?.name || 'this barangay';
+                        setPendingCleanup({
+                          barangayId: cleanupBarangayId,
+                          barangayName: brgyName,
+                          categories: cleanupCategories,
+                          selectedLabels: selected,
+                        });
+                      }}
+                    >
+                      {cleanupRunning ? 'Clearing…' : `Clear ${Object.values(cleanupCategories).filter(Boolean).length} selected`}
+                    </button>
+                    {cleanupResults && (
+                      <span className="text-xs text-gray-500">
+                        {Object.values(cleanupResults).filter(r => r.success).length} cleared
+                        {Object.values(cleanupResults).some(r => !r.success)
+                          ? `, ${Object.values(cleanupResults).filter(r => !r.success).length} failed`
+                          : ''}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        ) : null}
+
         {activeTab === 'access' ? (
           <section className="rounded-3xl border border-amber-100 bg-amber-50 p-6 shadow-lg">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -2832,6 +3012,34 @@ export default function SuperAdminDashboard({ onLogout }) {
                 autoComplete="off"
               />
             </label>
+          ) : null}
+        </ConfirmDialog>
+
+        <ConfirmDialog
+          open={Boolean(pendingCleanup)}
+          title="Confirm data cleanup"
+          description={pendingCleanup
+            ? `Permanently delete the following data for ${pendingCleanup.barangayName}? This cannot be undone.`
+            : 'Confirm cleanup?'}
+          confirmLabel={cleanupRunning ? 'Clearing…' : 'Clear data permanently'}
+          tone="danger"
+          loading={cleanupRunning}
+          onConfirm={async () => {
+            if (!pendingCleanup) return;
+            await handleCleanupData(pendingCleanup.barangayId, pendingCleanup.categories);
+            setPendingCleanup(null);
+          }}
+          onCancel={() => setPendingCleanup(null)}
+        >
+          {pendingCleanup ? (
+            <ul className="mt-2 space-y-1">
+              {pendingCleanup.selectedLabels.map(label => (
+                <li key={label} className="flex items-center gap-2 text-sm text-gray-700">
+                  <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+                  {label}
+                </li>
+              ))}
+            </ul>
           ) : null}
         </ConfirmDialog>
       </div>

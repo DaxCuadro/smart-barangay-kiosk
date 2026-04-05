@@ -75,75 +75,75 @@ function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
   // Punong Barangay
   const punong = officials?.punong?.[0];
   if (punong) {
-    doc.setFontSize(8.5);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text(punong.name.toUpperCase(), cx, y, { align: 'center' });
-    y += 3.5;
+    y += 4;
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(7.5);
+    doc.setFontSize(8);
     doc.text('Punong Barangay', cx, y, { align: 'center' });
-    y += 6;
+    y += 7;
   }
 
   // KAGAWAD header
   const kagawads = officials?.kagawad || [];
   if (kagawads.length) {
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
     doc.text('KAGAWAD', cx, y, { align: 'center' });
-    y += 5;
+    y += 6;
 
-    doc.setFontSize(7.5);
+    doc.setFontSize(8);
     for (const k of kagawads) {
       doc.setFont('helvetica', 'bold');
       doc.text(k.name.toUpperCase(), cx, y, { align: 'center' });
-      y += 3;
+      y += 4;
       if (k.alternateTitle) {
         doc.setFont('helvetica', 'italic');
-        doc.setFontSize(7);
-        doc.text(k.alternateTitle, cx, y, { align: 'center' });
-        y += 3;
         doc.setFontSize(7.5);
+        doc.text(k.alternateTitle, cx, y, { align: 'center' });
+        y += 4;
+        doc.setFontSize(8);
       }
-      y += 2;
+      y += 3;
     }
   }
 
   // SK Chair
   const sk = officials?.sk?.[0];
   if (sk) {
-    doc.setFontSize(7.5);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.text(sk.name.toUpperCase(), cx, y, { align: 'center' });
-    y += 3;
+    y += 4;
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(7);
+    doc.setFontSize(7.5);
     doc.text('SK Chairman', cx, y, { align: 'center' });
-    y += 5;
+    y += 6;
   }
 
   // Treasurer
   const treasurer = officials?.treasurer?.[0];
   if (treasurer) {
-    doc.setFontSize(7.5);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.text(treasurer.name.toUpperCase(), cx, y, { align: 'center' });
-    y += 3;
+    y += 4;
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(7);
+    doc.setFontSize(7.5);
     doc.text('Treasurer', cx, y, { align: 'center' });
-    y += 5;
+    y += 6;
   }
 
   // Secretary
   const secretary = officials?.secretary?.[0];
   if (secretary) {
-    doc.setFontSize(7.5);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.text(secretary.name.toUpperCase(), cx, y, { align: 'center' });
-    y += 3;
+    y += 4;
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(7);
+    doc.setFontSize(7.5);
     doc.text('Secretary', cx, y, { align: 'center' });
   }
 }
@@ -172,9 +172,16 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
 
   // ── Sidebar dimensions ──
   const sidebarW = 50;
+  const hasOfficials = officials && (
+    (officials.punong?.length > 0) ||
+    (officials.kagawad?.length > 0) ||
+    (officials.sk?.length > 0) ||
+    (officials.treasurer?.length > 0) ||
+    (officials.secretary?.length > 0)
+  );
 
-  // ── Content area (right of sidebar) ──
-  const contentLeft = marginLeft + sidebarW + 4;
+  // ── Content area (right of sidebar if officials present) ──
+  const contentLeft = hasOfficials ? (marginLeft + sidebarW + 4) : marginLeft;
   const contentRight = pageW - marginRight;
   const bodyWidth = contentRight - contentLeft;
   const contentCenterX = (contentLeft + contentRight) / 2;
@@ -269,7 +276,8 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   const fieldLeft = contentLeft;
   const valueLeft = contentLeft + 35;
   const col2Label = contentLeft + bodyWidth * 0.58;
-  const col2Value = col2Label + 25;
+  const col2Colon = col2Label + 26;
+  const col2Value = col2Colon + 3;
   const lineH = 5.5;
 
   // Row 1: NAME / AGE
@@ -279,7 +287,8 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   doc.setFont('helvetica', 'normal');
   doc.text(fullName.toUpperCase(), valueLeft, y);
   doc.setFont('helvetica', 'bold');
-  doc.text('AGE:', col2Label, y);
+  doc.text('AGE', col2Label, y);
+  doc.text(':', col2Colon, y);
   doc.setFont('helvetica', 'normal');
   doc.text(age, col2Value, y);
   y += lineH;
@@ -291,7 +300,8 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   doc.setFont('helvetica', 'normal');
   doc.text(birthday, valueLeft, y);
   doc.setFont('helvetica', 'bold');
-  doc.text('GENDER:', col2Label, y);
+  doc.text('GENDER', col2Label, y);
+  doc.text(':', col2Colon, y);
   doc.setFont('helvetica', 'normal');
   doc.text(gender, col2Value, y);
   y += lineH;
@@ -303,7 +313,8 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   doc.setFont('helvetica', 'normal');
   doc.text(civilStatus, valueLeft, y);
   doc.setFont('helvetica', 'bold');
-  doc.text('CITIZENSHIP:', col2Label, y);
+  doc.text('CITIZENSHIP', col2Label, y);
+  doc.text(':', col2Colon, y);
   doc.setFont('helvetica', 'normal');
   doc.text('FILIPINO', col2Value, y);
   y += lineH;
@@ -330,13 +341,13 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   const certPara = 'This is to certify further that he/she is known to me of good moral character and is a law-abiding citizen. He/she has no pending case or derogatory record in this office.';
-  const cert2Lines = doc.splitTextToSize(certPara, bodyWidth - 16);
-  // First line indented
+  const cert2Lines = doc.splitTextToSize(certPara, bodyWidth - 8);
+  // First line indented (matching first cert paragraph)
   if (cert2Lines.length > 0) {
-    doc.text(cert2Lines[0], contentLeft + 16, y);
+    doc.text(cert2Lines[0], contentLeft + 10, y);
     for (let i = 1; i < cert2Lines.length; i++) {
       y += 4.5;
-      doc.text(cert2Lines[i], contentLeft + 8, y);
+      doc.text(cert2Lines[i], contentLeft, y);
     }
   }
   y += 10;
@@ -359,17 +370,15 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   doc.rect(thumbStartX + thumbBoxW + thumbGap, y, thumbBoxW, thumbBoxH);
   y += thumbBoxH + 10;
 
-  // ── Signature line ──
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.3);
-  doc.line(contentLeft + 6, y - 1, contentLeft + 60, y - 1);
+  // ── Signature (centered, no line) ──
+  const sigCenterX = contentLeft + 35;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text(fullName.toUpperCase(), contentLeft + 6, y + 3);
+  doc.text(fullName.toUpperCase(), sigCenterX, y + 3, { align: 'center' });
   y += 7;
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
-  doc.text('Signature over Printed Name', contentLeft + 6, y);
+  doc.text('Signature over Printed Name', sigCenterX, y, { align: 'center' });
   y += 12;
 
   // ── Issued date (indented, wrapped) ──
@@ -381,9 +390,15 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   const issueLine = `Issued this ${issuedDate} at ${locationName}${municipalityStr}${regionStr}${provinceStr}`;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  const issueLines = doc.splitTextToSize(issueLine, bodyWidth - 20);
-  doc.text(issueLines, contentLeft + 10, y);
-  y += issueLines.length * 4.5 + 10;
+  const issueLines = doc.splitTextToSize(issueLine, bodyWidth - 8);
+  if (issueLines.length > 0) {
+    doc.text(issueLines[0], contentLeft + 10, y);
+    for (let i = 1; i < issueLines.length; i++) {
+      y += 4.5;
+      doc.text(issueLines[i], contentLeft, y);
+    }
+  }
+  y += 10;
 
   // ── Prepared by ──
   doc.setFontSize(9);
@@ -439,14 +454,16 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   const noteLines = doc.splitTextToSize(noteText, bodyWidth - 10);
   doc.text(noteLines, footerLeft, y);
 
-  // ── Left sidebar (officials box starts at divider line) ──
-  const sidebarX = marginLeft;
-  const sidebarTop = dividerY + 1;
-  const sidebarBottom = Math.min(y + 8, pageH - marginBottom);
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.3);
-  doc.rect(sidebarX, sidebarTop, sidebarW, sidebarBottom - sidebarTop);
-  drawOfficialsSidebar(doc, officials, sidebarTop + 6, sidebarX, sidebarW);
+  // ── Left sidebar (officials box starts below divider line) ──
+  if (hasOfficials) {
+    const sidebarX = marginLeft;
+    const sidebarTop = dividerY + 5;
+    const sidebarBottom = Math.min(y + 8, pageH - marginBottom);
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.3);
+    doc.rect(sidebarX, sidebarTop, sidebarW, sidebarBottom - sidebarTop);
+    drawOfficialsSidebar(doc, officials, sidebarTop + 8, sidebarX, sidebarW);
+  }
 
   return doc;
 }

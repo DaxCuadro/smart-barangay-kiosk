@@ -242,6 +242,54 @@
   font-size: 0.88rem;
 }
 
+/* ── Onboarding nav (Get Verified tabs) ── */
+.resident-onboarding-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  margin-bottom: 0.5rem;
+}
+
+.resident-onboarding-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  flex: 1;
+  max-width: 200px;
+}
+
+.resident-onboarding-nav-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.resident-onboarding-nav-item.is-active {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.4);
+}
+
+.resident-onboarding-nav-item svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.15s;
+}
+
+.resident-onboarding-nav-item.is-active svg {
+  transform: scale(1.08);
+}
+
 .resident-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
