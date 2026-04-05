@@ -3,6 +3,11 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { generateClearancePdf } from '../../utils/generateClearancePdf';
+import { generateResidencyPdf } from '../../utils/generateResidencyPdf';
+import { generateIndigencyPdf } from '../../utils/generateIndigencyPdf';
+import { generateGoodMoralPdf } from '../../utils/generateGoodMoralPdf';
+import { generateFirstTimeJobSeekerPdf } from '../../utils/generateFirstTimeJobSeekerPdf';
+import { generateOathOfUndertakingPdf } from '../../utils/generateOathOfUndertakingPdf';
 
 const INTAKE_REQUESTS_TABLE = 'resident_intake_requests';
 const RELEASE_LOGS_TABLE = 'release_logs';
@@ -391,15 +396,37 @@ export default function RequestsTab({ barangayId }) {
         }
       }
 
-      const doc = await generateClearancePdf({
-        request,
-        barangay: brgy || {},
-        officials: grouped,
-        amount: null,
-      });
+      const docType = (request.document || '').toLowerCase();
+      const isResidency = docType.includes('residency');
+      const isIndigency = docType.includes('indigency');
+      const isGoodMoral = docType.includes('good moral') || docType.includes('moral character');
+      const isFirstTimeJobSeeker = docType.includes('first time job') || docType.includes('job seeker') || docType.includes('jobseeker') || docType.includes('ra 11261');
+      const isOathOfUndertaking = docType.includes('oath') || docType.includes('undertaking');
+
+      let doc;
+      let filePrefix;
+      if (isOathOfUndertaking) {
+        doc = await generateOathOfUndertakingPdf({ request, barangay: brgy || {}, officials: grouped });
+        filePrefix = 'Oath_of_Undertaking';
+      } else if (isFirstTimeJobSeeker) {
+        doc = await generateFirstTimeJobSeekerPdf({ request, barangay: brgy || {}, officials: grouped, amount: null });
+        filePrefix = 'Barangay_Certification_First_Time_Job_Seeker';
+      } else if (isGoodMoral) {
+        doc = await generateGoodMoralPdf({ request, barangay: brgy || {}, officials: grouped, amount: null });
+        filePrefix = 'Certificate_of_Good_Moral_Character';
+      } else if (isIndigency) {
+        doc = await generateIndigencyPdf({ request, barangay: brgy || {}, officials: grouped, amount: null });
+        filePrefix = 'Certificate_of_Indigency';
+      } else if (isResidency) {
+        doc = await generateResidencyPdf({ request, barangay: brgy || {}, officials: grouped, amount: null });
+        filePrefix = 'Certificate_of_Residency';
+      } else {
+        doc = await generateClearancePdf({ request, barangay: brgy || {}, officials: grouped, amount: null });
+        filePrefix = 'Barangay_Clearance';
+      }
 
       const safeName = (request.resident || 'document').replace(/[^a-zA-Z0-9]/g, '_');
-      doc.save(`Barangay_Clearance_${safeName}.pdf`);
+      doc.save(`${filePrefix}_${safeName}.pdf`);
       addToast('PDF generated successfully.', 'success');
     } catch (err) {
       console.error('PDF generation failed', err);
@@ -787,7 +814,7 @@ export default function RequestsTab({ barangayId }) {
                     {STATUS_ACTIONS[activeStatus]?.helper || 'Workflow action coming soon.'}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {request.document && request.document.toLowerCase().includes('clearance') && (
+                    {request.document && (request.document.toLowerCase().includes('clearance') || request.document.toLowerCase().includes('residency') || request.document.toLowerCase().includes('indigency') || request.document.toLowerCase().includes('good moral') || request.document.toLowerCase().includes('moral character') || request.document.toLowerCase().includes('job seeker') || request.document.toLowerCase().includes('jobseeker') || request.document.toLowerCase().includes('first time job') || request.document.toLowerCase().includes('oath') || request.document.toLowerCase().includes('undertaking')) && (
                       <button
                         type="button"
                         className="rounded-full border border-purple-200 px-4 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 disabled:opacity-50"

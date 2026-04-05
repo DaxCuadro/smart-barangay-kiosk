@@ -1,9 +1,65 @@
 import { jsPDF } from 'jspdf';
 
 /**
- * Compute age from birthday string.
+ * Draw a paragraph with mixed bold/normal segments, word-wrapped.
+ * segments: [{ text: string, bold: boolean }]
+ * Returns the final Y position after the last line.
  */
-function computeAge(birthday) {
+function drawMixedParagraph(doc, segments, startX, y, maxWidth, lineH, indent) {
+  let fullText = '';
+  const ranges = [];
+  for (const seg of segments) {
+    const start = fullText.length;
+    fullText += seg.text;
+    ranges.push({ start, end: fullText.length, bold: !!seg.bold });
+  }
+
+  function isBold(charIdx) {
+    for (const r of ranges) {
+      if (charIdx >= r.start && charIdx < r.end) return r.bold;
+    }
+    return false;
+  }
+
+  const tokenRegex = /\S+/g;
+  const tokens = [];
+  let m;
+  while ((m = tokenRegex.exec(fullText)) !== null) {
+    tokens.push({ text: m[0], idx: m.index });
+  }
+
+  let x = startX + indent;
+  let currentY = y;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+    const bold = isBold(tok.idx);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    const tokW = doc.getTextWidth(tok.text);
+    doc.setFont('helvetica', 'normal');
+    const spaceW = doc.getTextWidth(' ');
+
+    if (i > 0) {
+      if (x + spaceW + tokW > startX + maxWidth) {
+        currentY += lineH;
+        x = startX;
+      } else {
+        x += spaceW;
+      }
+    }
+
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(tok.text, x, currentY);
+    x += tokW;
+  }
+
+  return currentY;
+}
+
+/**
+ * Compute age as a plain number from birthday string.
+ */
+function computeAgeNumber(birthday) {
   if (!birthday) return '';
   const birth = new Date(birthday);
   if (Number.isNaN(birth.getTime())) return '';
@@ -13,11 +69,11 @@ function computeAge(birthday) {
   if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
     age--;
   }
-  return `${age} y/o`;
+  return `${age}`;
 }
 
 /**
- * Format birthday for display: "DECEMBER 17 1999"
+ * Format birthday for display: "MARCH 18, 1989"
  */
 function formatBirthday(birthday) {
   if (!birthday) return '';
@@ -29,7 +85,7 @@ function formatBirthday(birthday) {
 }
 
 /**
- * Format issue date: "19th day of MARCH, 2025"
+ * Format issue date: "8th day of APRIL, 2025"
  */
 function formatIssueDate(date) {
   const d = date ? new Date(date) : new Date();
@@ -44,7 +100,6 @@ function formatIssueDate(date) {
 
 /**
  * Load image as base64 data URL for jsPDF.
- * Returns null if the URL is empty or fails to load.
  */
 async function loadImageAsDataUrl(url) {
   if (!url) return null;
@@ -64,15 +119,11 @@ async function loadImageAsDataUrl(url) {
 
 /**
  * Draw left-side officials sidebar.
- *  officials: { punong: [{ name, alternateTitle }], kagawad: [...], sk: [...], treasurer: [...], secretary: [...] }
  */
 function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
   const cx = sidebarX + sideWidth / 2;
   let y = startY;
 
-  doc.setFont('helvetica', 'normal');
-
-  // Punong Barangay
   const punong = officials?.punong?.[0];
   if (punong) {
     doc.setFontSize(9);
@@ -85,7 +136,6 @@ function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
     y += 7;
   }
 
-  // KAGAWAD header
   const kagawads = officials?.kagawad || [];
   if (kagawads.length) {
     doc.setFontSize(8.5);
@@ -109,7 +159,6 @@ function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
     }
   }
 
-  // SK Chair
   const sk = officials?.sk?.[0];
   if (sk) {
     doc.setFontSize(8);
@@ -122,7 +171,6 @@ function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
     y += 6;
   }
 
-  // Treasurer
   const treasurer = officials?.treasurer?.[0];
   if (treasurer) {
     doc.setFontSize(8);
@@ -135,7 +183,6 @@ function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
     y += 6;
   }
 
-  // Secretary
   const secretary = officials?.secretary?.[0];
   if (secretary) {
     doc.setFontSize(8);
@@ -149,28 +196,19 @@ function drawOfficialsSidebar(doc, officials, startY, sidebarX, sideWidth) {
 }
 
 /**
- * Generate a Barangay Clearance PDF.
- *
- * @param {object} params
- * @param {object} params.request     – The request item (from toRequestItem)
- * @param {object} params.barangay    – Barangay record { name, province, municipality, barangay_address, barangay_email, seal_url }
- * @param {object} params.officials   – Grouped officials { punong, kagawad, sk, treasurer, secretary }
- * @param {number} [params.amount]    – Document fee amount
- * @returns {Promise<jsPDF>} – the jsPDF instance (call .save() or .output())
+ * Generate a Certificate of Residency PDF.
  */
-export async function generateClearancePdf({ request, barangay, officials, amount }) {
-  const doc = new jsPDF({ unit: 'mm', format: 'letter' }); // 215.9 x 279.4mm
+export async function generateResidencyPdf({ request, barangay, officials, amount }) {
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
 
-  const pageW = doc.internal.pageSize.getWidth();   // ~215.9
-  const pageH = doc.internal.pageSize.getHeight();   // ~279.4
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
 
-  // ── Margins ──
   const marginTop = 15;
   const marginLeft = 15;
   const marginRight = 15;
   const marginBottom = 12;
 
-  // ── Sidebar dimensions ──
   const sidebarW = 50;
   const hasOfficials = officials && (
     (officials.punong?.length > 0) ||
@@ -180,12 +218,10 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
     (officials.secretary?.length > 0)
   );
 
-  // ── Content area (right of sidebar if officials present) ──
   const contentLeft = hasOfficials ? (marginLeft + sidebarW + 4) : marginLeft;
   const contentRight = pageW - marginRight;
   const bodyWidth = contentRight - contentLeft;
 
-  // ── Header center (full page center, ignoring sidebar) ──
   const headerCenterX = (marginLeft + pageW - marginRight) / 2;
 
   // ── Seal image (top-left, behind text) ──
@@ -195,7 +231,7 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
     doc.addImage(sealDataUrl, 'PNG', marginLeft, marginTop, sealSize, sealSize);
   }
 
-  // ── Header (centered across full page width) ──
+  // ── Header ──
   let y = marginTop + 3;
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
@@ -235,7 +271,7 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
     y += 4;
   }
 
-  // ── Divider line (full page width) ──
+  // ── Divider line ──
   y += 1;
   const dividerY = y;
   doc.setDrawColor(0);
@@ -246,171 +282,88 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   // ── Title ──
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('BARANGAY CLEARANCE', headerCenterX, y, { align: 'center' });
+  doc.text('CERTIFICATE OF RESIDENCY', headerCenterX, y, { align: 'center' });
   y += 10;
 
-  // ── Certification body (with tab indent) ──
+  // ── TO WHOM IT MAY CONCERN ──
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const certText = 'This is to certify that the person whose name, signature and thumb marks appeared herein below has requested CLEARANCE from this office.';
-  const certLines = doc.splitTextToSize(certText, bodyWidth - 8);
-  // First line indented
-  if (certLines.length > 0) {
-    doc.text(certLines[0], contentLeft + 10, y);
-    for (let i = 1; i < certLines.length; i++) {
-      y += 4.5;
-      doc.text(certLines[i], contentLeft, y);
-    }
-  }
+  doc.setFont('helvetica', 'bold');
+  doc.text('TO WHOM IT MAY CONCERN:', contentLeft, y);
   y += 8;
 
-  // ── Personal info fields ──
-  const fullName = request.resident || '';
-  const age = computeAge(request.birthday);
+  // ── Build data ──
+  const raw = request.raw || {};
+  const firstName = (raw.first_name || '').toUpperCase();
+  const middleName = (raw.middle_name || '').toUpperCase();
+  const lastName = (raw.last_name || '').toUpperCase();
+  const fullNameFormatted = [firstName, middleName, lastName].filter(Boolean).join(' ');
+  const ageNum = computeAgeNumber(request.birthday);
   const birthday = formatBirthday(request.birthday);
-  const gender = (request.sex || '').toUpperCase();
-  const civilStatus = (request.civilStatus || '').toUpperCase();
-  const address = request.address || '';
   const purpose = request.purpose || '';
+  const zone = request.zone || '';
+  const barangayName = barangay?.name || '';
+  const municipality = barangay?.municipality || '';
+  const province = barangay?.province || '';
 
+  const zonePart = zone ? ` ${zone}` : '';
+  const locationPart = barangayName
+    ? ` ${barangayName}${municipality ? `, ${municipality}` : ''}${province ? `, ${province}` : ''}`
+    : '';
+  const postalPart = (zonePart || locationPart) ? ` with postal address at${zonePart}${locationPart}` : '';
+  const birthdayPart = birthday ? ` who was born on ` : '';
+
+  // ── Body paragraph with mixed bold ──
   doc.setFontSize(10);
-
-  const fieldLeft = contentLeft;
-  const valueLeft = contentLeft + 35;
-  const col2Label = contentLeft + bodyWidth * 0.58;
-  const col2Colon = col2Label + 26;
-  const col2Value = col2Colon + 3;
-  const lineH = 5.5;
-
-  // Row 1: NAME / AGE
-  const nameMaxW = col2Label - valueLeft - 2;
-  doc.setFont('helvetica', 'bold');
-  doc.text('NAME', fieldLeft, y);
-  doc.text(':', valueLeft - 2, y);
-  doc.setFont('helvetica', 'normal');
-  const nameLines = doc.splitTextToSize(fullName.toUpperCase(), nameMaxW);
-  doc.text(nameLines, valueLeft, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('AGE', col2Label, y);
-  doc.text(':', col2Colon, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(age, col2Value, y);
-  y += nameLines.length > 1 ? (nameLines.length * 4.5 + 1) : lineH;
-
-  // Row 2: BIRTHDAY / GENDER
-  doc.setFont('helvetica', 'bold');
-  doc.text('BIRTHDAY', fieldLeft, y);
-  doc.text(':', valueLeft - 2, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(birthday, valueLeft, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('GENDER', col2Label, y);
-  doc.text(':', col2Colon, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(gender, col2Value, y);
-  y += lineH;
-
-  // Row 3: CIVIL STATUS / CITIZENSHIP
-  doc.setFont('helvetica', 'bold');
-  doc.text('CIVIL STATUS', fieldLeft, y);
-  doc.text(':', valueLeft - 2, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(civilStatus, valueLeft, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('CITIZENSHIP', col2Label, y);
-  doc.text(':', col2Colon, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text('FILIPINO', col2Value, y);
-  y += lineH;
-
-  // Row 4: ADDRESS
-  doc.setFont('helvetica', 'bold');
-  doc.text('ADDRESS', fieldLeft, y);
-  doc.text(':', valueLeft - 2, y);
-  doc.setFont('helvetica', 'normal');
-  const addrLines = doc.splitTextToSize(address, bodyWidth - 37);
-  doc.text(addrLines, valueLeft, y);
-  y += addrLines.length * 4.5 + 1;
-
-  // Row 5: PURPOSE
-  doc.setFont('helvetica', 'bold');
-  doc.text('PURPOSE', fieldLeft, y);
-  doc.text(':', valueLeft - 2, y);
-  doc.setFont('helvetica', 'normal');
-  const purposeLines = doc.splitTextToSize(purpose || 'N/A', bodyWidth - 37);
-  doc.text(purposeLines, valueLeft, y);
-  y += purposeLines.length * 4.5 + 8;
-
-  // ── Second certification paragraph (indented) ──
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const certPara = 'This is to certify further that he/she is known to me of good moral character and is a law-abiding citizen. He/she has no pending case or derogatory record in this office.';
-  const cert2Lines = doc.splitTextToSize(certPara, bodyWidth - 8);
-  // First line indented (matching first cert paragraph)
-  if (cert2Lines.length > 0) {
-    doc.text(cert2Lines[0], contentLeft + 10, y);
-    for (let i = 1; i < cert2Lines.length; i++) {
-      y += 4.5;
-      doc.text(cert2Lines[i], contentLeft, y);
-    }
+  const bodySegments = [
+    { text: 'This is to certify that ', bold: false },
+    { text: `${fullNameFormatted},`, bold: true },
+    { text: ' ', bold: false },
+    { text: `${ageNum} years old,`, bold: true },
+    { text: ` Filipino citizen and a bonafide resident of this Barangay${postalPart}${birthdayPart}`, bold: false },
+  ];
+  if (birthday) {
+    bodySegments.push({ text: `${birthday}.`, bold: true });
+  } else {
+    bodySegments.push({ text: '.', bold: false });
   }
-  y += 10;
+  y = drawMixedParagraph(doc, bodySegments, contentLeft, y, bodyWidth - 8, 4.5, 10);
+  y += 8;
 
-  // ── Thumb marks area ──
-  const thumbBoxW = 20;
-  const thumbBoxH = 18;
-  const thumbGap = 10;
-  const thumbAreaW = thumbBoxW * 2 + thumbGap;
-  const thumbStartX = contentRight - thumbAreaW - 5;
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.3);
-  // Labels above boxes
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Left', thumbStartX + thumbBoxW / 2, y - 2, { align: 'center' });
-  doc.text('Right', thumbStartX + thumbBoxW + thumbGap + thumbBoxW / 2, y - 2, { align: 'center' });
-  // Boxes
-  doc.rect(thumbStartX, y, thumbBoxW, thumbBoxH);
-  doc.rect(thumbStartX + thumbBoxW + thumbGap, y, thumbBoxW, thumbBoxH);
-  y += thumbBoxH + 10;
+  // ── Purpose paragraph with mixed bold ──
+  doc.setFontSize(10);
+  const purposeSegments = [
+    { text: 'This certification is issued upon the request of the above-named person for applying for ', bold: false },
+    { text: `${purpose || 'N/A'}.`, bold: true },
+  ];
+  y = drawMixedParagraph(doc, purposeSegments, contentLeft, y, bodyWidth - 8, 4.5, 10);
+  y += 8;
 
-  // ── Signature (centered, no line) ──
+  // ── Issued date with mixed bold ──
+  const issuedDate = formatIssueDate();
+  const locationName = barangayName ? `Barangay ${barangayName}` : (barangay?.barangay_address || '');
+  const municipalityStr = municipality ? `, ${municipality}` : '';
+  const provinceStr = province ? `, ${province}, Philippines.` : ', Philippines.';
+  doc.setFontSize(10);
+  const issueSegments = [
+    { text: 'Issued this ', bold: false },
+    { text: `${issuedDate}`, bold: true },
+    { text: ` at ${locationName}${municipalityStr}${provinceStr}`, bold: false },
+  ];
+  y = drawMixedParagraph(doc, issueSegments, contentLeft, y, bodyWidth - 8, 4.5, 10);
+  y += 18;
+
+  // ── Resident signature (centered, with spacing for actual signature) ──
   const sigCenterX = contentLeft + 35;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text(fullName.toUpperCase(), sigCenterX, y + 3, { align: 'center' });
-  y += 7;
+  doc.text(fullNameFormatted, sigCenterX, y, { align: 'center' });
+  y += 4;
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
-  doc.text('Signature over Printed Name', sigCenterX, y, { align: 'center' });
-  y += 12;
+  doc.text('Signature Over Printed Name', sigCenterX, y, { align: 'center' });
+  y += 22;
 
-  // ── Issued date (indented, wrapped) ──
-  const issuedDate = formatIssueDate();
-  const locationName = barangay?.name ? `Barangay ${barangay.name}` : (barangay?.barangay_address || '');
-  const regionStr = barangay?.province ? `, Region V` : '';
-  const municipalityStr = barangay?.municipality ? `, ${barangay.municipality}` : '';
-  const provinceStr = barangay?.province ? `,\n${barangay.province}, Philippines.` : ', Philippines.';
-  const issueLine = `Issued this ${issuedDate} at ${locationName}${municipalityStr}${regionStr}${provinceStr}`;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  const issueLines = doc.splitTextToSize(issueLine, bodyWidth - 8);
-  if (issueLines.length > 0) {
-    doc.text(issueLines[0], contentLeft + 10, y);
-    for (let i = 1; i < issueLines.length; i++) {
-      y += 4.5;
-      doc.text(issueLines[i], contentLeft, y);
-    }
-  }
-  y += 10;
-
-  // ── Prepared by ──
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Prepared by:', contentLeft, y);
-  y += 12;
-
-  // ── Secretary & Punong Barangay (centered in their halves) ──
+  // ── Secretary & Punong Barangay signatures ──
   const secretary = officials?.secretary?.[0];
   const punong = officials?.punong?.[0];
   const halfW = bodyWidth / 2;
@@ -450,17 +403,17 @@ export async function generateClearancePdf({ request, barangay, officials, amoun
   const footerDateStr = `${nowDate.getMonth() + 1}/${nowDate.getDate()}/${nowDate.getFullYear()}`;
   doc.text(`Date Issued: ${footerDateStr}`, indentLeft, y);
   y += 4.5;
-  const placeName = barangay?.name ? `BTO – ${barangay.name}` : '___________';
+  const placeName = barangayName ? `BTO – ${barangayName}` : '___________';
   doc.text(`Place of Issued: ${placeName}`, indentLeft, y);
   y += 8;
 
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'italic');
-  const noteText = 'NOTE: This clearance is good only for ninety (90) days from date of issued. Not valid without official dry seal.';
+  const noteText = 'NOTE: This certificate is good only for ninety (90) days from date of issued. Not valid without official dry seal.';
   const noteLines = doc.splitTextToSize(noteText, bodyWidth - 10);
   doc.text(noteLines, footerLeft, y);
 
-  // ── Left sidebar (officials box starts below divider line) ──
+  // ── Left sidebar (officials box) ──
   if (hasOfficials) {
     const sidebarX = marginLeft;
     const sidebarTop = dividerY + 5;
