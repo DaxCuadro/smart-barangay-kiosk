@@ -180,6 +180,15 @@
 
 .resident-tabs--desktop {
   display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255, 236, 213, 0.95), transparent 55%),
+    radial-gradient(circle at 85% 20%, rgba(205, 232, 255, 0.9), transparent 60%),
+    linear-gradient(135deg, #fff7ef 0%, #f1f5ff 45%, #f7f1ff 100%);
+  padding: 0.5rem 0;
+  margin: -0.5rem 0;
 }
 
 .resident-bottom-nav {

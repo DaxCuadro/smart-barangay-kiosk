@@ -390,7 +390,7 @@ export default function ResidentPortalTabs({
               <strong>{requestCounts.done}</strong>
             </div>
           </div>
-          <div className="resident-home-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div className="resident-home-grid">
             <div>
               <h3>Ongoing requests</h3>
               {requestsLoading ? (
