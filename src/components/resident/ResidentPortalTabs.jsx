@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import ChatPanel from '../ui/ChatPanel';
 
 const MORE_DOCS_VALUE = '__more_documents__';
 const MORE_DOCS_NOTICE = 'Other document types are not yet available in this version of the system.';
+const CLEARANCE_DOCUMENTS = ['Barangay Clearance', 'Business Clearance'];
 
 const HomeIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -11,6 +13,9 @@ const RequestIcon = () => (
 );
 const ProfileIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+);
+const HistoryIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
 );
 
 export default function ResidentPortalTabs({
@@ -62,6 +67,8 @@ export default function ResidentPortalTabs({
   onCancelRequest,
   onSubmitFeedback,
   supabase,
+  sessionUserId,
+  barangayId,
 }) {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [moreDocsNotice, setMoreDocsNotice] = useState(false);
@@ -79,6 +86,8 @@ export default function ResidentPortalTabs({
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [submittedFeedbackIds, setSubmittedFeedbackIds] = useState(new Set());
   const [feedbackBannerDismissed, setFeedbackBannerDismissed] = useState(false);
+  const [chatOpen, setChatOpen] = useState(null); // { requestId, conversationId, documentName }
+  const [unreadCounts, setUnreadCounts] = useState({}); // requestId → count
   const addressValue = selectedResident?.address || '';
   const zoneValue = extractZoneFromAddress(addressValue);
   const addressDisplay = /^\s*Zone\s+\d+\s*$/i.test(addressValue) ? 'N/A' : (addressValue || 'N/A');
@@ -150,6 +159,67 @@ export default function ResidentPortalTabs({
     await onCancelRequest(requestId);
     setCancellingId(null);
   };
+
+  const handleOpenResidentChat = async (item) => {
+    if (!supabase) return;
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('request_id', item.id)
+      .maybeSingle();
+
+    setChatOpen({
+      requestId: item.id,
+      conversationId: conv?.id || null,
+      documentName: item.document || 'Document request',
+    });
+  };
+
+  // Fetch unread message counts for the resident's ongoing requests
+  useEffect(() => {
+    if (!supabase || !sessionUserId || !recentRequests.length) {
+      setUnreadCounts({});
+      return;
+    }
+    let isActive = true;
+
+    async function loadUnread() {
+      const requestIds = recentRequests.map(r => r.id);
+      const { data: convos, error: convErr } = await supabase
+        .from('conversations')
+        .select('id, request_id')
+        .in('request_id', requestIds);
+
+      if (convErr || !convos?.length || !isActive) return;
+
+      const convoIds = convos.map(c => c.id);
+      const { data: msgs, error: msgErr } = await supabase
+        .from('messages')
+        .select('id, conversation_id')
+        .in('conversation_id', convoIds)
+        .eq('sender_role', 'admin')
+        .is('read_at', null);
+
+      if (msgErr || !isActive) return;
+
+      const convoToRequest = {};
+      for (const c of convos) convoToRequest[c.id] = c.request_id;
+
+      const counts = {};
+      for (const m of msgs || []) {
+        const reqId = convoToRequest[m.conversation_id];
+        if (reqId) counts[reqId] = (counts[reqId] || 0) + 1;
+      }
+      setUnreadCounts(counts);
+    }
+
+    loadUnread();
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      loadUnread();
+    }, 15000);
+    return () => { isActive = false; clearInterval(interval); };
+  }, [supabase, sessionUserId, recentRequests.length]);
 
   const openFeedbackModal = (releaseLog) => {
     setFeedbackModal(releaseLog);
@@ -313,6 +383,7 @@ export default function ResidentPortalTabs({
   const tabMeta = [
     { key: 'home', label: 'Home', Icon: HomeIcon },
     { key: 'request', label: 'Request', Icon: RequestIcon },
+    { key: 'history', label: 'History', Icon: HistoryIcon },
     { key: 'profile', label: 'Profile', Icon: ProfileIcon },
   ];
 
@@ -353,11 +424,11 @@ export default function ResidentPortalTabs({
         </div>
       ) : null}
 
-      {activeTab === 'home' && unratedCount > 0 && !feedbackBannerDismissed ? (
+      {['home', 'request', 'history'].includes(activeTab) && unratedCount > 0 && !feedbackBannerDismissed ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '10px 16px', fontSize: '0.82rem', color: '#1e40af', marginBottom: '0' }}>
           <span style={{ flexShrink: 0, fontSize: '1rem' }}>⭐</span>
           <span style={{ flex: 1 }}>
-            You have <strong>{unratedCount}</strong> unrated {unratedCount === 1 ? 'document' : 'documents'} in your request history. Help us improve by rating your experience!
+            You have <strong>{unratedCount}</strong> unrated {unratedCount === 1 ? 'document' : 'documents'}. <button type="button" onClick={() => setActiveTab('history')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb', fontWeight: 600, padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Go to History</button> to rate your experience!
           </span>
           <button
             type="button"
@@ -390,104 +461,134 @@ export default function ResidentPortalTabs({
               <strong>{requestCounts.done}</strong>
             </div>
           </div>
-          <div className="resident-home-grid">
-            <div>
-              <h3>Ongoing requests</h3>
-              {requestsLoading ? (
-                <p className="resident-note">Loading requests...</p>
-              ) : recentRequests.length ? (
-                <div className="resident-scroll-list">
-                  <ul className="resident-list">
-                    {recentRequests.map(item => (
-                      <li key={item.id}>
-                        <div style={{ flex: 1 }}>
-                          <p>{item.document}</p>
-                          <span>Status: {statusLabel(item.status)}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                          <span style={{ fontSize: '0.8rem' }}>{new Date(item.created_at).toLocaleDateString('en-PH')}</span>
-                          {item.status === 'pending' ? (
-                            <button
-                              type="button"
-                              className="resident-link"
-                              style={{ fontSize: '0.75rem', color: '#ef4444' }}
-                              disabled={cancellingId === item.id}
-                              onClick={() => handleCancelClick(item.id)}
-                            >
-                              {cancellingId === item.id ? 'Cancelling...' : 'Cancel'}
-                            </button>
-                          ) : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p className="resident-note">No ongoing requests yet.</p>
-              )}
-            </div>
-            <div>
-              <h3>Request history</h3>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                <input
-                  type="search"
-                  value={historySearch}
-                  onChange={e => setHistorySearch(e.target.value)}
-                  placeholder="Search document..."
-                  style={{ flex: 1, minWidth: '120px', padding: '4px 8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.8rem' }}
-                />
-                <input
-                  type="date"
-                  value={historyDateFrom}
-                  onChange={e => setHistoryDateFrom(e.target.value)}
-                  style={{ padding: '4px 6px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.8rem' }}
-                  title="From date"
-                />
-                <input
-                  type="date"
-                  value={historyDateTo}
-                  onChange={e => setHistoryDateTo(e.target.value)}
-                  style={{ padding: '4px 6px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.8rem' }}
-                  title="To date"
-                />
-              </div>
-              {releaseLogsLoading ? (
-                <p className="resident-note">Loading requests...</p>
-              ) : filteredHistory.length ? (
-                <div className="resident-scroll-list">
-                  <ul className="resident-list">
-                    {filteredHistory.map(item => (
-                      <li key={item.id}>
-                        <div style={{ flex: 1 }}>
-                          <p>{item.document || 'Document'}</p>
-                          <span>Status: Claimed</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                          <span style={{ fontSize: '0.8rem' }}>{new Date(item.released_at || item.created_at).toLocaleDateString('en-PH')}</span>
-                          {!submittedFeedbackIds.has(item.id) ? (
-                            <button
-                              type="button"
-                              className="resident-link"
-                              style={{ fontSize: '0.75rem' }}
-                              onClick={() => openFeedbackModal(item)}
-                            >
-                              Rate
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: '0.7rem', color: '#16a34a' }}>✓ Rated</span>
+          <div>
+            <h3>Ongoing requests</h3>
+            {requestsLoading ? (
+              <p className="resident-note">Loading requests...</p>
+            ) : recentRequests.length ? (
+              <div className="resident-scroll-list">
+                <ul className="resident-list">
+                  {recentRequests.map(item => (
+                    <li key={item.id}>
+                      <div style={{ flex: 1 }}>
+                        <p>{item.document}</p>
+                        <span>Status: {statusLabel(item.status)}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{new Date(item.created_at).toLocaleDateString('en-PH')}</span>
+                        {item.status === 'pending' ? (
+                          <button
+                            type="button"
+                            style={{ fontSize: '0.7rem', color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '9999px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}
+                            disabled={cancellingId === item.id}
+                            onClick={() => handleCancelClick(item.id)}
+                          >
+                            {cancellingId === item.id ? '...' : 'Cancel'}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenResidentChat(item)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '9999px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600, position: 'relative' }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                          Chat
+                          {unreadCounts[item.id] > 0 && (
+                            <span style={{
+                              position: 'absolute',
+                              top: '-5px',
+                              right: '-5px',
+                              background: '#ef4444',
+                              color: '#fff',
+                              fontSize: '9px',
+                              fontWeight: 700,
+                              borderRadius: '9999px',
+                              minWidth: '14px',
+                              height: '14px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0 3px',
+                              lineHeight: 1,
+                            }}>
+                              {unreadCounts[item.id]}
+                            </span>
                           )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : historyRequests.length ? (
-                <p className="resident-note">No results match your filter.</p>
-              ) : (
-                <p className="resident-note">No claimed requests yet.</p>
-              )}
-            </div>
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="resident-note">No ongoing requests yet.</p>
+            )}
           </div>
+        </section>
+      ) : null}
+
+      {activeTab === 'history' ? (
+        <section className="resident-card">
+          <div className="resident-card-head">
+            <h2>Request history</h2>
+            <p>View your completed and claimed document requests.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            <input
+              type="search"
+              value={historySearch}
+              onChange={e => setHistorySearch(e.target.value)}
+              placeholder="Search document..."
+              style={{ flex: 1, minWidth: '120px', padding: '6px 12px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '0.85rem' }}
+            />
+            <input
+              type="date"
+              value={historyDateFrom}
+              onChange={e => setHistoryDateFrom(e.target.value)}
+              style={{ padding: '6px 8px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '0.85rem' }}
+              title="From date"
+            />
+            <input
+              type="date"
+              value={historyDateTo}
+              onChange={e => setHistoryDateTo(e.target.value)}
+              style={{ padding: '6px 8px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '0.85rem' }}
+              title="To date"
+            />
+          </div>
+          {releaseLogsLoading ? (
+            <p className="resident-note">Loading requests...</p>
+          ) : filteredHistory.length ? (
+            <div className="resident-scroll-list">
+              <ul className="resident-list">
+                {filteredHistory.map(item => (
+                  <li key={item.id}>
+                    <div style={{ flex: 1 }}>
+                      <p>{item.document || 'Document'}</p>
+                      <span>Claimed on {new Date(item.released_at || item.created_at).toLocaleDateString('en-PH')}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {!submittedFeedbackIds.has(item.id) ? (
+                        <button
+                          type="button"
+                          onClick={() => openFeedbackModal(item)}
+                          style={{ fontSize: '0.7rem', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '9999px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          ⭐ Rate
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>✓ Rated</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : historyRequests.length ? (
+            <p className="resident-note">No results match your filter.</p>
+          ) : (
+            <p className="resident-note">No claimed requests yet.</p>
+          )}
         </section>
       ) : null}
 
@@ -532,6 +633,27 @@ export default function ResidentPortalTabs({
                 </div>
               </div>
             ) : null}
+            {CLEARANCE_DOCUMENTS.includes(requestForm.document) && (
+              <div className="resident-field-group">
+                <label className="resident-field">
+                  <span>CTC / Cedula Number</span>
+                  <input
+                    type="text"
+                    value={requestForm.ctcNumber}
+                    onChange={event => setRequestForm(prev => ({ ...prev, ctcNumber: event.target.value }))}
+                    placeholder="e.g. 12345678"
+                  />
+                </label>
+                <label className="resident-field">
+                  <span>CTC Date Issued</span>
+                  <input
+                    type="date"
+                    value={requestForm.ctcDate}
+                    onChange={event => setRequestForm(prev => ({ ...prev, ctcDate: event.target.value }))}
+                  />
+                </label>
+              </div>
+            )}
             <label className="resident-field">
               <span>Purpose</span>
               <textarea
@@ -949,6 +1071,31 @@ export default function ResidentPortalTabs({
           </div>
         </div>
       ) : null}
+
+      {/* Chat slide-over */}
+      {chatOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm" onClick={() => setChatOpen(null)}>
+          <div
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChatPanel
+              supabase={supabase}
+              conversationId={chatOpen.conversationId}
+              requestId={chatOpen.requestId}
+              barangayId={barangayId}
+              senderRole="resident"
+              senderId={sessionUserId}
+              residentUserId={sessionUserId}
+              onConversationCreated={(convId) =>
+                setChatOpen((prev) => (prev ? { ...prev, conversationId: convId } : prev))
+              }
+              onClose={() => setChatOpen(null)}
+              documentName={chatOpen.documentName}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

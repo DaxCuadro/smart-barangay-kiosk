@@ -20,7 +20,11 @@ const INITIAL_FORM = {
   telephone: '',
   document: '',
   purpose: '',
+  ctcNumber: '',
+  ctcDate: '',
 };
+
+const CLEARANCE_DOCUMENTS = ['Barangay Clearance', 'Business Clearance'];
 
 const SEX_OPTIONS = ['Male', 'Female'];
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated'];
@@ -162,7 +166,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
   const [intakeReviewData, setIntakeReviewData] = useState(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [selectedResident, setSelectedResident] = useState(null);
-  const [requestForm, setRequestForm] = useState({ document: '', purpose: '' });
+  const [requestForm, setRequestForm] = useState({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
   const [requestError, setRequestError] = useState('');
   const [requestSaving, setRequestSaving] = useState(false);
   const [pricingInfo, setPricingInfo] = useState({ prices: {}, serviceFee: 0, smsFee: 0 });
@@ -408,6 +412,8 @@ export default function PrecheckScreen({ onClose, barangayId }) {
       telephone: toNullableText(intakeForm.telephone),
       document: toNullableText(intakeForm.document),
       purpose: toNullableText(intakeForm.purpose),
+      ctc_number: toNullableText(intakeForm.ctcNumber),
+      ctc_date: intakeForm.ctcDate || null,
       status: 'pending',
       request_source: 'kiosk',
       barangay_id: barangayId || null,
@@ -474,6 +480,8 @@ export default function PrecheckScreen({ onClose, barangayId }) {
       telephone: intakeForm.telephone,
       document: intakeForm.document,
       purpose: intakeForm.purpose,
+      ctcNumber: intakeForm.ctcNumber,
+      ctcDate: intakeForm.ctcDate,
     });
     setIntakeReviewOpen(true);
   }
@@ -596,6 +604,8 @@ export default function PrecheckScreen({ onClose, barangayId }) {
       email: selectedResident.email || null,
       document: requestForm.document,
       purpose: requestForm.purpose.trim(),
+      ctc_number: requestForm.ctcNumber?.trim() || null,
+      ctc_date: requestForm.ctcDate || null,
       status: 'pending',
       request_source: 'kiosk',
       barangay_id: barangayId || null,
@@ -639,7 +649,7 @@ export default function PrecheckScreen({ onClose, barangayId }) {
       reference: referenceNumber,
       printStatus,
     });
-    setRequestForm({ document: '', purpose: '' });
+    setRequestForm({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
   }
 
   const successNoticeModal = successNotice.open ? (
@@ -824,6 +834,19 @@ export default function PrecheckScreen({ onClose, barangayId }) {
                   </label>
                 </div>
 
+                {CLEARANCE_DOCUMENTS.includes(intakeForm.document) && (
+                  <div className="kiosk-intake-grid kiosk-intake-grid--two">
+                    <label className="kiosk-intake-field">
+                      <span>CTC / Cedula Number</span>
+                      <input type="text" name="ctcNumber" value={intakeForm.ctcNumber} onChange={handleIntakeChange} className="kiosk-intake-input" placeholder="e.g. 12345678" />
+                    </label>
+                    <label className="kiosk-intake-field">
+                      <span>CTC Date Issued</span>
+                      <input type="date" name="ctcDate" value={intakeForm.ctcDate} onChange={handleIntakeChange} className="kiosk-intake-input" />
+                    </label>
+                  </div>
+                )}
+
                 {intakeForm.document ? (
                   <div className="kiosk-intake-note kiosk-intake-note--info">
                     <strong>Price review</strong>
@@ -867,6 +890,8 @@ export default function PrecheckScreen({ onClose, barangayId }) {
                 <div><span>Telephone</span><strong>{intakeReviewData?.telephone || '—'}</strong></div>
                 <div><span>Document</span><strong>{intakeReviewData?.document || '—'}</strong></div>
                 <div><span>Purpose</span><strong>{intakeReviewData?.purpose || '—'}</strong></div>
+                {intakeReviewData?.ctcNumber ? <div><span>CTC / Cedula No.</span><strong>{intakeReviewData.ctcNumber}</strong></div> : null}
+                {intakeReviewData?.ctcDate ? <div><span>CTC Date Issued</span><strong>{intakeReviewData.ctcDate}</strong></div> : null}
               </div>
               {intakeForm.document ? (
                 <div className="kiosk-intake-note kiosk-intake-note--info" style={{ marginTop: '1rem' }}>
@@ -1049,6 +1074,18 @@ export default function PrecheckScreen({ onClose, barangayId }) {
                         </div>
                       </div>
                     ) : null}
+                  {CLEARANCE_DOCUMENTS.includes(requestForm.document) && (
+                    <div className="kiosk-intake-grid kiosk-intake-grid--two">
+                      <label className="kiosk-intake-field">
+                        <span>CTC / Cedula Number</span>
+                        <input type="text" value={requestForm.ctcNumber} onChange={event => setRequestForm(prev => ({ ...prev, ctcNumber: event.target.value }))} className="kiosk-intake-input" placeholder="e.g. 12345678" />
+                      </label>
+                      <label className="kiosk-intake-field">
+                        <span>CTC Date Issued</span>
+                        <input type="date" value={requestForm.ctcDate} onChange={event => setRequestForm(prev => ({ ...prev, ctcDate: event.target.value }))} className="kiosk-intake-input" />
+                      </label>
+                    </div>
+                  )}
                   <label className="kiosk-intake-field">
                     <span>Purpose *</span>
                     <textarea

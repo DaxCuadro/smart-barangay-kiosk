@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import ChatPanel from '../ui/ChatPanel';
 import { useToast } from '../../hooks/useToast';
-import { generateClearancePdf } from '../../utils/generateClearancePdf';
-import { generateResidencyPdf } from '../../utils/generateResidencyPdf';
-import { generateIndigencyPdf } from '../../utils/generateIndigencyPdf';
-import { generateGoodMoralPdf } from '../../utils/generateGoodMoralPdf';
-import { generateFirstTimeJobSeekerPdf } from '../../utils/generateFirstTimeJobSeekerPdf';
-import { generateOathOfUndertakingPdf } from '../../utils/generateOathOfUndertakingPdf';
+// PDF generation imports – hidden for now; secretaries draft documents manually.
+// import { generateClearancePdf } from '../../utils/generateClearancePdf';
+// import { generateResidencyPdf } from '../../utils/generateResidencyPdf';
+// import { generateIndigencyPdf } from '../../utils/generateIndigencyPdf';
+// import { generateGoodMoralPdf } from '../../utils/generateGoodMoralPdf';
+// import { generateFirstTimeJobSeekerPdf } from '../../utils/generateFirstTimeJobSeekerPdf';
+// import { generateOathOfUndertakingPdf } from '../../utils/generateOathOfUndertakingPdf';
 
 const INTAKE_REQUESTS_TABLE = 'resident_intake_requests';
 const RELEASE_LOGS_TABLE = 'release_logs';
@@ -111,6 +113,17 @@ function formatBirthday(date) {
   return parsed.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function computeAge(date) {
+  if (!date) return null;
+  const birth = new Date(date);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+
 function toLogItem(record) {
   return {
     id: record.id,
@@ -177,6 +190,8 @@ function toRequestItem(record) {
     religion: record.religion || '',
     email: record.email || '',
     telephone: record.telephone || '',
+    ctcNumber: record.ctc_number || '',
+    ctcDate: record.ctc_date || '',
   };
 }
 
@@ -198,7 +213,9 @@ export default function RequestsTab({ barangayId }) {
   const [activeLogYear, setActiveLogYear] = useState(() => new Date().getFullYear());
   const [authSession, setAuthSession] = useState(null);
   const [expandedLogId, setExpandedLogId] = useState(null);
-  const [generatingPdfId, setGeneratingPdfId] = useState(null);
+  // const [generatingPdfId, setGeneratingPdfId] = useState(null); // PDF generation hidden for now
+  const [chatOpen, setChatOpen] = useState(null); // { request, conversationId } or null
+  const [unreadCounts, setUnreadCounts] = useState({}); // requestId → count
   const [cancelledRequests, setCancelledRequests] = useState([]);
 
   useEffect(() => {
@@ -213,7 +230,7 @@ export default function RequestsTab({ barangayId }) {
       const { data, error: fetchError } = await supabase
         .from(INTAKE_REQUESTS_TABLE)
         .select(
-          'id, created_at, status, resident_id, request_source, first_name, last_name, middle_name, sex, civil_status, birthday, birthplace, address, zone, occupation, education, religion, telephone, email, document, purpose, reference_number, queue_number',
+          'id, created_at, status, resident_id, request_source, first_name, last_name, middle_name, sex, civil_status, birthday, birthplace, address, zone, occupation, education, religion, telephone, email, document, purpose, reference_number, queue_number, ctc_number, ctc_date',
         )
         .eq('barangay_id', barangayId)
         .neq('status', 'cancelled')
@@ -235,6 +252,7 @@ export default function RequestsTab({ barangayId }) {
 
     loadRequests();
     const intervalId = setInterval(() => {
+      if (document.hidden) return;
       loadRequests({ silent: true });
     }, REFRESH_MS);
     return () => {
@@ -253,9 +271,10 @@ export default function RequestsTab({ barangayId }) {
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isActive) {
-        setAuthSession(session ?? null);
-      }
+      if (!isActive) return;
+      // Ignore token refreshes — session object is a new reference but user hasn't changed
+      if (_event === 'TOKEN_REFRESHED') return;
+      setAuthSession(session ?? null);
     });
 
     return () => {
@@ -316,6 +335,7 @@ export default function RequestsTab({ barangayId }) {
     loadLogs();
     loadCancelledRequests();
     const intervalId = setInterval(() => {
+      if (document.hidden) return;
       loadLogs();
       loadCancelledRequests();
     }, REFRESH_MS);
@@ -370,6 +390,7 @@ export default function RequestsTab({ barangayId }) {
     setExpandedLogId(prev => (prev === id ? null : id));
   }
 
+  /* PDF generation hidden for now – secretaries draft documents manually per barangay template.
   async function handleGeneratePdf(request) {
     if (generatingPdfId) return;
     setGeneratingPdfId(request.id);
@@ -435,6 +456,7 @@ export default function RequestsTab({ barangayId }) {
       setGeneratingPdfId(null);
     }
   }
+  */
 
   async function handleAdvanceStatus(request) {
     if (statusUpdatingId) return;
@@ -466,6 +488,57 @@ export default function RequestsTab({ barangayId }) {
         addToast('SMS notification sent to resident.', 'success');
       } catch {
         addToast('Document marked ready, but SMS notification failed.', 'warning');
+      }
+    }
+
+    // Auto-send chat notification when document is ready for pickup
+    if (nextStatus === 'done') {
+      try {
+        let residentAuthUid = null;
+        if (request.residentId) {
+          const { data: profile } = await supabase
+            .from('resident_profiles')
+            .select('user_id')
+            .eq('resident_id', request.residentId)
+            .maybeSingle();
+          residentAuthUid = profile?.user_id || null;
+        }
+
+        // Find or create conversation
+        let convId = null;
+        const { data: existingConv } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('request_id', request.id)
+          .maybeSingle();
+
+        if (existingConv?.id) {
+          convId = existingConv.id;
+        } else {
+          const { data: newConv } = await supabase
+            .from('conversations')
+            .insert({
+              request_id: request.id,
+              barangay_id: barangayId,
+              resident_user_id: residentAuthUid,
+            })
+            .select('id')
+            .single();
+          convId = newConv?.id || null;
+        }
+
+        if (convId) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const adminUid = sessionData?.session?.user?.id;
+          await supabase.from('messages').insert({
+            conversation_id: convId,
+            sender_role: 'admin',
+            sender_id: adminUid,
+            content: `Your ${request.document || 'document'} (Ref: ${request.reference}) is ready for pickup at the barangay hall. Please bring a valid ID.`,
+          });
+        }
+      } catch {
+        // Non-critical — don't block the status update
       }
     }
 
@@ -592,6 +665,77 @@ export default function RequestsTab({ barangayId }) {
   function toggleExpanded(id) {
     setExpandedId(prev => (prev === id ? null : id));
   }
+
+  // ── Chat helpers ───────────────────────────────────────────────────────
+  async function handleOpenChat(request) {
+    // Look up existing conversation for this request
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('request_id', request.id)
+      .maybeSingle();
+
+    // Look up the resident's auth uid so the conversation is visible to them
+    let residentAuthUid = null;
+    if (request.residentId) {
+      const { data: profile } = await supabase
+        .from('resident_profiles')
+        .select('user_id')
+        .eq('resident_id', request.residentId)
+        .maybeSingle();
+      residentAuthUid = profile?.user_id || null;
+    }
+
+    setChatOpen({
+      request,
+      conversationId: conv?.id || null,
+      residentAuthUid,
+    });
+  }
+
+  // Fetch unread message counts per request for visible requests
+  useEffect(() => {
+    if (!authSession || !barangayId) return;
+    let isActive = true;
+
+    async function loadUnread() {
+      // Get all conversations for this barangay
+      const { data: convos, error: convErr } = await supabase
+        .from('conversations')
+        .select('id, request_id')
+        .eq('barangay_id', barangayId);
+
+      if (convErr || !convos?.length || !isActive) return;
+
+      const convoIds = convos.map(c => c.id);
+      const { data: msgs, error: msgErr } = await supabase
+        .from('messages')
+        .select('id, conversation_id')
+        .in('conversation_id', convoIds)
+        .eq('sender_role', 'resident')
+        .is('read_at', null);
+
+      if (msgErr || !isActive) return;
+
+      // Build requestId → unread count map
+      const convoToRequest = {};
+      for (const c of convos) convoToRequest[c.id] = c.request_id;
+
+      const counts = {};
+      for (const m of msgs || []) {
+        const reqId = convoToRequest[m.conversation_id];
+        if (reqId) counts[reqId] = (counts[reqId] || 0) + 1;
+      }
+      setUnreadCounts(counts);
+    }
+
+    loadUnread();
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      loadUnread();
+    }, 15000);
+    return () => { isActive = false; clearInterval(interval); };
+  }, [supabase, authSession, barangayId]);
 
   async function handleLogRelease(request) {
     if (loggedRequestIds.has(request.id) || loggingRequestId === request.id) return;
@@ -757,74 +901,128 @@ export default function RequestsTab({ barangayId }) {
                   <span>Contact: {request.contact}</span>
                   <button
                     type="button"
-                    className="text-blue-600 hover:text-blue-700"
+                    className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-100 transition"
                     onClick={() => toggleExpanded(request.id)}
                   >
-                    {expandedId === request.id ? 'Hide information' : 'Show information'}
+                    {expandedId === request.id ? 'Hide information' : 'View information'}
                   </button>
                 </div>
-                {expandedId === request.id && (
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-600">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {expandedId === request.id && (() => {
+                  const age = computeAge(request.birthday);
+                  return (
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm text-gray-700 space-y-4">
+                    {/* Header: name + document + purpose */}
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Address</p>
-                        <p className="text-gray-700">{request.address || 'N/A'}</p>
+                        <p className="text-base font-bold text-gray-900">{request.resident}</p>
+                        <p className="text-xs text-gray-500">{request.document} · Ref {request.reference}</p>
                       </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Birthday</p>
-                        <p className="text-gray-700">{formatBirthday(request.birthday)}</p>
+                      {age !== null && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                          {age} years old
+                        </span>
+                      )}
+                    </div>
+
+                    {request.purpose && (
+                      <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-500">Purpose</p>
+                        <p className="mt-0.5 text-sm text-amber-800">{request.purpose}</p>
                       </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Sex</p>
-                        <p className="text-gray-700">{request.sex || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Civil status</p>
-                        <p className="text-gray-700">{request.civilStatus || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Occupation</p>
-                        <p className="text-gray-700">{request.occupation || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Education</p>
-                        <p className="text-gray-700">{request.education || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Religion</p>
-                        <p className="text-gray-700">{request.religion || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Birthplace</p>
-                        <p className="text-gray-700">{request.birthplace || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Email</p>
-                        <p className="text-gray-700">{request.email || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Telephone</p>
-                        <p className="text-gray-700">{request.telephone || 'N/A'}</p>
+                    )}
+
+                    {/* Personal Information */}
+                    <div>
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Personal Information</p>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                        <div>
+                          <p className="text-[11px] text-gray-400">Sex</p>
+                          <p className="font-medium">{request.sex || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Civil Status</p>
+                          <p className="font-medium">{request.civilStatus || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Birthday</p>
+                          <p className="font-medium">{formatBirthday(request.birthday)}{age !== null ? ` (${age})` : ''}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Birthplace</p>
+                          <p className="font-medium">{request.birthplace || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Religion</p>
+                          <p className="font-medium">{request.religion || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Occupation</p>
+                          <p className="font-medium">{request.occupation || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Education</p>
+                          <p className="font-medium">{request.education || 'N/A'}</p>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Contact & Address */}
+                    <div>
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Contact & Address</p>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                        <div className="col-span-2 sm:col-span-3">
+                          <p className="text-[11px] text-gray-400">Address</p>
+                          <p className="font-medium">{request.address || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Telephone</p>
+                          <p className="font-medium">{request.telephone || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400">Email</p>
+                          <p className="font-medium">{request.email || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CTC / Cedula */}
+                    {(request.ctcNumber || request.ctcDate) && (
+                      <div>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400">CTC / Cedula</p>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                          <div>
+                            <p className="text-[11px] text-gray-400">CTC Number</p>
+                            <p className="font-medium">{request.ctcNumber || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] text-gray-400">Date Issued</p>
+                            <p className="font-medium">{request.ctcDate || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
                 <div className="pt-3 border-t border-gray-100 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-[11px] text-gray-500">
                     {STATUS_ACTIONS[activeStatus]?.helper || 'Workflow action coming soon.'}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {request.document && (request.document.toLowerCase().includes('clearance') || request.document.toLowerCase().includes('residency') || request.document.toLowerCase().includes('indigency') || request.document.toLowerCase().includes('good moral') || request.document.toLowerCase().includes('moral character') || request.document.toLowerCase().includes('job seeker') || request.document.toLowerCase().includes('jobseeker') || request.document.toLowerCase().includes('first time job') || request.document.toLowerCase().includes('oath') || request.document.toLowerCase().includes('undertaking')) && (
-                      <button
-                        type="button"
-                        className="rounded-full border border-purple-200 px-4 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 disabled:opacity-50"
-                        onClick={() => handleGeneratePdf(request)}
-                        disabled={generatingPdfId === request.id}
-                      >
-                        {generatingPdfId === request.id ? 'Generating…' : 'Generate PDF'}
-                      </button>
-                    )}
-                    <button
+                    {/* Generate PDF button hidden – secretaries draft documents manually per barangay template */}
+                        <button
+                          type="button"
+                          className="relative rounded-full border border-blue-200 px-4 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleOpenChat(request)}
+                        >
+                          Chat
+                          {unreadCounts[request.id] > 0 && (
+                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                              {unreadCounts[request.id]}
+                            </span>
+                          )}
+                        </button>
+                        <button
                       type="button"
                       className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                       onClick={() => openCancel(request)}
@@ -995,6 +1193,32 @@ export default function RequestsTab({ barangayId }) {
           )}
         </div>
       </section>
+
+      {/* Chat slide-over */}
+      {chatOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm" onClick={() => setChatOpen(null)}>
+          <div
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChatPanel
+              supabase={supabase}
+              conversationId={chatOpen.conversationId}
+              requestId={chatOpen.request.id}
+              barangayId={barangayId}
+              senderRole="admin"
+              senderId={authSession?.user?.id}
+              residentUserId={chatOpen.residentAuthUid}
+              onConversationCreated={(convId) =>
+                setChatOpen((prev) => (prev ? { ...prev, conversationId: convId } : prev))
+              }
+              onClose={() => setChatOpen(null)}
+              residentName={chatOpen.request.resident}
+              documentName={chatOpen.request.document}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

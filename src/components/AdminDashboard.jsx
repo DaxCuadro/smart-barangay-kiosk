@@ -139,7 +139,10 @@ export default function AdminDashboard({ onLogout }) {
     }
 
     loadCounts();
-    const intervalId = setInterval(loadCounts, 15000);
+    const intervalId = setInterval(() => {
+      if (document.hidden) return;
+      loadCounts();
+    }, 15000);
     return () => {
       isActive = false;
       clearInterval(intervalId);

@@ -298,6 +298,7 @@ export default function DashboardTab({ barangayId }) {
     }
     loadPendingRequests();
     const intervalId = setInterval(() => {
+      if (document.hidden) return;
       loadPendingRequests();
     }, refreshMs);
     return () => {

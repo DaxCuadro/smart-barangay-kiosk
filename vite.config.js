@@ -19,11 +19,13 @@ export default defineConfig({
     react(),
     tailwindcss(),  // Official Vite plugin for Tailwind v4 – handles everything automatically
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       devOptions: {
-        enabled: true  // Enables PWA testing in dev (offline mode, manifest, etc.)
+        enabled: false  // Disable PWA in dev – avoids unwanted refreshes while developing
       },
       workbox: {
+        skipWaiting: false,
+        clientsClaim: false,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*$/i,

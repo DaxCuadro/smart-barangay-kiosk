@@ -1,7 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AdminLogin from './components/AdminLogin.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
+import PwaUpdatePrompt from './components/ui/PwaUpdatePrompt.jsx';
 import { ToastProvider } from './components/ui/Toast.jsx';
 import { SupabaseProvider } from './contexts/SupabaseContext.js';
 import { supabaseAdmin, supabaseResident, supabaseSuperAdmin } from './supabaseClient.js';
@@ -22,20 +23,37 @@ function App() {
   const [adminSessionLoaded, setAdminSessionLoaded] = useState(false);
   const [superAdminSessionLoaded, setSuperAdminSessionLoaded] = useState(false);
 
+  // Track user IDs so role checks only re-run when the actual user changes,
+  // not on every token refresh (which would unmount/remount the dashboard).
+  const [adminUserId, setAdminUserId] = useState(null);
+  const [superAdminUserId, setSuperAdminUserId] = useState(null);
+  const adminUserIdRef = useRef(null);
+  const superAdminUserIdRef = useRef(null);
+
   // Admin session listener
   useEffect(() => {
     let isMounted = true;
 
     supabaseAdmin.auth.getSession().then(({ data }) => {
-      if (isMounted) {
-        setAdminSession(data?.session ?? null);
-        setAdminSessionLoaded(true);
-      }
+      if (!isMounted) return;
+      const session = data?.session ?? null;
+      const uid = session?.user?.id ?? null;
+      setAdminSession(session);
+      setAdminUserId(uid);
+      adminUserIdRef.current = uid;
+      setAdminSessionLoaded(true);
     });
 
-    const { data: authListener } = supabaseAdmin.auth.onAuthStateChange((_event, newSession) => {
-      if (isMounted) {
-        setAdminSession(newSession);
+    const { data: authListener } = supabaseAdmin.auth.onAuthStateChange((event, newSession) => {
+      if (!isMounted) return;
+      // Ignore token refresh failures — keep existing session so users aren't kicked out
+      if (event === 'TOKEN_REFRESHED' && !newSession) return;
+      setAdminSession(newSession);
+      // Only update user ID (triggering role re-check) if the user actually changed
+      const newUid = newSession?.user?.id ?? null;
+      if (newUid !== adminUserIdRef.current) {
+        adminUserIdRef.current = newUid;
+        setAdminUserId(newUid);
       }
     });
 
@@ -50,15 +68,25 @@ function App() {
     let isMounted = true;
 
     supabaseSuperAdmin.auth.getSession().then(({ data }) => {
-      if (isMounted) {
-        setSuperAdminSession(data?.session ?? null);
-        setSuperAdminSessionLoaded(true);
-      }
+      if (!isMounted) return;
+      const session = data?.session ?? null;
+      const uid = session?.user?.id ?? null;
+      setSuperAdminSession(session);
+      setSuperAdminUserId(uid);
+      superAdminUserIdRef.current = uid;
+      setSuperAdminSessionLoaded(true);
     });
 
-    const { data: authListener } = supabaseSuperAdmin.auth.onAuthStateChange((_event, newSession) => {
-      if (isMounted) {
-        setSuperAdminSession(newSession);
+    const { data: authListener } = supabaseSuperAdmin.auth.onAuthStateChange((event, newSession) => {
+      if (!isMounted) return;
+      // Ignore token refresh failures — keep existing session so users aren't kicked out
+      if (event === 'TOKEN_REFRESHED' && !newSession) return;
+      setSuperAdminSession(newSession);
+      // Only update user ID (triggering role re-check) if the user actually changed
+      const newUid = newSession?.user?.id ?? null;
+      if (newUid !== superAdminUserIdRef.current) {
+        superAdminUserIdRef.current = newUid;
+        setSuperAdminUserId(newUid);
       }
     });
 
@@ -68,12 +96,12 @@ function App() {
     };
   }, []);
 
-  // Check admin role
+  // Check admin role — only when user ID changes, not on token refreshes
   useEffect(() => {
     let isActive = true;
 
     async function loadAdminAccess() {
-      if (!adminSession?.user?.id) {
+      if (!adminUserId) {
         if (isActive) {
           setIsAdmin(false);
           if (adminSessionLoaded) setAdminChecking(false);
@@ -85,7 +113,7 @@ function App() {
       const { data, error } = await supabaseAdmin
         .from('admin_users')
         .select('user_id, role')
-        .eq('user_id', adminSession.user.id)
+        .eq('user_id', adminUserId)
         .maybeSingle();
 
       if (!isActive) return;
@@ -99,14 +127,14 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [adminSession, adminSessionLoaded]);
+  }, [adminUserId, adminSessionLoaded]);
 
-  // Check superadmin role
+  // Check superadmin role — only when user ID changes, not on token refreshes
   useEffect(() => {
     let isActive = true;
 
     async function loadSuperAdminAccess() {
-      if (!superAdminSession?.user?.id) {
+      if (!superAdminUserId) {
         if (isActive) {
           setIsSuperAdmin(false);
           if (superAdminSessionLoaded) setSuperAdminChecking(false);
@@ -118,7 +146,7 @@ function App() {
       const { data, error } = await supabaseSuperAdmin
         .from('admin_users')
         .select('user_id, role')
-        .eq('user_id', superAdminSession.user.id)
+        .eq('user_id', superAdminUserId)
         .maybeSingle();
 
       if (!isActive) return;
@@ -132,7 +160,7 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [superAdminSession, superAdminSessionLoaded]);
+  }, [superAdminUserId, superAdminSessionLoaded]);
 
   function handleAdminLogin(newSession) {
     setAdminSession(newSession);
@@ -195,6 +223,7 @@ function App() {
   return (
     <ToastProvider>
       <ErrorBoundary>
+        <PwaUpdatePrompt />
         <div className="sbk-shell">
           <Suspense fallback={loadingFallback}>
             <Routes>

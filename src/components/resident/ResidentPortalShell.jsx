@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useToast } from '../../hooks/useToast';
 import {
@@ -114,6 +114,8 @@ function ResidentPortalShell() {
   const supabase = useSupabase();
   const { addToast } = useToast();
   const [session, setSession] = useState(null);
+  const [sessionUserId, setSessionUserId] = useState(null);
+  const sessionUserIdRef = useRef(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -151,7 +153,7 @@ function ResidentPortalShell() {
   const [newApplicantError, setNewApplicantError] = useState('');
   const [newApplicantSaving, setNewApplicantSaving] = useState(false);
   const [newApplicantInfo, setNewApplicantInfo] = useState('');
-  const [requestForm, setRequestForm] = useState({ document: '', purpose: '' });
+  const [requestForm, setRequestForm] = useState({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
   const [requestSaving, setRequestSaving] = useState(false);
   const [requestError, setRequestError] = useState('');
   const [requestSuccessModal, setRequestSuccessModal] = useState({
@@ -187,14 +189,27 @@ function ResidentPortalShell() {
     supabase.auth.getSession().then(({ data }) => {
       if (isMounted) {
         const nextSession = data?.session ?? null;
+        const uid = nextSession?.user?.id ?? null;
         setSession(nextSession);
+        setSessionUserId(uid);
+        sessionUserIdRef.current = uid;
         setAuthLoading(false);
       }
     });
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (isMounted) {
-        const nextSession = newSession ?? null;
-        setSession(nextSession);
+      if (!isMounted) return;
+
+      // Ignore token refresh failures — keep existing session
+      if (_event === 'TOKEN_REFRESHED' && !newSession) return;
+
+      const nextSession = newSession ?? null;
+      setSession(nextSession);
+
+      // Only trigger downstream effects (profile reload etc.) when user actually changes
+      const newUid = nextSession?.user?.id ?? null;
+      if (newUid !== sessionUserIdRef.current) {
+        sessionUserIdRef.current = newUid;
+        setSessionUserId(newUid);
       }
 
       if (_event === 'PASSWORD_RECOVERY') {
@@ -479,7 +494,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  }, [session, barangays, selectedBarangayId, selectedBarangayName, supabase]);
+  }, [sessionUserId, barangays, selectedBarangayId, selectedBarangayName, supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -1213,6 +1228,8 @@ function ResidentPortalShell() {
       email: selectedResident.email || null,
       document: requestForm.document,
       purpose: requestForm.purpose.trim(),
+      ctc_number: requestForm.ctcNumber?.trim() || null,
+      ctc_date: requestForm.ctcDate || null,
       status: 'pending',
       request_source: 'remote',
     };
@@ -1231,7 +1248,7 @@ function ResidentPortalShell() {
     }
 
     setRequestSaving(false);
-    setRequestForm({ document: '', purpose: '' });
+    setRequestForm({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
     setRequestSuccessModal({
       open: true,
       message: 'Request submitted',
@@ -1582,6 +1599,8 @@ function ResidentPortalShell() {
             onCancelRequest={handleCancelRequest}
             onSubmitFeedback={handleSubmitFeedback}
             supabase={supabase}
+            sessionUserId={sessionUserId}
+            barangayId={selectedBarangayId}
           />
         ) : !recoveryMode && !recoveryCompleted && !otpMode && !authLoading ? (
           <>
