@@ -758,8 +758,8 @@ export default function SuperAdminDashboard({ onLogout }) {
 
   async function handleCreateAdmin(event) {
     event.preventDefault();
-    if (!createAdminForm.email.trim() || !createAdminForm.password || !createAdminForm.barangayId) {
-      setError('Email, password, and barangay are required to create an admin.');
+    if (!createAdminForm.email.trim() || !createAdminForm.password || (createAdminForm.role !== 'superadmin' && !createAdminForm.barangayId)) {
+      setError('Email and password are required. A barangay is required for barangay_admin role.');
       return;
     }
     setSaving(true);
@@ -2287,6 +2287,7 @@ export default function SuperAdminDashboard({ onLogout }) {
                       required
                     />
                   </label>
+                  {createAdminForm.role !== 'superadmin' && (
                   <label className="block text-sm font-semibold text-gray-700">
                     Barangay
                     <select
@@ -2301,6 +2302,7 @@ export default function SuperAdminDashboard({ onLogout }) {
                       ))}
                     </select>
                   </label>
+                  )}
                   <label className="block text-sm font-semibold text-gray-700">
                     Role
                     <select

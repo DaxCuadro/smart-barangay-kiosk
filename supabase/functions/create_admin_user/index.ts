@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     const barangayId = body?.barangay_id || null;
     const role = body?.role || 'barangay_admin';
 
-    if (!email || !password || !barangayId) {
+    if (!email || !password || (role !== 'superadmin' && !barangayId)) {
       return new Response(JSON.stringify({ error: 'Missing email, password, or barangay_id' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
