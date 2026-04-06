@@ -44,15 +44,6 @@ Deno.serve(async req => {
     const headerToken = authHeader.replace('Bearer ', '').trim();
     const token = body?.access_token || headerToken || '';
 
-    console.log(JSON.stringify({
-      stage: 'delete_barangay_token_input',
-      hasAuthHeader: Boolean(authHeader),
-      headerTokenLength: headerToken?.length || 0,
-      bodyTokenLength: body?.access_token ? String(body.access_token).length : 0,
-      resolvedTokenLength: token ? String(token).length : 0,
-      barangayId: body?.barangay_id,
-    }));
-
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -72,32 +63,12 @@ Deno.serve(async req => {
       auth: { persistSession: false },
     });
 
-    // Decode JWT locally (avoids getUser failures even when the edge gateway accepted the token)
-    function decodeJwtSub(jwt: string): string | null {
-      try {
-        const parts = jwt.split('.');
-        if (parts.length !== 3) return null;
-        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-        const payloadJson = atob(padded);
-        const payload = JSON.parse(payloadJson);
-        return payload?.sub || null;
-      } catch (err) {
-        console.log(JSON.stringify({ stage: 'delete_barangay_jwt_decode_error', message: String(err) }));
-        return null;
-      }
-    }
+    // Verify the JWT properly via Supabase Auth (signature-checked)
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const callerUserId = userData?.user?.id || null;
 
-    const callerUserId = decodeJwtSub(token);
-
-    console.log(JSON.stringify({
-      stage: 'delete_barangay_decode',
-      hasUser: Boolean(callerUserId),
-      userId: callerUserId,
-    }));
-
-    if (!callerUserId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized', detail: 'Invalid or missing JWT sub' }), {
+    if (userError || !callerUserId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized', detail: 'Invalid or expired token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

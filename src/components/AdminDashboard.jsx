@@ -362,6 +362,27 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         </div>
       </main>
+
+      {pricingCount > 0 && activeTab !== 'pricing' && barangayId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl text-center space-y-5">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-3xl">💰</div>
+            <h2 className="text-xl font-bold text-slate-900">Document Pricing Required</h2>
+            <p className="text-sm text-slate-600">
+              You have <strong className="text-amber-600">{pricingCount}</strong> document{pricingCount > 1 ? 's' : ''} without
+              pricing configured. Please set up prices so residents can see the correct fees
+              when requesting documents.
+            </p>
+            <button
+              type="button"
+              className="rounded-full bg-amber-600 px-8 py-3 text-sm font-semibold text-white shadow hover:bg-amber-500 transition"
+              onClick={() => selectTab('pricing')}
+            >
+              Set up prices now
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

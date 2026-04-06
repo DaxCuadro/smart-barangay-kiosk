@@ -1,0 +1,431 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 3100" width="1200" height="3100">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0038A8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a56c4;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A78BFA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase5" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E11D48;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FB7185;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase6" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0D9488;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2DD4BF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tipGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0038A8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CE1126;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <filter id="shadowLight" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="3100" fill="#F1F5F9" rx="0"/>
+
+  <!-- ============================================================ -->
+  <!-- HEADER -->
+  <!-- ============================================================ -->
+  <rect x="0" y="0" width="1200" height="210" fill="url(#headerGrad)" rx="0"/>
+  <text x="600" y="55" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#93C5FD" text-anchor="middle" letter-spacing="6" font-weight="600">SMART BARANGAY KIOSK</text>
+  <text x="600" y="100" font-family="Segoe UI, Arial, sans-serif" font-size="38" fill="white" text-anchor="middle" font-weight="700">Barangay Admin Dashboard Guide</text>
+  <text x="600" y="140" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#BFDBFE" text-anchor="middle">Complete step-by-step guide for barangay secretaries and administrators</text>
+  <text x="600" y="175" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle">Manage residents, process document requests, verify accounts, and configure your barangay</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 1: GETTING STARTED -->
+  <!-- ============================================================ -->
+  <rect x="60" y="238" width="1080" height="52" fill="url(#phase1)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="271" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 1 — GETTING STARTED</text>
+  <text x="1100" y="271" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#DBEAFE" text-anchor="end">Login &amp; Overview</text>
+
+  <!-- Step 1: Login -->
+  <rect x="60" y="306" width="520" height="220" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="338" r="24" fill="#3B82F6"/>
+  <text x="105" y="345" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">1</text>
+  <text x="142" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Login to Admin Dashboard</text>
+  <circle cx="540" cy="338" r="18" fill="#EFF6FF"/>
+  <text x="540" y="344" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">🔐</text>
+  <text x="90" y="383" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Open the Admin Dashboard URL in your browser</tspan>
+    <tspan x="90" dy="23">• Enter your admin email address</tspan>
+    <tspan x="90" dy="23">• Enter your password</tspan>
+    <tspan x="90" dy="23">• Click "Sign In" to access the dashboard</tspan>
+    <tspan x="90" dy="23">• Your session persists until you log out</tspan>
+    <tspan x="90" dy="23">• Only authorized admins can access this panel</tspan>
+  </text>
+
+  <!-- Step 2: Dashboard Overview -->
+  <rect x="620" y="306" width="520" height="220" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="338" r="24" fill="#3B82F6"/>
+  <text x="665" y="345" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">2</text>
+  <text x="702" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Dashboard Overview</text>
+  <circle cx="1100" cy="338" r="18" fill="#EFF6FF"/>
+  <text x="1100" y="344" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📊</text>
+  <text x="650" y="383" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• See pending requests count at a glance</tspan>
+    <tspan x="650" dy="23">• View active announcements carousel</tspan>
+    <tspan x="650" dy="23">• Check upcoming events from calendar</tspan>
+    <tspan x="650" dy="23">• Review resident demographics summary</tspan>
+    <tspan x="650" dy="23">• Officials roster shown for quick reference</tspan>
+    <tspan x="650" dy="23">• Sidebar badges show action items per tab</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 2: MANAGING RESIDENTS -->
+  <!-- ============================================================ -->
+  <rect x="60" y="548" width="1080" height="52" fill="url(#phase2)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="581" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 2 — MANAGING RESIDENTS</text>
+  <text x="1100" y="581" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#FEF3C7" text-anchor="end">Add, Edit &amp; Export</text>
+
+  <!-- Step 3: Add/Edit Residents -->
+  <rect x="60" y="616" width="520" height="255" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="648" r="24" fill="#F59E0B"/>
+  <text x="105" y="655" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">3</text>
+  <text x="142" y="656" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Add &amp; Edit Resident Records</text>
+  <circle cx="540" cy="648" r="18" fill="#FFFBEB"/>
+  <text x="540" y="654" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">👤</text>
+  <text x="90" y="693" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Click "Add Resident" to open the form</tspan>
+    <tspan x="90" dy="23">• Fill in: name, birthdate, sex, civil status</tspan>
+    <tspan x="90" dy="23">• Add address, zone, contact number, email</tspan>
+    <tspan x="90" dy="23">• Set voter status and 4Ps membership</tspan>
+    <tspan x="90" dy="23">• Click any resident row to edit their details</tspan>
+    <tspan x="90" dy="23">• Delete removes resident + linked auth account</tspan>
+    <tspan x="90" dy="23">• All changes auto-save to the database</tspan>
+  </text>
+
+  <!-- Step 4: Search, Filter & Export -->
+  <rect x="620" y="616" width="520" height="255" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="648" r="24" fill="#F59E0B"/>
+  <text x="665" y="655" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">4</text>
+  <text x="702" y="656" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Search, Filter &amp; Export Data</text>
+  <circle cx="1100" cy="648" r="18" fill="#FFFBEB"/>
+  <text x="1100" y="654" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📋</text>
+  <text x="650" y="693" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• Search by name, email, or contact number</tspan>
+    <tspan x="650" dy="23">• Filter by zone using the dropdown</tspan>
+    <tspan x="650" dy="23">• View demographics sidebar: age groups,</tspan>
+    <tspan x="650" dy="23">  gender distribution, voter stats</tspan>
+    <tspan x="650" dy="23">• Export to CSV or Excel for reporting</tspan>
+    <tspan x="650" dy="23">• Paginated table with rows per page control</tspan>
+    <tspan x="650" dy="23">• Quick-view resident count at bottom</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 3: PROCESSING DOCUMENT REQUESTS (CORE) -->
+  <!-- ============================================================ -->
+  <rect x="60" y="893" width="1080" height="52" fill="url(#phase3)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="926" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 3 — PROCESSING DOCUMENT REQUESTS</text>
+  <text x="1100" y="926" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#D1FAE5" text-anchor="end">Core Workflow</text>
+
+  <!-- Workflow arrow bar -->
+  <rect x="100" y="958" width="1000" height="38" fill="#ECFDF5" rx="10" filter="url(#shadowLight)"/>
+  <text x="190" y="982" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#065F46" font-weight="700">PENDING</text>
+  <text x="340" y="982" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#10B981">→</text>
+  <text x="420" y="982" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#065F46" font-weight="700">CONFIRM &amp; PROCESS</text>
+  <text x="600" y="982" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#10B981">→</text>
+  <text x="680" y="982" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#065F46" font-weight="700">MARK DONE</text>
+  <text x="810" y="982" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#10B981">→</text>
+  <text x="895" y="982" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#065F46" font-weight="700">RELEASE &amp; LOG</text>
+
+  <!-- Step 5: Review Pending -->
+  <rect x="60" y="1010" width="520" height="245" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="1042" r="24" fill="#10B981"/>
+  <text x="105" y="1049" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">5</text>
+  <text x="142" y="1050" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Review Pending Requests</text>
+  <circle cx="540" cy="1042" r="18" fill="#ECFDF5"/>
+  <text x="540" y="1048" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📥</text>
+  <text x="90" y="1087" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Go to the "Requests" tab in the sidebar</tspan>
+    <tspan x="90" dy="23">• Pending queue shows all new requests</tspan>
+    <tspan x="90" dy="23">• Each card shows: document type, resident</tspan>
+    <tspan x="90" dy="23">  name, purpose, and date submitted</tspan>
+    <tspan x="90" dy="23">• Click a request to expand full details</tspan>
+    <tspan x="90" dy="23">• Verify resident info before proceeding</tspan>
+    <tspan x="90" dy="23">• Badge count updates in real-time</tspan>
+  </text>
+
+  <!-- Step 6: Confirm & Process -->
+  <rect x="620" y="1010" width="520" height="245" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="1042" r="24" fill="#10B981"/>
+  <text x="665" y="1049" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">6</text>
+  <text x="702" y="1050" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Confirm &amp; Move to In Progress</text>
+  <circle cx="1100" cy="1042" r="18" fill="#ECFDF5"/>
+  <text x="1100" y="1048" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">✅</text>
+  <text x="650" y="1087" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• Click "Confirm &amp; move" on verified request</tspan>
+    <tspan x="650" dy="23">• For new applicants: resident record is</tspan>
+    <tspan x="650" dy="23">  auto-created in the Residents table</tspan>
+    <tspan x="650" dy="23">• Request moves to "In Progress" queue</tspan>
+    <tspan x="650" dy="23">• Prepare the physical document offline</tspan>
+    <tspan x="650" dy="23">• For kiosk requests: SMS sent to resident</tspan>
+    <tspan x="650" dy="23">• Use Chat to communicate with portal users</tspan>
+  </text>
+
+  <!-- Step 7: Mark Done & Notify -->
+  <rect x="60" y="1271" width="520" height="245" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="1303" r="24" fill="#10B981"/>
+  <text x="105" y="1310" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">7</text>
+  <text x="142" y="1311" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Mark Paperwork Done</text>
+  <circle cx="540" cy="1303" r="18" fill="#ECFDF5"/>
+  <text x="540" y="1309" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📝</text>
+  <text x="90" y="1348" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• After preparing the document, return to</tspan>
+    <tspan x="90" dy="23">  the "In Progress" queue</tspan>
+    <tspan x="90" dy="23">• Click "Mark paperwork done"</tspan>
+    <tspan x="90" dy="23">• Request moves to the "Done" queue</tspan>
+    <tspan x="90" dy="23">• SMS automatically sent to resident:</tspan>
+    <tspan x="90" dy="23">  "Your [document] is ready for pickup"</tspan>
+    <tspan x="90" dy="23">• Chat message auto-sent to portal users</tspan>
+  </text>
+
+  <!-- Step 8: Release & Log Payment -->
+  <rect x="620" y="1271" width="520" height="245" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="1303" r="24" fill="#10B981"/>
+  <text x="665" y="1310" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">8</text>
+  <text x="702" y="1311" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Release &amp; Log Payment</text>
+  <circle cx="1100" cy="1303" r="18" fill="#ECFDF5"/>
+  <text x="1100" y="1309" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">💰</text>
+  <text x="650" y="1348" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• When resident arrives to claim document</tspan>
+    <tspan x="650" dy="23">• Click "Confirm release &amp; log payment"</tspan>
+    <tspan x="650" dy="23">• Enter payment amount (from pricing setup)</tspan>
+    <tspan x="650" dy="23">• Transaction logged to release history</tspan>
+    <tspan x="650" dy="23">• Request removed from active queue</tspan>
+    <tspan x="650" dy="23">• View all releases in "Release Logs" section</tspan>
+    <tspan x="650" dy="23">• Filter release history by month and year</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 4: VERIFICATION & COMMUNICATION -->
+  <!-- ============================================================ -->
+  <rect x="60" y="1538" width="1080" height="52" fill="url(#phase4)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="1571" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 4 — VERIFICATION &amp; COMMUNICATION</text>
+  <text x="1100" y="1571" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#EDE9FE" text-anchor="end">Accounts &amp; Chat</text>
+
+  <!-- Step 9: Verify Accounts -->
+  <rect x="60" y="1606" width="520" height="235" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="1638" r="24" fill="#8B5CF6"/>
+  <text x="105" y="1645" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">9</text>
+  <text x="142" y="1646" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Verify New Resident Accounts</text>
+  <circle cx="540" cy="1638" r="18" fill="#F5F3FF"/>
+  <text x="540" y="1644" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">🛡️</text>
+  <text x="90" y="1683" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Go to the "Verification" tab</tspan>
+    <tspan x="90" dy="23">• See list of residents awaiting approval</tspan>
+    <tspan x="90" dy="23">• Review submitted details and documents</tspan>
+    <tspan x="90" dy="23">• Click "Approve" to grant portal access</tspan>
+    <tspan x="90" dy="23">• Or "Reject" with a reason (SMS sent)</tspan>
+    <tspan x="90" dy="23">• Verification history kept as audit trail</tspan>
+  </text>
+
+  <!-- Step 10: Chat -->
+  <rect x="620" y="1606" width="520" height="235" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="1638" r="24" fill="#8B5CF6"/>
+  <text x="665" y="1645" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">10</text>
+  <text x="710" y="1646" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Chat with Residents</text>
+  <circle cx="1100" cy="1638" r="18" fill="#F5F3FF"/>
+  <text x="1100" y="1644" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">💬</text>
+  <text x="650" y="1683" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• Chat icon appears on each request card</tspan>
+    <tspan x="650" dy="23">• Send messages directly to portal residents</tspan>
+    <tspan x="650" dy="23">• Residents reply from their portal account</tspan>
+    <tspan x="650" dy="23">• Ask for missing info or clarify requests</tspan>
+    <tspan x="650" dy="23">• Auto-messages sent when status changes</tspan>
+    <tspan x="650" dy="23">• Real-time messaging via Supabase</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 5: ANNOUNCEMENTS & CALENDAR -->
+  <!-- ============================================================ -->
+  <rect x="60" y="1863" width="1080" height="52" fill="url(#phase5)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="1896" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 5 — ANNOUNCEMENTS &amp; CALENDAR</text>
+  <text x="1100" y="1896" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#FFE4E6" text-anchor="end">Community Info</text>
+
+  <!-- Step 11: Announcements -->
+  <rect x="60" y="1931" width="520" height="250" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="1963" r="24" fill="#E11D48"/>
+  <text x="105" y="1970" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">11</text>
+  <text x="142" y="1971" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Create Announcements</text>
+  <circle cx="540" cy="1963" r="18" fill="#FFF1F2"/>
+  <text x="540" y="1969" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📢</text>
+  <text x="90" y="2008" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Go to the "Announcements" tab</tspan>
+    <tspan x="90" dy="23">• Click "New Announcement"</tspan>
+    <tspan x="90" dy="23">• Enter title, content, and optional image</tspan>
+    <tspan x="90" dy="23">• Set start and end date for visibility</tspan>
+    <tspan x="90" dy="23">• Active announcements show on kiosk</tspan>
+    <tspan x="90" dy="23">  and resident portal dashboard carousel</tspan>
+    <tspan x="90" dy="23">• Edit or delete existing announcements</tspan>
+  </text>
+
+  <!-- Step 12: Calendar -->
+  <rect x="620" y="1931" width="520" height="250" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="1963" r="24" fill="#E11D48"/>
+  <text x="665" y="1970" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">12</text>
+  <text x="702" y="1971" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Manage Calendar &amp; Events</text>
+  <circle cx="1100" cy="1963" r="18" fill="#FFF1F2"/>
+  <text x="1100" y="1969" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📅</text>
+  <text x="650" y="2008" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• Go to the "Calendar" tab</tspan>
+    <tspan x="650" dy="23">• Philippine holidays auto-loaded (red)</tspan>
+    <tspan x="650" dy="23">• Click any date to add a barangay event</tspan>
+    <tspan x="650" dy="23">• Enter event title and description</tspan>
+    <tspan x="650" dy="23">• Admin events shown in blue on calendar</tspan>
+    <tspan x="650" dy="23">• Events visible on kiosk and portal</tspan>
+    <tspan x="650" dy="23">• Click existing event to edit or delete</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 6: CONFIGURATION & ANALYTICS -->
+  <!-- ============================================================ -->
+  <rect x="60" y="2203" width="1080" height="52" fill="url(#phase6)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="2236" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 6 — CONFIGURATION &amp; ANALYTICS</text>
+  <text x="1100" y="2236" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#CCFBF1" text-anchor="end">Settings &amp; Reports</text>
+
+  <!-- Step 13: Pricing & Officials -->
+  <rect x="60" y="2271" width="520" height="280" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="2303" r="24" fill="#0D9488"/>
+  <text x="105" y="2310" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">13</text>
+  <text x="142" y="2311" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Document Pricing &amp; Officials</text>
+  <circle cx="540" cy="2303" r="18" fill="#F0FDFA"/>
+  <text x="540" y="2309" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">⚙️</text>
+  <text x="90" y="2348" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• "Pricing" tab → set fees for each document</tspan>
+    <tspan x="90" dy="23">• Use pricing wizard for guided setup</tspan>
+    <tspan x="90" dy="23">• Configure service fees and SMS costs</tspan>
+    <tspan x="90" dy="23">• Enforced: pricing modal on login if not set</tspan>
+    <tspan x="90" dy="23">• "Barangay Info" tab → manage officials:</tspan>
+    <tspan x="90" dy="23">  Captain, Kagawads, SK Chair, Secretary,</tspan>
+    <tspan x="90" dy="23">  Treasurer — each group has slot limits</tspan>
+    <tspan x="90" dy="23">• Upload barangay seal for document headers</tspan>
+  </text>
+
+  <!-- Step 14: Feedback, Zones & Desk Mode -->
+  <rect x="620" y="2271" width="520" height="280" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="2303" r="24" fill="#0D9488"/>
+  <text x="665" y="2310" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">14</text>
+  <text x="702" y="2311" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Feedback, Zones &amp; Desk Mode</text>
+  <circle cx="1100" cy="2303" r="18" fill="#F0FDFA"/>
+  <text x="1100" y="2309" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">⭐</text>
+  <text x="650" y="2348" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• "Feedback" tab → view resident ratings</tspan>
+    <tspan x="650" dy="23">• See 1-5 star ratings with comments</tspan>
+    <tspan x="650" dy="23">• Analytics: avg rating, distribution chart</tspan>
+    <tspan x="650" dy="23">• Export feedback to CSV for reports</tspan>
+    <tspan x="650" dy="23">• Set zone count in Barangay Info tab</tspan>
+    <tspan x="650" dy="23">  (used for resident filtering &amp; forms)</tspan>
+    <tspan x="650" dy="23">• Toggle "Secretary Desk Mode" for kiosk</tspan>
+    <tspan x="650" dy="23">  queue management when desk is active</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- TIPS SECTION -->
+  <!-- ============================================================ -->
+  <rect x="60" y="2580" width="1080" height="52" fill="url(#tipGrad)" rx="14" filter="url(#shadowLight)"/>
+  <text x="600" y="2613" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" text-anchor="middle" font-weight="700">💡 TIPS FOR BARANGAY ADMINISTRATORS</text>
+
+  <rect x="60" y="2648" width="345" height="195" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="2680" r="18" fill="#DBEAFE"/>
+  <text x="105" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="16" text-anchor="middle">🔔</text>
+  <text x="132" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">Stay Updated</text>
+  <text x="90" y="2715" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">
+    <tspan x="90" dy="0">Check the dashboard daily</tspan>
+    <tspan x="90" dy="20">for new pending requests.</tspan>
+    <tspan x="90" dy="20">Sidebar badges show count</tspan>
+    <tspan x="90" dy="20">of action items at a glance.</tspan>
+    <tspan x="90" dy="20">Process requests promptly</tspan>
+    <tspan x="90" dy="20">to keep residents satisfied.</tspan>
+  </text>
+
+  <rect x="428" y="2648" width="345" height="195" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="473" cy="2680" r="18" fill="#FEF3C7"/>
+  <text x="473" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="16" text-anchor="middle">📱</text>
+  <text x="500" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">SMS Notifications</text>
+  <text x="458" y="2715" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">
+    <tspan x="458" dy="0">Residents receive automatic</tspan>
+    <tspan x="458" dy="20">SMS when documents are</tspan>
+    <tspan x="458" dy="20">ready for pickup. Ensure</tspan>
+    <tspan x="458" dy="20">phone numbers are correct</tspan>
+    <tspan x="458" dy="20">in resident records. SMS</tspan>
+    <tspan x="458" dy="20">costs configured in Pricing.</tspan>
+  </text>
+
+  <rect x="796" y="2648" width="345" height="195" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="841" cy="2680" r="18" fill="#DCFCE7"/>
+  <text x="841" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="16" text-anchor="middle">🔒</text>
+  <text x="868" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">Security Reminders</text>
+  <text x="826" y="2715" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">
+    <tspan x="826" dy="0">Always log out when leaving</tspan>
+    <tspan x="826" dy="20">the admin dashboard. Change</tspan>
+    <tspan x="826" dy="20">your password regularly via</tspan>
+    <tspan x="826" dy="20">the Barangay Info tab. Only</tspan>
+    <tspan x="826" dy="20">approve verified residents in</tspan>
+    <tspan x="826" dy="20">the Verification tab.</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- DOCUMENT TYPES QUICK REFERENCE -->
+  <!-- ============================================================ -->
+  <rect x="60" y="2865" width="1080" height="170" fill="white" rx="18" filter="url(#shadow)"/>
+  <text x="600" y="2900" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#1E293B" text-anchor="middle" font-weight="700">📄 DOCUMENTS YOU CAN PROCESS</text>
+  <line x1="200" y1="2915" x2="1000" y2="2915" stroke="#E2E8F0" stroke-width="1"/>
+
+  <text x="200" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Barangay Clearance</tspan>
+  </text>
+  <text x="400" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Certificate of Residency</tspan>
+  </text>
+  <text x="600" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Certificate of Indigency</tspan>
+  </text>
+  <text x="800" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Good Moral Character</tspan>
+  </text>
+  <text x="1000" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Cedula / CTC</tspan>
+  </text>
+
+  <text x="200" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">First Time Job Seeker</tspan>
+  </text>
+  <text x="400" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Oath of Undertaking</tspan>
+  </text>
+  <text x="600" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Business Permit</tspan>
+  </text>
+  <text x="800" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
+    <tspan font-weight="600" fill="#1E293B">Blotter / Complaint</tspan>
+  </text>
+
+  <text x="600" y="3020" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">Set prices for each document type in the Pricing tab before processing requests</text>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER -->
+  <!-- ============================================================ -->
+  <rect x="0" y="3050" width="1200" height="50" fill="url(#headerGrad)" rx="0"/>
+  <text x="600" y="3080" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle">Smart Barangay Kiosk — Admin Dashboard Guide  •  For official use by authorized barangay personnel only</text>
+</svg>

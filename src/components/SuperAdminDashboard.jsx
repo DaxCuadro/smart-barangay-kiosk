@@ -262,6 +262,7 @@ export default function SuperAdminDashboard({ onLogout }) {
         return;
       }
       const kioskSetting = (settingsResult.data || []).find(item => item.key === 'kiosk_change_password');
+      const kioskPasswordIsSet = Boolean((kioskSetting?.value || '').trim());
       const documentSetting = (settingsResult.data || []).find(item => item.key === 'document_options');
       const serviceFeeSetting = (settingsResult.data || []).find(item => item.key === SERVICE_FEE_KEY);
       const smsFeeSetting = (settingsResult.data || []).find(item => item.key === SMS_FEE_KEY);
@@ -297,7 +298,7 @@ export default function SuperAdminDashboard({ onLogout }) {
       setBarangays(barangayResult.data || []);
       setAdminUsers(adminResult.data || []);
       setZoneSettings(zoneResult.data || []);
-      setKioskPassword(kioskSetting?.value || '');
+      setKioskPassword(kioskPasswordIsSet ? '(set)' : '');
       setDocumentOptions(normalizeDocumentOptions(documentSetting?.value));
       const nextServiceFee = parseNumber(serviceFeeSetting?.value);
       const nextSmsFee = parseNumber(smsFeeSetting?.value);
@@ -896,27 +897,32 @@ export default function SuperAdminDashboard({ onLogout }) {
       setSaving(false);
       return;
     }
-    const { data, error: updateError } = await supabase
-      .from('app_settings')
-      .upsert({
-        key: 'kiosk_change_password',
-        value: trimmed || null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'key' })
-      .select('key, value')
-      .single();
+    try {
+      const { data, error: updateError } = await supabase
+        .from('app_settings')
+        .upsert({
+          key: 'kiosk_change_password',
+          value: trimmed || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' })
+        .select('key, value')
+        .single();
 
-    if (updateError) {
-      setError(updateError.message);
+      if (updateError) {
+        setError(updateError.message);
+        setSaving(false);
+        return;
+      }
+
+      setKioskPassword(data?.value ? '(set)' : '');
+      setKioskPasswordInput('');
       setSaving(false);
-      return;
+      addToast('Kiosk password updated.', 'success');
+      logAudit(supabase, { action: 'update_kiosk_password', targetType: 'setting', targetId: 'kiosk_change_password' });
+    } catch (err) {
+      setError(err?.message || 'Unexpected error saving kiosk password.');
+      setSaving(false);
     }
-
-    setKioskPassword(data?.value || '');
-    setKioskPasswordInput('');
-    setSaving(false);
-    addToast('Kiosk password updated.', 'success');
-    logAudit(supabase, { action: 'update_kiosk_password', targetType: 'setting', targetId: 'kiosk_change_password' });
   }
 
   /* ── Seal & barangay header handlers ─────────────────────────── */

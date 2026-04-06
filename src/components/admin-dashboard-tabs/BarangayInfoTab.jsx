@@ -623,32 +623,6 @@ export default function BarangayInfoTab({ onLogout, barangayId, barangayName }) 
       <div className="space-y-6">
         <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-lg flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-left">
-            <p className="text-xs uppercase tracking-widest text-purple-500 font-semibold">Zones / Purok</p>
-            <h3 className="text-lg font-bold text-gray-900">Resident Form Control</h3>
-            <p className="text-[12px] text-gray-500">
-              {zoneSaving ? 'Saving latest zone count...' : 'Adjust how many purok options appear when encoding residents.'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={zoneInput}
-              onChange={handleZoneInputChange}
-              onBlur={handleZoneInputBlur}
-              disabled={zoneSaving}
-              aria-label="Total zones or purok"
-              placeholder="0"
-              inputMode="numeric"
-              className={`w-28 rounded-2xl border border-gray-200 px-4 py-2 text-center text-sm text-gray-900 focus:border-purple-500 focus:outline-none ${zoneSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
-            />
-            <span className="text-[11px] text-gray-500 whitespace-nowrap">{zonesCount} total</span>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-lg flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-left">
             <p className="text-xs uppercase tracking-widest text-purple-500 font-semibold">Kiosk Queue</p>
             <h3 className="text-lg font-bold text-gray-900">Secretary desk status</h3>
             <p className="text-[12px] text-gray-500">

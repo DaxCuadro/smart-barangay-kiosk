@@ -64,6 +64,8 @@ export default function PricingTab({ barangayId }) {
   const [newDocName, setNewDocName] = useState('');
   const [newDocPrice, setNewDocPrice] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [wizardPrices, setWizardPrices] = useState({});
+  const [wizardSaving, setWizardSaving] = useState(false);
 
   const takenDocuments = useMemo(() => new Set(documentPrices.map(item => item.document)), [documentPrices]);
   const availableOptions = useMemo(
@@ -151,6 +153,34 @@ export default function PricingTab({ barangayId }) {
 
   const serviceSummary = useMemo(() => serviceFee + smsFee, [serviceFee, smsFee]);
 
+  async function handleWizardSave() {
+    if (!barangayId || !pricingKey) return;
+    setWizardSaving(true);
+    setSaveError('');
+    setSaveInfo('');
+    const newEntries = availableOptions.map(doc => ({
+      document: doc,
+      price: toNumber(wizardPrices[doc], 0),
+    }));
+    const mergedList = [
+      ...documentPrices
+        .filter(item => item.document.trim())
+        .map(item => ({ document: item.document.trim(), price: toNumber(item.price, 0) })),
+      ...newEntries,
+    ];
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: pricingKey, value: JSON.stringify(mergedList) }, { onConflict: 'key' });
+    setWizardSaving(false);
+    if (error) {
+      setSaveError(error.message);
+      return;
+    }
+    setDocumentPrices(enrichPricing(mergedList));
+    setWizardPrices({});
+    setSaveInfo('All document prices saved successfully!');
+  }
+
   if (!barangayId) {
     return (
       <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg text-sm text-slate-600">
@@ -168,6 +198,56 @@ export default function PricingTab({ barangayId }) {
           Admins manage document prices. Service fee and SMS fee come from superadmin and apply to every request.
         </p>
       </div>
+
+      {availableOptions.length > 0 && !loading ? (
+        <div className="rounded-3xl border-2 border-amber-300 bg-amber-50 p-6 space-y-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-200 text-lg">💰</div>
+            <div>
+              <h3 className="text-lg font-bold text-amber-900">Document Pricing Setup</h3>
+              <p className="text-sm text-amber-700">
+                {availableOptions.length} document{availableOptions.length > 1 ? 's' : ''} still need{availableOptions.length === 1 ? 's' : ''} pricing.
+                Set the base price for each document below.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {availableOptions.map((doc, idx) => (
+              <div key={doc} className="flex items-center gap-4 rounded-2xl bg-white p-4 border border-amber-200 shadow-sm">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">{idx + 1}</span>
+                <p className="flex-1 text-sm font-semibold text-slate-800">{doc}</p>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-slate-500">₱</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-sm text-right text-slate-900 focus:border-amber-500 focus:outline-none"
+                    value={wizardPrices[doc] ?? ''}
+                    onChange={e => setWizardPrices(prev => ({ ...prev, [doc]: e.target.value }))}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <p className="text-xs text-amber-600">
+              Service fee (₱{serviceFee.toFixed(2)}) + SMS fee (₱{smsFee.toFixed(2)}) will be added automatically.
+            </p>
+            <button
+              type="button"
+              className="rounded-full bg-amber-600 px-6 py-3 text-sm font-semibold text-white shadow hover:bg-amber-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleWizardSave}
+              disabled={wizardSaving}
+            >
+              {wizardSaving ? 'Saving…' : `Save all ${availableOptions.length} price${availableOptions.length > 1 ? 's' : ''}`}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
         <div className="space-y-4">
