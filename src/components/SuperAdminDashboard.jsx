@@ -764,62 +764,67 @@ export default function SuperAdminDashboard({ onLogout }) {
     }
     setSaving(true);
     setError('');
-    // Always refresh before destructive operations to avoid stale/invalid JWTs
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+    // Get a fresh access token
     const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-    const accessToken = refreshed?.session?.access_token || sessionData?.session?.access_token || '';
-    if (sessionError || refreshError || !accessToken) {
-      setError('You are not signed in. Please sign in again.');
-      setSaving(false);
-      return;
+    const accessToken = refreshed?.session?.access_token;
+    if (refreshError || !accessToken) {
+      // Fallback to cached session if refresh fails
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session?.access_token) {
+        setError('Session expired. Please sign out and sign in again.');
+        setSaving(false);
+        return;
+      }
     }
+    const token = refreshed?.session?.access_token || (await supabase.auth.getSession()).data?.session?.access_token;
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/create_admin_user`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        apikey: supabaseAnonKey,
-      },
-      body: JSON.stringify({
-        email: createAdminForm.email.trim(),
-        password: createAdminForm.password,
-        barangay_id: createAdminForm.barangayId,
-        role: createAdminForm.role,
-      }),
-    });
-
-    let responseBody = {};
-    let responseText = '';
     try {
-      responseBody = await response.json();
-    } catch {
-      responseText = await response.text().catch(() => '');
-    }
+      const response = await fetch(`${supabaseUrl}/functions/v1/create_admin_user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          email: createAdminForm.email.trim(),
+          password: createAdminForm.password,
+          barangay_id: createAdminForm.role === 'superadmin' ? null : createAdminForm.barangayId,
+          role: createAdminForm.role,
+        }),
+      });
 
-    if (!response.ok) {
-      const detail = responseBody?.detail ? ` (${responseBody.detail})` : '';
-      setError(responseBody?.error ? `${responseBody.error}${detail}` : responseText || 'Failed to create admin user.');
+      const responseBody = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const msg = responseBody?.error || responseBody?.message || `Error ${response.status}`;
+        const detail = responseBody?.detail ? ` (${responseBody.detail})` : '';
+        setError(`${msg}${detail}`);
+        setSaving(false);
+        return;
+      }
+
+      if (!responseBody?.user_id) {
+        setError(responseBody?.error || 'Create admin failed. Please try again.');
+        setSaving(false);
+        return;
+      }
+
+      setAdminUsers(prev => [{
+        user_id: responseBody.user_id,
+        email: createAdminForm.email.trim(),
+        role: createAdminForm.role,
+        barangay_id: createAdminForm.role === 'superadmin' ? null : createAdminForm.barangayId,
+      }, ...prev]);
+      setCreateAdminForm({ email: '', password: '', barangayId: '', role: 'barangay_admin' });
       setSaving(false);
-      return;
-    }
-
-    if (!responseBody?.user_id) {
-      setError(responseBody?.error || 'Create admin failed. Please try again.');
+      addToast('Admin account created.', 'success');
+      logAudit(supabase, { action: 'create_admin', targetType: 'admin', targetId: responseBody.user_id, targetLabel: createAdminForm.email.trim(), metadata: { role: createAdminForm.role } });
+    } catch (err) {
+      setError(err.message || 'Network error. Please try again.');
       setSaving(false);
-      return;
     }
-
-    setAdminUsers(prev => [{
-      user_id: responseBody.user_id,
-      email: createAdminForm.email.trim(),
-      role: createAdminForm.role,
-      barangay_id: createAdminForm.barangayId,
-    }, ...prev]);
-    setCreateAdminForm({ email: '', password: '', barangayId: '', role: 'barangay_admin' });
-    setSaving(false);
-    addToast('Admin account created.', 'success');
-    logAudit(supabase, { action: 'create_admin', targetType: 'admin', targetId: responseBody.user_id, targetLabel: createAdminForm.email.trim(), metadata: { role: createAdminForm.role } });
   }
 
   async function handleSaveZoneSettings(event) {
