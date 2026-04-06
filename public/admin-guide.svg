@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 3100" width="1200" height="3100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 3160" width="1200" height="3160">
   <defs>
     <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#0038A8;stop-opacity:1" />
@@ -41,7 +41,7 @@
   </defs>
 
   <!-- Background -->
-  <rect width="1200" height="3100" fill="#F1F5F9" rx="0"/>
+  <rect width="1200" height="3160" fill="#F1F5F9" rx="0"/>
 
   <!-- ============================================================ -->
   <!-- HEADER -->
@@ -49,8 +49,12 @@
   <rect x="0" y="0" width="1200" height="210" fill="url(#headerGrad)" rx="0"/>
   <text x="600" y="55" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#93C5FD" text-anchor="middle" letter-spacing="6" font-weight="600">SMART BARANGAY KIOSK</text>
   <text x="600" y="100" font-family="Segoe UI, Arial, sans-serif" font-size="38" fill="white" text-anchor="middle" font-weight="700">Barangay Admin Dashboard Guide</text>
-  <text x="600" y="140" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#BFDBFE" text-anchor="middle">Complete step-by-step guide for barangay secretaries and administrators</text>
-  <text x="600" y="175" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle">Manage residents, process document requests, verify accounts, and configure your barangay</text>
+  <text x="600" y="135" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#BFDBFE" text-anchor="middle">Complete step-by-step guide for barangay secretaries and administrators</text>
+  <text x="600" y="165" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle">Manage residents, process document requests, verify accounts, and configure your barangay</text>
+  <a href="https://smart-barangay-kiosk.vercel.app/admin" target="_blank">
+    <rect x="370" y="178" width="460" height="30" rx="15" fill="#1a56c4" stroke="#60A5FA" stroke-width="1"/>
+    <text x="600" y="199" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle" font-weight="600">🔐 smart-barangay-kiosk.vercel.app/admin</text>
+  </a>
 
   <!-- ============================================================ -->
   <!-- PHASE 1: GETTING STARTED -->
@@ -388,44 +392,31 @@
   <!-- ============================================================ -->
   <!-- DOCUMENT TYPES QUICK REFERENCE -->
   <!-- ============================================================ -->
-  <rect x="60" y="2865" width="1080" height="170" fill="white" rx="18" filter="url(#shadow)"/>
-  <text x="600" y="2900" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#1E293B" text-anchor="middle" font-weight="700">📄 DOCUMENTS YOU CAN PROCESS</text>
+  <rect x="60" y="2865" width="1080" height="195" fill="white" rx="18" filter="url(#shadow)"/>
+  <text x="600" y="2900" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#1E293B" text-anchor="middle" font-weight="700">📄 AVAILABLE DOCUMENTS YOU CAN PROCESS</text>
   <line x1="200" y1="2915" x2="1000" y2="2915" stroke="#E2E8F0" stroke-width="1"/>
 
-  <text x="200" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Barangay Clearance</tspan>
-  </text>
-  <text x="400" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Certificate of Residency</tspan>
-  </text>
-  <text x="600" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Certificate of Indigency</tspan>
-  </text>
-  <text x="800" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Good Moral Character</tspan>
-  </text>
-  <text x="1000" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Cedula / CTC</tspan>
-  </text>
+  <text x="160" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Barangay Clearance</text>
+  <text x="400" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Certificate of Indigency</text>
+  <text x="680" y="2945" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Certificate of Residency</text>
 
-  <text x="200" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">First Time Job Seeker</tspan>
-  </text>
-  <text x="400" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Oath of Undertaking</tspan>
-  </text>
-  <text x="600" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Business Permit</tspan>
-  </text>
-  <text x="800" y="2985" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" text-anchor="middle">
-    <tspan font-weight="600" fill="#1E293B">Blotter / Complaint</tspan>
-  </text>
+  <text x="160" y="2975" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Good Moral Character</text>
+  <text x="400" y="2975" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• First Time Job Seeker</text>
+  <text x="680" y="2975" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Monthly Income Cert.</text>
 
-  <text x="600" y="3020" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">Set prices for each document type in the Pricing tab before processing requests</text>
+  <text x="160" y="3005" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Solo Parent Cert.</text>
+  <text x="400" y="3005" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Certification PDA</text>
+  <text x="680" y="3005" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Business Clearance</text>
+
+  <text x="600" y="3045" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">Set prices for each document type in the Pricing tab before processing requests</text>
 
   <!-- ============================================================ -->
   <!-- FOOTER -->
   <!-- ============================================================ -->
-  <rect x="0" y="3050" width="1200" height="50" fill="url(#headerGrad)" rx="0"/>
-  <text x="600" y="3080" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle">Smart Barangay Kiosk — Admin Dashboard Guide  •  For official use by authorized barangay personnel only</text>
+  <rect x="0" y="3075" width="1200" height="85" fill="url(#headerGrad)" rx="0"/>
+  <text x="600" y="3103" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">Smart Barangay Kiosk — Admin Dashboard Guide</text>
+  <a href="https://smart-barangay-kiosk.vercel.app/admin" target="_blank">
+    <text x="600" y="3128" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle" text-decoration="underline" font-weight="600">🔐 Access: smart-barangay-kiosk.vercel.app/admin</text>
+  </a>
+  <text x="600" y="3150" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#60A5FA" text-anchor="middle">For official use by authorized barangay personnel only</text>
 </svg>
