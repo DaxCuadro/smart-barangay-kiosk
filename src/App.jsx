@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AdminLogin from './components/AdminLogin.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import PwaUpdatePrompt from './components/ui/PwaUpdatePrompt.jsx';
@@ -31,33 +31,32 @@ function App() {
   const superAdminUserIdRef = useRef(null);
 
   const location = useLocation();
-  const navigate = useNavigate();
-  const pwaRedirected = useRef(false);
 
-  // Remember the current section so the installed PWA can reopen it
+  // Swap the PWA manifest based on the current section so each
+  // "Add to Home Screen" installs as a separate app.
   useEffect(() => {
     const path = location.pathname;
-    if (['/admin', '/superadmin', '/kiosk'].includes(path)) {
-      localStorage.setItem('sbk-pwa-section', path);
-    } else if (path === '/') {
-      localStorage.setItem('sbk-pwa-section', '/');
-    }
-  }, [location.pathname]);
+    let href;
+    if (path === '/admin') href = '/manifest-admin.json';
+    else if (path === '/superadmin') href = '/manifest-superadmin.json';
+    else return; // default manifest handled by VitePWA plugin
 
-  // On PWA launch, redirect to the last-used section
-  useEffect(() => {
-    if (pwaRedirected.current) return;
-    pwaRedirected.current = true;
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone;
-    if (isStandalone && window.location.pathname === '/') {
-      const saved = localStorage.getItem('sbk-pwa-section');
-      if (saved && saved !== '/') {
-        navigate(saved, { replace: true });
-      }
+    let link = document.querySelector('link[rel="manifest"]');
+    if (link) {
+      link.href = href;
+    } else {
+      link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = href;
+      document.head.appendChild(link);
     }
-  }, [navigate]);
+
+    return () => {
+      // Restore default manifest when navigating away
+      const el = document.querySelector('link[rel="manifest"]');
+      if (el) el.href = '/manifest.webmanifest';
+    };
+  }, [location.pathname]);
 
   // Admin session listener
   useEffect(() => {

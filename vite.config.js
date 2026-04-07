@@ -26,6 +26,7 @@ export default defineConfig({
       workbox: {
         skipWaiting: false,
         clientsClaim: false,
+        navigateFallbackDenylist: [/\.\w+$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*$/i,
@@ -51,6 +52,7 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'favicon.png', 'pwa-192x192.png'],
       manifest: {
+        id: '/',
         name: 'Smart Barangay Kiosk',
         short_name: 'Barangay Kiosk',
         description: 'Offline-first document requests & resident management for Philippine barangays',
