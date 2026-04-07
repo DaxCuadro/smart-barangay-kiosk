@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/admin", "destination": "/" },
+    { "source": "/superadmin", "destination": "/" },
+    { "source": "/kiosk", "destination": "/" }
   ]
 }

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AdminLogin from './components/AdminLogin.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import PwaUpdatePrompt from './components/ui/PwaUpdatePrompt.jsx';
@@ -29,6 +29,35 @@ function App() {
   const [superAdminUserId, setSuperAdminUserId] = useState(null);
   const adminUserIdRef = useRef(null);
   const superAdminUserIdRef = useRef(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pwaRedirected = useRef(false);
+
+  // Remember the current section so the installed PWA can reopen it
+  useEffect(() => {
+    const path = location.pathname;
+    if (['/admin', '/superadmin', '/kiosk'].includes(path)) {
+      localStorage.setItem('sbk-pwa-section', path);
+    } else if (path === '/') {
+      localStorage.setItem('sbk-pwa-section', '/');
+    }
+  }, [location.pathname]);
+
+  // On PWA launch, redirect to the last-used section
+  useEffect(() => {
+    if (pwaRedirected.current) return;
+    pwaRedirected.current = true;
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone;
+    if (isStandalone && window.location.pathname === '/') {
+      const saved = localStorage.getItem('sbk-pwa-section');
+      if (saved && saved !== '/') {
+        navigate(saved, { replace: true });
+      }
+    }
+  }, [navigate]);
 
   // Admin session listener
   useEffect(() => {
