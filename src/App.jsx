@@ -13,6 +13,18 @@ const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard.
 const KioskShell = lazy(() => import('./components/kiosk/KioskShell.jsx'));
 const ResidentPortalShell = lazy(() => import('./components/resident/ResidentPortalShell.jsx'));
 
+// If the PWA opens a URL that looks like a static file (e.g. .svg, .png),
+// do a hard navigation so the server can serve it instead of React Router
+// redirecting to "/".
+function CatchAllRedirect() {
+  const path = window.location.pathname;
+  if (/\.\w+$/.test(path)) {
+    window.location.replace(path);
+    return null;
+  }
+  return <Navigate to="/" replace />;
+}
+
 function App() {
   const [adminSession, setAdminSession] = useState(null);
   const [superAdminSession, setSuperAdminSession] = useState(null);
@@ -259,7 +271,7 @@ function App() {
               <Route path="/admin" element={<SupabaseProvider client={supabaseAdmin}>{adminElement}</SupabaseProvider>} />
               <Route path="/superadmin" element={<SupabaseProvider client={supabaseSuperAdmin}>{superAdminElement}</SupabaseProvider>} />
               <Route path="/kiosk" element={<KioskShell />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
           </Suspense>
         </div>

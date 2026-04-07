@@ -164,6 +164,7 @@ function ResidentPortalShell() {
     document: '',
   });
   const [onboardingTab, setOnboardingTab] = useState('new');
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const [profileForm, setProfileForm] = useState(EMPTY_NEW_APPLICANT);
   const [profileSaveError, setProfileSaveError] = useState('');
   const [profileSaveInfo, setProfileSaveInfo] = useState('');
@@ -958,6 +959,10 @@ function ResidentPortalShell() {
       setNewApplicantError('Zone is required.');
       return;
     }
+    if (!privacyConsent) {
+      setNewApplicantError('You must agree to the Data Privacy Act consent before submitting.');
+      return;
+    }
 
     setNewApplicantSaving(true);
     const payload = {
@@ -1699,7 +1704,28 @@ function ResidentPortalShell() {
                       <input name="telephone" value={newApplicantForm.telephone} onChange={handleNewApplicantChange} />
                     </label>
                   </div>
-                  <button className="resident-submit" type="submit" disabled={newApplicantSaving}>
+                  <div style={{ margin: '1rem 0', padding: '1rem', background: '#f8f9fa', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.8rem', lineHeight: '1.5', color: '#475569' }}>
+                    <p style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#1e293b', fontSize: '0.85rem' }}>Data Privacy Consent</p>
+                    <p style={{ marginBottom: '0.75rem' }}>
+                      In accordance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>, I hereby give my free, voluntary, and informed consent to the collection, processing, and storage of my personal information provided in this form.
+                    </p>
+                    <p style={{ marginBottom: '0.75rem' }}>
+                      I understand that my data will be used solely for the purpose of verifying my identity as a resident and processing barangay document requests. My information will be handled with strict confidentiality and will not be shared with unauthorized third parties.
+                    </p>
+                    <p>
+                      I am aware that I may withdraw my consent at any time by contacting the barangay office, subject to applicable legal obligations.
+                    </p>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginTop: '0.75rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500, color: '#1e293b' }}>
+                      <input
+                        type="checkbox"
+                        checked={privacyConsent}
+                        onChange={e => setPrivacyConsent(e.target.checked)}
+                        style={{ marginTop: '0.2rem', accentColor: '#2563eb', width: '1rem', height: '1rem', flexShrink: 0 }}
+                      />
+                      <span>I have read and agree to the terms above.</span>
+                    </label>
+                  </div>
+                  <button className="resident-submit" type="submit" disabled={newApplicantSaving || !privacyConsent}>
                     {newApplicantSaving ? 'Submitting...' : 'Submit for verification'}
                   </button>
                 </form>
