@@ -63,13 +63,19 @@ export default function ChatPanel({
 
   const markAsRead = useCallback(async (convId) => {
     if (!convId || !senderId) return;
-    const otherRole = senderRole === 'admin' ? 'resident' : 'admin';
-    await supabase
+    // system role can see all messages; mark non-own as read
+    const query = supabase
       .from(MESSAGES_TABLE)
       .update({ read_at: new Date().toISOString() })
       .eq('conversation_id', convId)
-      .eq('sender_role', otherRole)
       .is('read_at', null);
+    if (senderRole !== 'system') {
+      const otherRole = senderRole === 'admin' ? 'resident' : 'admin';
+      query.eq('sender_role', otherRole);
+    } else {
+      query.neq('sender_role', 'system');
+    }
+    await query;
   }, [supabase, senderId, senderRole]);
 
   // Load messages & subscribe to realtime
@@ -210,6 +216,8 @@ export default function ChatPanel({
 
   const headerTitle = senderRole === 'admin'
     ? residentName || 'Chat with resident'
+    : senderRole === 'system'
+    ? residentName || 'System Chat'
     : 'Chat with Barangay';
 
   return (
@@ -253,17 +261,23 @@ export default function ChatPanel({
         ) : (
           messages.map((msg) => {
             const isOwn = msg.sender_role === senderRole;
+            const isSystem = msg.sender_role === 'system';
             return (
               <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
                     isOwn
                       ? 'bg-blue-600 text-white rounded-br-md'
+                      : isSystem
+                      ? 'bg-purple-50 text-purple-900 border border-purple-200 rounded-bl-md'
                       : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
                   }`}
                 >
+                  {isSystem && !isOwn && (
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-purple-500 mb-0.5">System</p>
+                  )}
                   <p className="whitespace-pre-wrap wrap-break-word">{msg.content}</p>
-                  <p className={`mt-1 text-right text-[10px] ${isOwn ? 'text-blue-200' : 'text-gray-400'}`}>
+                  <p className={`mt-1 text-right text-[10px] ${isOwn ? 'text-blue-200' : isSystem ? 'text-purple-400' : 'text-gray-400'}`}>
                     {formatTime(msg.created_at)}
                     {isOwn && msg.read_at && ' · Read'}
                   </p>
@@ -277,6 +291,11 @@ export default function ChatPanel({
 
       {/* Input */}
       <form onSubmit={handleSend} className="border-t border-gray-200 bg-white p-3">
+        {senderRole === 'system' && (
+          <p className="mb-2 rounded-lg bg-purple-50 px-3 py-1.5 text-[11px] text-purple-700 border border-purple-100">
+            You are sending as <strong>System</strong>. Messages will be labeled as coming from the System.
+          </p>
+        )}
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}

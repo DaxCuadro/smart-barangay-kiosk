@@ -370,7 +370,7 @@ export default function ResidentPortalTabs({
     ctx.font = fontSmall;
     ctx.fillStyle = '#6b7280';
     ctx.textAlign = 'center';
-    ctx.fillText('Thank you! Please wait for the SMS notification.', W / 2, y + 12);
+    ctx.fillText('Thank you! Please wait for the SMS notification (Globe/TM only).', W / 2, y + 12);
 
     // Download
     const dataUrl = canvas.toDataURL('image/png');
@@ -631,6 +631,9 @@ export default function ResidentPortalTabs({
                   <div><span>SMS fee: </span> <span>{formatCurrency(smsFee)}</span></div>
                   <div><span>Total: </span> <span>{totalPrice !== null ? formatCurrency(totalPrice) : 'Not set'}</span></div>
                 </div>
+                <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#b45309', lineHeight: 1.4 }}>
+                  <strong>Note:</strong> SMS notifications are currently available only for <strong>Globe</strong> and <strong>TM</strong> subscribers. Smart, TNT, and DITO numbers will not receive SMS.
+                </p>
               </div>
             ) : null}
             {CLEARANCE_DOCUMENTS.includes(requestForm.document) && (
@@ -817,7 +820,10 @@ export default function ResidentPortalTabs({
                 </label>
                 <label className="resident-field">
                   <span>Telephone</span>
-                  <input name="telephone" value={profileForm.telephone} onChange={onProfileChange} />
+                  <input name="telephone" type="tel" inputMode="numeric" maxLength={11} value={profileForm.telephone} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 11); onProfileChange({ target: { name: 'telephone', value: v } }); }} placeholder="09171234567" />
+                  {profileForm.telephone && profileForm.telephone.replace(/\D/g, '').length !== 11 && (
+                    <span style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.25rem' }}>Must be 11 digits (e.g. 09171234567)</span>
+                  )}
                 </label>
               </div>
               <div className="resident-actions">

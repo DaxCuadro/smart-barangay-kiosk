@@ -79,9 +79,9 @@ function clampZoneValue(value, maxZones) {
 
 function toTitleCase(value) {
   if (!value) return value;
-  return value.replace(/\b([A-Za-z])([A-Za-z]*)/g, (_match, first, rest) => {
-    return `${first.toUpperCase()}${rest.toLowerCase()}`;
-  });
+  return value
+    .toLowerCase()
+    .replace(/(^|[\s-])\S/g, (match) => match.toUpperCase());
 }
 
 export default function ResidentModal({ mode, initialData, onClose, onSave }) {

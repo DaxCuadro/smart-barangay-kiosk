@@ -58,9 +58,11 @@ function normalizePhoneDigits(value) {
 
 function toTitleCase(value) {
   if (!value) return value;
-  return value.replace(/\b([A-Za-z])([A-Za-z]*)/g, (_match, first, rest) => {
-    return `${first.toUpperCase()}${rest.toLowerCase()}`;
-  });
+  // Lowercase everything first, then capitalize the first letter of each word.
+  // Uses [\s-] as word separators so ñ and accented chars inside a word stay lowercase.
+  return value
+    .toLowerCase()
+    .replace(/(^|[\s-])\S/g, (match) => match.toUpperCase());
 }
 
 function normalizeDocumentOptions(value) {
@@ -959,6 +961,12 @@ function ResidentPortalShell() {
       setNewApplicantError('Zone is required.');
       return;
     }
+
+    const phoneDigits = normalizePhoneDigits(newApplicantForm.telephone);
+    if (phoneDigits && phoneDigits.length !== 11) {
+      setNewApplicantError('Phone number must be exactly 11 digits (e.g. 09171234567).');
+      return;
+    }
     if (!privacyConsent) {
       setNewApplicantError('You must agree to the Data Privacy Act consent before submitting.');
       return;
@@ -1044,6 +1052,12 @@ function ResidentPortalShell() {
     setProfileSaveInfo('');
     if (!selectedBarangayId) {
       setProfileSaveError('Select your barangay before submitting.');
+      return;
+    }
+
+    const phoneDigits = normalizePhoneDigits(profileForm.telephone);
+    if (phoneDigits && phoneDigits.length !== 11) {
+      setProfileSaveError('Phone number must be exactly 11 digits (e.g. 09171234567).');
       return;
     }
 
@@ -1701,7 +1715,10 @@ function ResidentPortalShell() {
                     </label>
                     <label className="resident-field">
                       <span>Telephone</span>
-                      <input name="telephone" value={newApplicantForm.telephone} onChange={handleNewApplicantChange} />
+                      <input name="telephone" type="tel" inputMode="numeric" maxLength={11} value={newApplicantForm.telephone} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 11); setNewApplicantForm(prev => ({ ...prev, telephone: v })); }} placeholder="09171234567" />
+                      {newApplicantForm.telephone && normalizePhoneDigits(newApplicantForm.telephone).length !== 11 && (
+                        <span style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.25rem' }}>Must be 11 digits (e.g. 09171234567)</span>
+                      )}
                     </label>
                   </div>
                   <div style={{ margin: '1rem 0', padding: '1rem', background: '#f8f9fa', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.8rem', lineHeight: '1.5', color: '#475569' }}>

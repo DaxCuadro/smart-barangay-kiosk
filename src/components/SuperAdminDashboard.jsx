@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabaseAnonKey, supabaseUrl } from '../supabaseClient';
 import { useSupabase } from '../contexts/SupabaseContext';
 import ConfirmDialog from './ui/ConfirmDialog';
+import ChatPanel from './ui/ChatPanel';
 import { useToast } from '../hooks/useToast';
 
 const SUPERADMIN_TABS = [
@@ -10,6 +11,7 @@ const SUPERADMIN_TABS = [
   { key: 'tenants', label: 'Tenants' },
   { key: 'admins', label: 'Admins' },
   { key: 'residents', label: 'Residents' },
+  { key: 'requests', label: 'Requests' },
   { key: 'documents', label: 'Documents' },
   { key: 'audit', label: 'Audit Log' },
   { key: 'feedback', label: 'Feedback' },
@@ -229,6 +231,81 @@ export default function SuperAdminDashboard({ onLogout }) {
   const [wizardSaving, setWizardSaving] = useState(false);
   const [wizardError, setWizardError] = useState('');
   const [wizardCreatedBarangay, setWizardCreatedBarangay] = useState(null);
+
+  // ── Requests tab state ──
+  const [saRequests, setSaRequests] = useState([]);
+  const [saRequestsLoading, setSaRequestsLoading] = useState(false);
+  const [saRequestsSearch, setSaRequestsSearch] = useState('');
+  const [saRequestsBarangayFilter, setSaRequestsBarangayFilter] = useState('all');
+  const [saRequestsStatusFilter, setSaRequestsStatusFilter] = useState('all');
+  const [saExpandedRequestId, setSaExpandedRequestId] = useState(null);
+  const [saChatOpen, setSaChatOpen] = useState(null);
+  const [saAuthSession, setSaAuthSession] = useState(null);
+
+  // Get auth session for chat
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSaAuthSession(data?.session || null));
+  }, [supabase]);
+
+  const loadSaRequests = useCallback(async () => {
+    setSaRequestsLoading(true);
+    const { data, error: fetchErr } = await supabase
+      .from('resident_intake_requests')
+      .select('id, created_at, status, resident_id, request_source, first_name, last_name, middle_name, sex, civil_status, birthday, birthplace, address, zone, occupation, education, religion, telephone, email, document, purpose, reference_number, queue_number, barangay_id')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (!fetchErr && data) setSaRequests(data);
+    setSaRequestsLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    if (activeTab === 'requests') loadSaRequests();
+  }, [activeTab, loadSaRequests]);
+
+  const filteredSaRequests = useMemo(() => {
+    let out = saRequests;
+    if (saRequestsBarangayFilter !== 'all') {
+      out = out.filter(r => r.barangay_id === saRequestsBarangayFilter);
+    }
+    if (saRequestsStatusFilter !== 'all') {
+      out = out.filter(r => r.status === saRequestsStatusFilter);
+    }
+    if (saRequestsSearch.trim()) {
+      const q = saRequestsSearch.toLowerCase();
+      out = out.filter(r =>
+        (r.first_name || '').toLowerCase().includes(q) ||
+        (r.last_name || '').toLowerCase().includes(q) ||
+        (r.middle_name || '').toLowerCase().includes(q) ||
+        (r.document || '').toLowerCase().includes(q) ||
+        (r.reference_number || '').toLowerCase().includes(q)
+      );
+    }
+    return out;
+  }, [saRequests, saRequestsBarangayFilter, saRequestsStatusFilter, saRequestsSearch]);
+
+  async function handleSaOpenChat(request) {
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('request_id', request.id)
+      .maybeSingle();
+
+    let residentAuthUid = null;
+    if (request.resident_id) {
+      const { data: profile } = await supabase
+        .from('resident_profiles')
+        .select('user_id')
+        .eq('resident_id', request.resident_id)
+        .maybeSingle();
+      residentAuthUid = profile?.user_id || null;
+    }
+
+    setSaChatOpen({
+      request,
+      conversationId: conv?.id || null,
+      residentAuthUid,
+    });
+  }
 
   useEffect(() => {
     let isActive = true;
@@ -2630,6 +2707,175 @@ export default function SuperAdminDashboard({ onLogout }) {
             </div>
           </section>
         ) : null}
+
+        {/* ── Requests Tab ── */}
+        {activeTab === 'requests' ? (
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-lg">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-indigo-500 font-semibold">Requests</p>
+                <h2 className="text-xl font-bold text-gray-900">Document Requests</h2>
+                <p className="text-sm text-gray-500">View all requests across barangays and chat with residents as System.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="search"
+                  value={saRequestsSearch}
+                  onChange={e => setSaRequestsSearch(e.target.value)}
+                  placeholder="Search name, document, reference…"
+                  className="w-full max-w-xs rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                />
+                <select
+                  className="rounded-full border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                  value={saRequestsBarangayFilter}
+                  onChange={e => setSaRequestsBarangayFilter(e.target.value)}
+                >
+                  <option value="all">All barangays</option>
+                  {barangays.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+                <select
+                  className="rounded-full border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                  value={saRequestsStatusFilter}
+                  onChange={e => setSaRequestsStatusFilter(e.target.value)}
+                >
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="current">In Progress</option>
+                  <option value="done">Done</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <button type="button" className="rounded-full border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" onClick={loadSaRequests} disabled={saRequestsLoading}>
+                  {saRequestsLoading ? 'Loading…' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            {saRequestsLoading ? (
+              <p className="mt-4 text-sm text-gray-400">Loading requests…</p>
+            ) : filteredSaRequests.length ? (
+              <div className="mt-4 space-y-3 max-h-[70vh] overflow-y-auto">
+                {filteredSaRequests.map(request => {
+                  const brgyName = barangays.find(b => b.id === request.barangay_id)?.name || 'Unknown';
+                  const residentName = `${request.last_name || ''}, ${request.first_name || ''}${request.middle_name ? ' ' + request.middle_name : ''}`.trim();
+                  const statusBadge =
+                    request.status === 'pending' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                    request.status === 'current' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                    request.status === 'done' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                    'bg-gray-100 text-gray-700 border-gray-200';
+                  const isExpanded = saExpandedRequestId === request.id;
+                  return (
+                    <div key={request.id} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900">{request.document || 'Document request'}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {residentName} · {brgyName}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`text-[11px] font-semibold px-3 py-1 rounded-full border ${statusBadge}`}>
+                            {request.status}
+                          </span>
+                          <span className="text-[11px] text-gray-400">
+                            {request.reference_number || ''}
+                          </span>
+                          <button
+                            type="button"
+                            className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                            onClick={() => setSaExpandedRequestId(isExpanded ? null : request.id)}
+                          >
+                            {isExpanded ? 'Hide' : 'Details'}
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
+                            onClick={() => handleSaOpenChat(request)}
+                          >
+                            Chat
+                          </button>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="mt-3 rounded-xl border border-gray-100 bg-white px-4 py-3 text-xs text-gray-600">
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Full Name</p>
+                              <p className="text-gray-700">{residentName || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Barangay</p>
+                              <p className="text-gray-700">{brgyName}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Document</p>
+                              <p className="text-gray-700">{request.document || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Purpose</p>
+                              <p className="text-gray-700">{request.purpose || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Status</p>
+                              <p className="text-gray-700">{request.status || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Reference</p>
+                              <p className="text-gray-700">{request.reference_number || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Source</p>
+                              <p className="text-gray-700">{request.request_source || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Telephone</p>
+                              <p className="text-gray-700">{request.telephone || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-gray-400">Submitted</p>
+                              <p className="text-gray-700">{formatTimestamp(request.created_at)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500">
+                No requests found. Requests will appear here as residents submit them from kiosks or the portal.
+              </p>
+            )}
+          </section>
+        ) : null}
+
+        {/* Chat slide-over (SuperAdmin) */}
+        {saChatOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm" onClick={() => setSaChatOpen(null)}>
+            <div
+              className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ChatPanel
+                supabase={supabase}
+                conversationId={saChatOpen.conversationId}
+                requestId={saChatOpen.request.id}
+                barangayId={saChatOpen.request.barangay_id}
+                senderRole="system"
+                senderId={saAuthSession?.user?.id}
+                residentUserId={saChatOpen.residentAuthUid}
+                onConversationCreated={(convId) =>
+                  setSaChatOpen((prev) => (prev ? { ...prev, conversationId: convId } : prev))
+                }
+                onClose={() => setSaChatOpen(null)}
+                residentName={`${saChatOpen.request.first_name || ''} ${saChatOpen.request.last_name || ''}`.trim()}
+                documentName={saChatOpen.request.document}
+              />
+            </div>
+          </div>
+        )}
 
         {activeTab === 'documents' ? (
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-lg">

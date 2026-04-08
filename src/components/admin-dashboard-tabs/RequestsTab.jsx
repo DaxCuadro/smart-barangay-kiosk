@@ -84,8 +84,8 @@ function formatDateTime(value) {
 }
 
 function formatResidentName(record) {
-  const middleInitial = record.middle_name ? ` ${record.middle_name[0].toUpperCase()}.` : '';
-  return `${record.last_name || ''}, ${record.first_name || ''}${middleInitial}`.trim();
+  const middleName = record.middle_name ? ` ${record.middle_name}` : '';
+  return `${record.last_name || ''}, ${record.first_name || ''}${middleName}`.trim();
 }
 
 function extractZoneFromAddress(value) {
@@ -485,9 +485,9 @@ export default function RequestsTab({ barangayId }) {
             message: `Your ${request.document || 'document'} (Ref: ${request.reference}) is ready for pickup at the barangay hall. Please bring a valid ID.`,
           },
         });
-        addToast('SMS notification sent to resident.', 'success');
+        addToast('SMS notification sent to resident (Globe/TM only).', 'success');
       } catch {
-        addToast('Document marked ready, but SMS notification failed.', 'warning');
+        addToast('Document marked ready, but SMS notification failed. Note: SMS only works for Globe/TM numbers.', 'warning');
       }
     }
 

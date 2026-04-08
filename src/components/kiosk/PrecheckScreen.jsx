@@ -109,9 +109,11 @@ function computeAge(dateString) {
 
 function toTitleCase(value) {
   if (!value) return value;
-  return value.replace(/\b([A-Za-z])([A-Za-z]*)/g, (_match, first, rest) => {
-    return `${first.toUpperCase()}${rest.toLowerCase()}`;
-  });
+  // Lowercase everything first, then capitalize the first letter of each word.
+  // Uses [\s-] as word separators so ñ and accented chars inside a word stay lowercase.
+  return value
+    .toLowerCase()
+    .replace(/(^|[\s-])\S/g, (match) => match.toUpperCase());
 }
 
 function toNumber(value, fallback = 0) {
@@ -460,6 +462,12 @@ export default function PrecheckScreen({ onClose, barangayId }) {
       return;
     }
 
+    const phoneDigits = (intakeForm.telephone || '').replace(/\D/g, '');
+    if (phoneDigits && phoneDigits.length !== 11) {
+      setIntakeError('Phone number must be exactly 11 digits (e.g. 09171234567).');
+      return;
+    }
+
     setIntakeReviewData({
       fullName: `${intakeForm.firstName} ${intakeForm.middleName} ${intakeForm.lastName}`
         .replace(/\s+/g, ' ')
@@ -795,7 +803,10 @@ export default function PrecheckScreen({ onClose, barangayId }) {
                   </label>
                   <label className="kiosk-intake-field">
                     <span>Telephone / Mobile Number</span>
-                    <input type="text" name="telephone" value={intakeForm.telephone} onChange={handleIntakeChange} className="kiosk-intake-input" placeholder="0917 000 0000" />
+                    <input type="tel" name="telephone" value={intakeForm.telephone} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 11); setIntakeForm(prev => ({ ...prev, telephone: v })); }} className="kiosk-intake-input" placeholder="09171234567" inputMode="numeric" maxLength={11} />
+                    {intakeForm.telephone && intakeForm.telephone.replace(/\D/g, '').length !== 11 && (
+                      <span style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.25rem' }}>Must be 11 digits (e.g. 09171234567)</span>
+                    )}
                   </label>
                 </div>
 
@@ -856,6 +867,9 @@ export default function PrecheckScreen({ onClose, barangayId }) {
                       <div><span>SMS fee: </span><span>{formatCurrency(smsFee)}</span></div>
                       <div><span>Total: </span><span>{intakeTotalPrice !== null ? formatCurrency(intakeTotalPrice) : 'Not set'}</span></div>
                     </div>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#b45309', lineHeight: 1.4 }}>
+                      <strong>Note:</strong> SMS notifications are currently available only for <strong>Globe</strong> and <strong>TM</strong> subscribers. Smart, TNT, and DITO numbers will not receive SMS.
+                    </p>
                   </div>
                 ) : null}
 
@@ -902,6 +916,9 @@ export default function PrecheckScreen({ onClose, barangayId }) {
                     <div><span>SMS fee: </span><span>{formatCurrency(smsFee)}</span></div>
                     <div><span>Total: </span><span>{intakeTotalPrice !== null ? formatCurrency(intakeTotalPrice) : 'Not set'}</span></div>
                   </div>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#b45309', lineHeight: 1.4 }}>
+                    <strong>Note:</strong> SMS notifications are currently available only for <strong>Globe</strong> and <strong>TM</strong> subscribers. Smart, TNT, and DITO numbers will not receive SMS.
+                  </p>
                 </div>
               ) : null}
               <div className="kiosk-confirm-actions">
@@ -1072,6 +1089,9 @@ export default function PrecheckScreen({ onClose, barangayId }) {
                           <div><span>SMS fee: </span><span>{formatCurrency(smsFee)}</span></div>
                           <div><span>Total: </span><span>{totalPrice !== null ? formatCurrency(totalPrice) : 'Not set'}</span></div>
                         </div>
+                        <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#b45309', lineHeight: 1.4 }}>
+                          <strong>Note:</strong> SMS notifications are currently available only for <strong>Globe</strong> and <strong>TM</strong> subscribers. Smart, TNT, and DITO numbers will not receive SMS.
+                        </p>
                       </div>
                     ) : null}
                   {CLEARANCE_DOCUMENTS.includes(requestForm.document) && (
