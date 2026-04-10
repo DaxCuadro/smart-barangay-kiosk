@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { SkeletonLine } from '../ui/Skeleton';
+import DailySummaryPanel from '../ui/DailySummaryPanel';
 
 const ANNOUNCEMENT_STATUS_META = {
   upcoming: { label: 'Upcoming', pill: 'bg-amber-100 text-amber-700 border border-amber-200' },
@@ -502,6 +503,8 @@ export default function DashboardTab({ barangayId }) {
           </div>
         </div>
       </section>
+
+      <DailySummaryPanel supabase={supabase} barangayId={barangayId} />
 
       <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-lg">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">

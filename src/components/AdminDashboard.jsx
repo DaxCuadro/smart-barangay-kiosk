@@ -1,6 +1,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import logo from '../assets/logo.png';
 import { useSupabase } from '../contexts/SupabaseContext';
+import GuideModal from './ui/GuideModal';
 
 const DashboardTab = React.lazy(() => import('./admin-dashboard-tabs/DashboardTab'));
 const ResidentsTab = React.lazy(() => import('./admin-dashboard-tabs/ResidentsTab'));
@@ -245,13 +246,16 @@ export default function AdminDashboard({ onLogout }) {
             ))}
           </ul>
         </nav>
-        <button
-          type="button"
-          className="mt-8 w-full rounded-2xl border border-white/30 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
-          onClick={onLogout}
-        >
-          Logout
-        </button>
+        <div className="mt-8 flex flex-col gap-3">
+          <GuideModal guideSrc="/admin-guide.png" label="Admin Guide" />
+          <button
+            type="button"
+            className="w-full rounded-2xl border border-white/30 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+            onClick={onLogout}
+          >
+            Logout
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1">
@@ -268,6 +272,7 @@ export default function AdminDashboard({ onLogout }) {
               <span className="h-0.5 w-6 rounded-full bg-slate-700" />
             </button>
             <p className="text-sm font-semibold text-slate-600">{activeTabMeta?.label}</p>
+            <GuideModal guideSrc="/admin-guide.png" label="Admin Guide" className="guide-trigger--light" />
           </div>
 
           {drawerOpen && (

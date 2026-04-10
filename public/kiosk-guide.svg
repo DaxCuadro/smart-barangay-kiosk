@@ -1,0 +1,381 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 2600" width="1200" height="2600">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0038A8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a56c4;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A78BFA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tipGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0038A8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CE1126;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <filter id="shadowLight" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="2600" fill="#F1F5F9" rx="0"/>
+
+  <!-- ============================================================ -->
+  <!-- HEADER -->
+  <!-- ============================================================ -->
+  <rect x="0" y="0" width="1200" height="215" fill="url(#headerGrad)" rx="0"/>
+  <text x="600" y="52" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#93C5FD" text-anchor="middle" letter-spacing="6" font-weight="600">SMART BARANGAY KIOSK</text>
+  <text x="600" y="98" font-family="Segoe UI, Arial, sans-serif" font-size="38" fill="white" text-anchor="middle" font-weight="700">Kiosk Walk-In Request Guide</text>
+  <text x="600" y="138" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#BFDBFE" text-anchor="middle">Step-by-step process for requesting barangay documents at the kiosk</text>
+  <text x="600" y="168" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle">No login required — walk in, tap, and submit your request</text>
+  <rect x="370" y="182" width="460" height="28" rx="14" fill="#1a56c4" stroke="#60A5FA" stroke-width="1"/>
+  <text x="600" y="202" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle" font-weight="600">📱 Available at the barangay hall kiosk tablet</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 1: WELCOME & START -->
+  <!-- ============================================================ -->
+  <rect x="60" y="243" width="1080" height="52" fill="url(#phase1)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="276" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 1 — WELCOME SCREEN</text>
+  <text x="1100" y="276" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#DBEAFE" text-anchor="end">Start Here</text>
+
+  <!-- Step 1 -->
+  <rect x="60" y="311" width="520" height="220" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="343" r="24" fill="#3B82F6"/>
+  <text x="105" y="350" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">1</text>
+  <text x="142" y="351" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Approach the Kiosk</text>
+  <circle cx="540" cy="343" r="18" fill="#EFF6FF"/>
+  <text x="540" y="349" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📱</text>
+  <text x="90" y="388" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Go to the kiosk tablet at the</tspan>
+    <tspan x="90" dy="23">  barangay hall</tspan>
+    <tspan x="90" dy="23">• The kiosk shows the Welcome screen</tspan>
+    <tspan x="90" dy="23">• View any active announcements</tspan>
+    <tspan x="90" dy="23">• Your barangay is already selected</tspan>
+    <tspan x="90" dy="23">• No login or account needed</tspan>
+  </text>
+
+  <!-- Step 2 -->
+  <rect x="620" y="311" width="520" height="220" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="343" r="24" fill="#3B82F6"/>
+  <text x="665" y="350" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">2</text>
+  <text x="702" y="351" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Tap Continue</text>
+  <circle cx="1100" cy="343" r="18" fill="#EFF6FF"/>
+  <text x="1100" y="349" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">👆</text>
+  <text x="650" y="388" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• Tap the large "Continue" button</tspan>
+    <tspan x="650" dy="23">• You'll see the Next Step screen</tspan>
+    <tspan x="650" dy="23">• Choose one of two paths:</tspan>
+    <tspan x="650" dy="28" font-weight="600" fill="#1E40AF">  A) Identity Search</tspan>
+    <tspan x="650" dy="23">     (if you already have a record)</tspan>
+    <tspan x="650" dy="28" font-weight="600" fill="#1E40AF">  B) I am not listed</tspan>
+    <tspan x="650" dy="23">     (for new residents/walk-ins)</tspan>
+  </text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="580" y1="421" x2="618" y2="421" stroke="#3B82F6" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <polygon points="616,415 626,421 616,427" fill="#3B82F6"/>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 2: PATH A — IDENTITY SEARCH -->
+  <!-- ============================================================ -->
+  <rect x="60" y="555" width="1080" height="52" fill="url(#phase2)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="588" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 2 — IDENTITY SEARCH (Existing Residents)</text>
+  <text x="1100" y="588" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#FEF3C7" text-anchor="end">Faster Path</text>
+
+  <!-- Step 3 -->
+  <rect x="60" y="623" width="520" height="245" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="655" r="24" fill="#F59E0B"/>
+  <text x="105" y="662" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">3</text>
+  <text x="142" y="663" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Search Your Name</text>
+  <circle cx="540" cy="655" r="18" fill="#FFFBEB"/>
+  <text x="540" y="661" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">🔍</text>
+  <text x="90" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Tap "Identity Search"</tspan>
+    <tspan x="90" dy="23">• Type your name (e.g., Juan Dela Cruz)</tspan>
+    <tspan x="90" dy="23">• System searches your barangay records</tspan>
+    <tspan x="90" dy="23">• Results appear with matching names</tspan>
+    <tspan x="90" dy="23">• Works even offline using cached data</tspan>
+    <tspan x="90" dy="23">• Select your name from the list</tspan>
+    <tspan x="90" dy="23">• Tap "Request Document" to proceed</tspan>
+  </text>
+
+  <!-- Step 4 -->
+  <rect x="620" y="623" width="520" height="245" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="665" cy="655" r="24" fill="#F59E0B"/>
+  <text x="665" y="662" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">4</text>
+  <text x="702" y="663" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Choose Document &amp; Submit</text>
+  <circle cx="1100" cy="655" r="18" fill="#FFFBEB"/>
+  <text x="1100" y="661" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📄</text>
+  <text x="650" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• Select the document type you need</tspan>
+    <tspan x="650" dy="23">• Enter the purpose of your request</tspan>
+    <tspan x="650" dy="23">• For clearances: add CTC/Cedula info</tspan>
+    <tspan x="650" dy="23">• Review the price breakdown shown</tspan>
+    <tspan x="650" dy="23">• Tap "Submit" to send your request</tspan>
+    <tspan x="650" dy="23">• Get your reference number (REQ-XXXX)</tspan>
+    <tspan x="650" dy="23">• Receipt auto-prints if printer connected</tspan>
+  </text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="580" y1="746" x2="618" y2="746" stroke="#F59E0B" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <polygon points="616,740 626,746 616,752" fill="#F59E0B"/>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 3: PATH B — NEW RESIDENT (I AM NOT LISTED) -->
+  <!-- ============================================================ -->
+  <rect x="60" y="892" width="1080" height="52" fill="url(#phase3)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="925" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 3 — NEW APPLICATION (Walk-In / Not Listed)</text>
+  <text x="1100" y="925" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#D1FAE5" text-anchor="end">New Residents</text>
+
+  <!-- Step 5 -->
+  <rect x="60" y="960" width="350" height="350" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="992" r="24" fill="#10B981"/>
+  <text x="105" y="999" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">5</text>
+  <text x="142" y="1000" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Fill Personal Info</text>
+  <circle cx="370" cy="992" r="18" fill="#ECFDF5"/>
+  <text x="370" y="998" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📝</text>
+  <text x="90" y="1040" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">Tap "I am not listed" and</tspan>
+    <tspan x="90" dy="22">fill out the intake form:</tspan>
+    <tspan x="90" dy="28">• First name, last name</tspan>
+    <tspan x="90" dy="22">• Sex, civil status, birthday</tspan>
+    <tspan x="90" dy="22">• Address and zone number</tspan>
+    <tspan x="90" dy="22">• Occupation, education</tspan>
+    <tspan x="90" dy="22">• Phone number (for SMS)</tspan>
+    <tspan x="90" dy="22">• Email (optional)</tspan>
+    <tspan x="90" dy="28" font-weight="600" fill="#065F46">All fields auto-capitalize</tspan>
+    <tspan x="90" dy="22" font-weight="600" fill="#065F46">for you!</tspan>
+  </text>
+
+  <!-- Arrow 5→6 -->
+  <line x1="410" y1="1135" x2="438" y2="1135" stroke="#10B981" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <polygon points="436,1129 446,1135 436,1141" fill="#10B981"/>
+
+  <!-- Step 6 -->
+  <rect x="440" y="960" width="350" height="350" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="485" cy="992" r="24" fill="#10B981"/>
+  <text x="485" y="999" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">6</text>
+  <text x="522" y="1000" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Select Document</text>
+  <circle cx="750" cy="992" r="18" fill="#ECFDF5"/>
+  <text x="750" y="998" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📋</text>
+  <text x="470" y="1040" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="470" dy="0">Choose the document and</tspan>
+    <tspan x="470" dy="22">provide context:</tspan>
+    <tspan x="470" dy="28" fill="#065F46" font-weight="600">• Barangay Clearance</tspan>
+    <tspan x="470" dy="22" fill="#065F46" font-weight="600">• Certificate of Indigency</tspan>
+    <tspan x="470" dy="22" fill="#065F46" font-weight="600">• Residency Certification</tspan>
+    <tspan x="470" dy="22" fill="#065F46" font-weight="600">• Business Clearance</tspan>
+    <tspan x="470" dy="22" fill="#065F46" font-weight="600">• Solo Parent Cert.</tspan>
+    <tspan x="470" dy="22" fill="#065F46" font-weight="600">• And more...</tspan>
+    <tspan x="470" dy="28">• Enter the purpose</tspan>
+    <tspan x="470" dy="22">• Add CTC/Cedula if needed</tspan>
+  </text>
+
+  <!-- Arrow 6→7 -->
+  <line x1="790" y1="1135" x2="818" y2="1135" stroke="#10B981" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <polygon points="816,1129 826,1135 816,1141" fill="#10B981"/>
+
+  <!-- Step 7 -->
+  <rect x="820" y="960" width="320" height="350" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="865" cy="992" r="24" fill="#10B981"/>
+  <text x="865" y="999" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">7</text>
+  <text x="902" y="1000" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Review &amp; Submit</text>
+  <circle cx="1100" cy="992" r="18" fill="#ECFDF5"/>
+  <text x="1100" y="998" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">✅</text>
+  <text x="850" y="1040" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="850" dy="0">Review all your details:</tspan>
+    <tspan x="850" dy="28">• Full name and personal info</tspan>
+    <tspan x="850" dy="22">• Document type selected</tspan>
+    <tspan x="850" dy="22">• Purpose of request</tspan>
+    <tspan x="850" dy="22">• Price breakdown</tspan>
+    <tspan x="850" dy="28">• Tap "Confirm" to submit</tspan>
+    <tspan x="850" dy="28">• Get reference number</tspan>
+    <tspan x="850" dy="22">• Get queue number</tspan>
+    <tspan x="850" dy="22">  (if secretary is present)</tspan>
+    <tspan x="850" dy="22">• Receipt auto-prints</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 4: WHAT HAPPENS NEXT -->
+  <!-- ============================================================ -->
+  <rect x="60" y="1334" width="1080" height="52" fill="url(#phase4)" rx="14" filter="url(#shadowLight)"/>
+  <text x="100" y="1367" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" font-weight="700">PHASE 4 — WHAT HAPPENS NEXT</text>
+  <text x="1100" y="1367" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#EDE9FE" text-anchor="end">After Submitting</text>
+
+  <!-- Step 8 -->
+  <rect x="60" y="1402" width="350" height="250" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="1434" r="24" fill="#8B5CF6"/>
+  <text x="105" y="1441" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">8</text>
+  <text x="142" y="1442" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Secretary Reviews</text>
+  <circle cx="370" cy="1434" r="18" fill="#F5F3FF"/>
+  <text x="370" y="1440" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">👩‍💼</text>
+  <text x="90" y="1482" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• Your request appears in the</tspan>
+    <tspan x="90" dy="23">  admin dashboard instantly</tspan>
+    <tspan x="90" dy="23">• Secretary confirms your details</tspan>
+    <tspan x="90" dy="23">• Moves to "In Progress" for</tspan>
+    <tspan x="90" dy="23">  document preparation</tspan>
+    <tspan x="90" dy="23">• If desk is active: called by</tspan>
+    <tspan x="90" dy="23">  queue number</tspan>
+  </text>
+
+  <!-- Arrow 8→9 -->
+  <line x1="410" y1="1527" x2="438" y2="1527" stroke="#8B5CF6" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <polygon points="436,1521 446,1527 436,1533" fill="#8B5CF6"/>
+
+  <!-- Step 9 -->
+  <rect x="440" y="1402" width="350" height="250" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="485" cy="1434" r="24" fill="#8B5CF6"/>
+  <text x="485" y="1441" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">9</text>
+  <text x="522" y="1442" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Get Notified</text>
+  <circle cx="750" cy="1434" r="18" fill="#F5F3FF"/>
+  <text x="750" y="1440" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">📱</text>
+  <text x="470" y="1482" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="470" dy="0">• SMS sent when document ready</tspan>
+    <tspan x="470" dy="23">  (Globe/TM subscribers only)</tspan>
+    <tspan x="470" dy="23">• Message includes:</tspan>
+    <tspan x="470" dy="23">  📌 Document name</tspan>
+    <tspan x="470" dy="23">  📌 Reference number</tspan>
+    <tspan x="470" dy="23">  📌 Pickup instructions</tspan>
+    <tspan x="470" dy="23">• Or wait at the hall if present</tspan>
+  </text>
+
+  <!-- Arrow 9→10 -->
+  <line x1="790" y1="1527" x2="818" y2="1527" stroke="#8B5CF6" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <polygon points="816,1521 826,1527 816,1533" fill="#8B5CF6"/>
+
+  <!-- Step 10 -->
+  <rect x="820" y="1402" width="320" height="250" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="865" cy="1434" r="24" fill="#8B5CF6"/>
+  <text x="865" y="1441" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="white" text-anchor="middle" font-weight="700">10</text>
+  <text x="907" y="1442" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#1E293B" font-weight="700">Claim &amp; Pay</text>
+  <circle cx="1100" cy="1434" r="18" fill="#F5F3FF"/>
+  <text x="1100" y="1440" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">💰</text>
+  <text x="850" y="1482" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="850" dy="0">• Bring your reference number</tspan>
+    <tspan x="850" dy="23">  or printed receipt</tspan>
+    <tspan x="850" dy="23">• Present valid ID</tspan>
+    <tspan x="850" dy="23">• Pay the total amount shown</tspan>
+    <tspan x="850" dy="23">• Collect your document</tspan>
+    <tspan x="850" dy="23">• Transaction logged by</tspan>
+    <tspan x="850" dy="23">  the secretary</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- OFFLINE MODE SECTION -->
+  <!-- ============================================================ -->
+  <rect x="60" y="1680" width="1080" height="52" fill="#1E293B" rx="14" filter="url(#shadowLight)"/>
+  <text x="600" y="1713" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" text-anchor="middle" font-weight="700">⚡ OFFLINE MODE — Works Without Internet</text>
+
+  <rect x="60" y="1748" width="520" height="230" fill="white" rx="18" filter="url(#shadow)"/>
+  <text x="320" y="1784" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="middle" font-weight="700">✅ What Works Offline</text>
+  <line x1="100" y1="1798" x2="540" y2="1798" stroke="#D1FAE5" stroke-width="2"/>
+  <text x="90" y="1828" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="90" dy="0">• The entire kiosk app loads from cache</tspan>
+    <tspan x="90" dy="23">• Barangay list loaded from local storage</tspan>
+    <tspan x="90" dy="23">• Resident search works with cached data</tspan>
+    <tspan x="90" dy="23">• Document options and pricing cached</tspan>
+    <tspan x="90" dy="23">• Requests saved locally and queued</tspan>
+    <tspan x="90" dy="23">• Auto-syncs to server when back online</tspan>
+    <tspan x="90" dy="23">• Yellow banner shows "Offline mode"</tspan>
+  </text>
+
+  <rect x="620" y="1748" width="520" height="230" fill="white" rx="18" filter="url(#shadow)"/>
+  <text x="880" y="1784" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="middle" font-weight="700">⚠️ First-Time Setup Required</text>
+  <line x1="660" y1="1798" x2="1100" y2="1798" stroke="#FEF3C7" stroke-width="2"/>
+  <text x="650" y="1828" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
+    <tspan x="650" dy="0">• Connect to WiFi on first launch</tspan>
+    <tspan x="650" dy="23">• Let the app fully load once</tspan>
+    <tspan x="650" dy="23">• All data is downloaded and cached</tspan>
+    <tspan x="650" dy="23">• After that, internet is optional</tspan>
+    <tspan x="650" dy="23">• Offline requests get REQ-...-OFF</tspan>
+    <tspan x="650" dy="23">  reference numbers</tspan>
+    <tspan x="650" dy="23">• Queue numbers assigned on sync</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- TIPS SECTION -->
+  <!-- ============================================================ -->
+  <rect x="60" y="2008" width="1080" height="52" fill="url(#tipGrad)" rx="14" filter="url(#shadowLight)"/>
+  <text x="600" y="2041" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" text-anchor="middle" font-weight="700">💡 TIPS FOR KIOSK USERS</text>
+
+  <rect x="60" y="2076" width="345" height="180" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="105" cy="2108" r="18" fill="#DBEAFE"/>
+  <text x="105" y="2114" font-family="Segoe UI, Arial, sans-serif" font-size="16" text-anchor="middle">📋</text>
+  <text x="132" y="2114" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">Before You Visit</text>
+  <text x="90" y="2143" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">
+    <tspan x="90" dy="0">Know which document you need.</tspan>
+    <tspan x="90" dy="20">Bring your CTC/Cedula number</tspan>
+    <tspan x="90" dy="20">if requesting a clearance.</tspan>
+    <tspan x="90" dy="20">Have your phone number ready</tspan>
+    <tspan x="90" dy="20">for SMS notifications.</tspan>
+  </text>
+
+  <rect x="428" y="2076" width="345" height="180" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="473" cy="2108" r="18" fill="#FEF3C7"/>
+  <text x="473" y="2114" font-family="Segoe UI, Arial, sans-serif" font-size="16" text-anchor="middle">⏱️</text>
+  <text x="500" y="2114" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">Save Time</text>
+  <text x="458" y="2143" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">
+    <tspan x="458" dy="0">If you already have a barangay</tspan>
+    <tspan x="458" dy="20">record, use "Identity Search"</tspan>
+    <tspan x="458" dy="20">for a faster experience. Your</tspan>
+    <tspan x="458" dy="20">info is pre-filled automatically.</tspan>
+    <tspan x="458" dy="20">Just choose document and go!</tspan>
+  </text>
+
+  <rect x="796" y="2076" width="345" height="180" fill="white" rx="18" filter="url(#shadow)"/>
+  <circle cx="841" cy="2108" r="18" fill="#DCFCE7"/>
+  <text x="841" y="2114" font-family="Segoe UI, Arial, sans-serif" font-size="16" text-anchor="middle">🧾</text>
+  <text x="868" y="2114" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">Keep Your Receipt</text>
+  <text x="826" y="2143" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">
+    <tspan x="826" dy="0">Your reference number (REQ-)</tspan>
+    <tspan x="826" dy="20">is your proof of request. If a</tspan>
+    <tspan x="826" dy="20">thermal printer is connected,</tspan>
+    <tspan x="826" dy="20">a receipt prints automatically.</tspan>
+    <tspan x="826" dy="20">Present it when you claim.</tspan>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- DOCUMENT TYPES -->
+  <!-- ============================================================ -->
+  <rect x="60" y="2282" width="1080" height="195" fill="white" rx="18" filter="url(#shadow)"/>
+  <text x="600" y="2317" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#1E293B" text-anchor="middle" font-weight="700">📄 AVAILABLE DOCUMENTS AT THE KIOSK</text>
+  <line x1="200" y1="2332" x2="1000" y2="2332" stroke="#E2E8F0" stroke-width="1"/>
+
+  <text x="160" y="2362" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Barangay Clearance</text>
+  <text x="400" y="2362" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Certificate of Indigency</text>
+  <text x="680" y="2362" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Certificate of Residency</text>
+
+  <text x="160" y="2392" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Good Moral Character</text>
+  <text x="400" y="2392" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• First Time Job Seeker</text>
+  <text x="680" y="2392" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Monthly Income Cert.</text>
+
+  <text x="160" y="2422" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Solo Parent Cert.</text>
+  <text x="400" y="2422" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Certification PDA</text>
+  <text x="680" y="2422" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1E293B" font-weight="600">• Business Clearance</text>
+
+  <text x="600" y="2462" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">Pricing is configured by your barangay administrator. Fees are shown before you submit.</text>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER -->
+  <!-- ============================================================ -->
+  <rect x="0" y="2500" width="1200" height="100" fill="url(#headerGrad)" rx="0"/>
+  <text x="600" y="2530" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="700">Smart Barangay Kiosk — Walk-In Request Guide</text>
+  <text x="600" y="2558" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#93C5FD" text-anchor="middle">Available at the barangay hall kiosk tablet — no account needed</text>
+  <text x="600" y="2582" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#60A5FA" text-anchor="middle">For questions, ask the barangay secretary or visit the admin desk</text>
+</svg>

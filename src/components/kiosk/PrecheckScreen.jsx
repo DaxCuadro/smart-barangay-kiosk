@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { BARANGAY_INFO_STORAGE_KEY, getBarangayZonesCount, getSelectedBarangayName, setBarangayInfo } from '../../utils/barangayInfoStorage';
 import { printReceipt } from '../../utils/thermalPrinter';
+import {
+  cacheResidents,
+  searchCachedResidents,
+  cacheSetting,
+  getCachedSetting,
+  queuePendingRequest,
+} from '../../utils/offlineStorage';
 
 const INITIAL_FORM = {
   lastName: '',
@@ -149,7 +156,7 @@ function normalizeDocumentOptions(value) {
   return cleaned.length ? cleaned : DEFAULT_DOCUMENT_OPTIONS;
 }
 
-export default function PrecheckScreen({ onClose, barangayId }) {
+export default function PrecheckScreen({ onClose, barangayId, isOnline = true }) {
   const supabase = useSupabase();
   const [searchOpen, setSearchOpen] = useState(false);
   const [intakeOpen, setIntakeOpen] = useState(false);
@@ -211,7 +218,21 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         .order('id', { ascending: false })
         .limit(1);
       if (!isActive) return;
-      if (error) return;
+      if (error) {
+        // Fallback to cached zone settings
+        try {
+          const cached = await getCachedSetting(`zone_settings_${barangayId}`);
+          if (cached) {
+            const numeric = Number(cached.zones_count);
+            if (Number.isFinite(numeric) && numeric > 0) {
+              setZoneCount(numeric);
+              setBarangayInfo({ zonesCount: numeric });
+            }
+            setSecretaryPresent(typeof cached.secretary_present === 'boolean' ? cached.secretary_present : true);
+          }
+        } catch { /* ignore */ }
+        return;
+      }
       const record = Array.isArray(data) ? data[0] : data;
       const numeric = Number(record?.zones_count);
       if (Number.isFinite(numeric) && numeric > 0) {
@@ -219,6 +240,8 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         setBarangayInfo({ zonesCount: numeric });
       }
       setSecretaryPresent(typeof record?.secretary_present === 'boolean' ? record.secretary_present : true);
+      // Cache for offline
+      cacheSetting(`zone_settings_${barangayId}`, { zones_count: record?.zones_count, secretary_present: record?.secretary_present }).catch(() => {});
     }
     loadZoneCount();
     return () => {
@@ -237,8 +260,18 @@ export default function PrecheckScreen({ onClose, barangayId }) {
 
       if (!isActive) return;
       if (!error && data?.value) {
-        setDocumentOptions(normalizeDocumentOptions(data.value));
+        const opts = normalizeDocumentOptions(data.value);
+        setDocumentOptions(opts);
+        cacheSetting('document_options', opts).catch(() => {});
       } else {
+        // Fallback to cached options
+        try {
+          const cached = await getCachedSetting('document_options');
+          if (cached) {
+            setDocumentOptions(cached);
+            return;
+          }
+        } catch { /* ignore */ }
         setDocumentOptions(DEFAULT_DOCUMENT_OPTIONS);
       }
     }
@@ -266,6 +299,14 @@ export default function PrecheckScreen({ onClose, barangayId }) {
 
       if (!isActive) return;
       if (error) {
+        // Fallback to cached pricing
+        try {
+          const cached = await getCachedSetting(`pricing_info_${barangayId}`);
+          if (cached) {
+            setPricingInfo(cached);
+            return;
+          }
+        } catch { /* ignore */ }
         setPricingInfo({ prices: {}, serviceFee: 0, smsFee: 0 });
         return;
       }
@@ -279,11 +320,14 @@ export default function PrecheckScreen({ onClose, barangayId }) {
         }
       });
 
-      setPricingInfo({
+      const info = {
         prices,
         serviceFee: toNumber(map.get(SERVICE_FEE_KEY), 0),
         smsFee: toNumber(map.get(SMS_FEE_KEY), 0),
-      });
+      };
+      setPricingInfo(info);
+      // Cache for offline
+      cacheSetting(`pricing_info_${barangayId}`, info).catch(() => {});
     }
 
     loadPricing();
@@ -496,20 +540,44 @@ export default function PrecheckScreen({ onClose, barangayId }) {
 
   async function handleConfirmIntake() {
     setIntakeSaving(true);
-    const referenceNumber = await generateReferenceNumber();
-    const queueNumber = secretaryPresent ? await getNextQueueNumber() : null;
-    const payload = {
-      ...buildIntakePayload(),
-      reference_number: referenceNumber,
-      queue_number: queueNumber,
-    };
-    const { error: saveError } = await supabase.from(INTAKE_REQUESTS_TABLE).insert(payload);
 
-    if (saveError) {
-      setIntakeError(saveError.message);
-      setIntakeSaving(false);
-      setIntakeReviewOpen(false);
-      return;
+    let referenceNumber;
+    let queueNumber = null;
+
+    if (isOnline) {
+      referenceNumber = await generateReferenceNumber();
+      queueNumber = secretaryPresent ? await getNextQueueNumber() : null;
+      const payload = {
+        ...buildIntakePayload(),
+        reference_number: referenceNumber,
+        queue_number: queueNumber,
+      };
+      const { error: saveError } = await supabase.from(INTAKE_REQUESTS_TABLE).insert(payload);
+
+      if (saveError) {
+        setIntakeError(saveError.message);
+        setIntakeSaving(false);
+        setIntakeReviewOpen(false);
+        return;
+      }
+    } else {
+      // Offline — generate local reference and queue
+      const now = new Date();
+      const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      referenceNumber = `REQ-${datePart}-OFF${String(Math.floor(1000 + Math.random() * 9000))}`;
+      const payload = {
+        ...buildIntakePayload(),
+        reference_number: referenceNumber,
+        queue_number: null,
+      };
+      try {
+        await queuePendingRequest(payload);
+      } catch {
+        setIntakeError('Failed to save offline. Please try again.');
+        setIntakeSaving(false);
+        setIntakeReviewOpen(false);
+        return;
+      }
     }
 
     setIntakeSaving(false);
@@ -529,10 +597,14 @@ export default function PrecheckScreen({ onClose, barangayId }) {
 
     setSuccessNotice({
       open: true,
-      title: secretaryPresent ? 'Request submitted' : 'Request submitted successfully',
-      message: secretaryPresent
-        ? 'Please proceed to the secretary desk.'
-        : 'Please wait for the text message from the secretary.',
+      title: isOnline
+        ? (secretaryPresent ? 'Request submitted' : 'Request submitted successfully')
+        : 'Request saved offline',
+      message: isOnline
+        ? (secretaryPresent
+            ? 'Please proceed to the secretary desk.'
+            : 'Please wait for the text message from the secretary.')
+        : 'Your request was saved and will be submitted automatically when the internet connection returns.',
       queueNumber,
       reference: referenceNumber,
       printStatus,
@@ -556,24 +628,45 @@ export default function PrecheckScreen({ onClose, barangayId }) {
     setError('');
     setHasSearched(true);
 
-    const baseQuery = supabase
-      .from('residents')
-      .select(
-        'id, first_name, last_name, middle_name, sex, civil_status, birthday, birthplace, address, occupation, education, religion, telephone, email',
-      )
-      .limit(10);
+    // Try online search first
+    if (isOnline) {
+      const baseQuery = supabase
+        .from('residents')
+        .select(
+          'id, first_name, last_name, middle_name, sex, civil_status, birthday, birthplace, address, occupation, education, religion, telephone, email',
+        )
+        .eq('barangay_id', barangayId)
+        .limit(10);
 
-    const { data, error: fetchError } = parsed.lastName && parsed.firstName
-      ? await baseQuery
-          .ilike('last_name', `%${parsed.lastName}%`)
-          .ilike('first_name', `%${parsed.firstName}%`)
-      : await baseQuery.or(`last_name.ilike.%${safeQuery}%,first_name.ilike.%${safeQuery}%`);
+      const { data, error: fetchError } = parsed.lastName && parsed.firstName
+        ? await baseQuery
+            .ilike('last_name', `%${parsed.lastName}%`)
+            .ilike('first_name', `%${parsed.firstName}%`)
+        : await baseQuery.or(`last_name.ilike.%${safeQuery}%,first_name.ilike.%${safeQuery}%`);
 
-    if (fetchError) {
-      setError(fetchError.message);
-      setResults([]);
+      if (fetchError) {
+        // Network error — fall through to offline search
+        try {
+          const cached = await searchCachedResidents(barangayId, safeQuery);
+          setResults(cached);
+          if (cached.length === 0) setError('No cached results found. Connect to the internet to search.');
+        } catch {
+          setError(fetchError.message);
+          setResults([]);
+        }
+      } else {
+        setResults(data || []);
+      }
     } else {
-      setResults(data || []);
+      // Fully offline — search local cache
+      try {
+        const cached = await searchCachedResidents(barangayId, safeQuery);
+        setResults(cached);
+        if (cached.length === 0) setError('No results in offline cache. Try again when online.');
+      } catch {
+        setError('Offline search failed.');
+        setResults([]);
+      }
     }
 
     setLoading(false);
@@ -619,18 +712,38 @@ export default function PrecheckScreen({ onClose, barangayId }) {
       barangay_id: barangayId || null,
     };
 
-    const referenceNumber = await generateReferenceNumber();
-    const queueNumber = secretaryPresent ? await getNextQueueNumber() : null;
-    payload.reference_number = referenceNumber;
-    payload.queue_number = queueNumber;
+    let referenceNumber;
+    let queueNumber = null;
 
-    const { error: saveError } = await supabase
-      .from(INTAKE_REQUESTS_TABLE)
-      .insert(payload);
-    if (saveError) {
-      setRequestError(saveError.message);
-      setRequestSaving(false);
-      return;
+    if (isOnline) {
+      referenceNumber = await generateReferenceNumber();
+      queueNumber = secretaryPresent ? await getNextQueueNumber() : null;
+      payload.reference_number = referenceNumber;
+      payload.queue_number = queueNumber;
+
+      const { error: saveError } = await supabase
+        .from(INTAKE_REQUESTS_TABLE)
+        .insert(payload);
+      if (saveError) {
+        setRequestError(saveError.message);
+        setRequestSaving(false);
+        return;
+      }
+    } else {
+      // Offline — generate local reference and queue
+      const now = new Date();
+      const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      referenceNumber = `REQ-${datePart}-OFF${String(Math.floor(1000 + Math.random() * 9000))}`;
+      payload.reference_number = referenceNumber;
+      payload.queue_number = null;
+
+      try {
+        await queuePendingRequest(payload);
+      } catch (queueErr) {
+        setRequestError('Failed to save offline. Please try again.');
+        setRequestSaving(false);
+        return;
+      }
     }
 
     setRequestSaving(false);
@@ -649,10 +762,14 @@ export default function PrecheckScreen({ onClose, barangayId }) {
 
     setSuccessNotice({
       open: true,
-      title: secretaryPresent ? 'Request submitted' : 'Request submitted successfully',
-      message: secretaryPresent
-        ? 'Please proceed to the secretary desk.'
-        : 'Please wait for the text message from the secretary.',
+      title: isOnline
+        ? (secretaryPresent ? 'Request submitted' : 'Request submitted successfully')
+        : 'Request saved offline',
+      message: isOnline
+        ? (secretaryPresent
+            ? 'Please proceed to the secretary desk.'
+            : 'Please wait for the text message from the secretary.')
+        : 'Your request was saved and will be submitted automatically when the internet connection returns.',
       queueNumber,
       reference: referenceNumber,
       printStatus,

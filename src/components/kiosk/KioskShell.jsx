@@ -3,6 +3,9 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import PrecheckScreen from './PrecheckScreen';
 import { getSelectedBarangayId, getSelectedBarangayName, setBarangayInfo } from '../../utils/barangayInfoStorage';
 import useIdleReset from '../../hooks/useIdleReset';
+import useOfflineSync from '../../hooks/useOfflineSync';
+import { cacheBarangays, getCachedBarangays, cacheResidents } from '../../utils/offlineStorage';
+import GuideModal from '../ui/GuideModal';
 import './kioskShell.css';
 
 function normalizeDate(value) {
@@ -57,6 +60,8 @@ function KioskShell() {
     setChangeOpen(false);
   }, 120000);
 
+  const { isOnline, pendingCount, syncing } = useOfflineSync(supabase);
+
   useEffect(() => {
     let isActive = true;
     const today = normalizeDate(new Date());
@@ -106,14 +111,34 @@ function KioskShell() {
       ]);
 
       if (!isActive) return;
+
+      let activeItems = [];
+
       if (barangayResult.error) {
-        setBarangayError(barangayResult.error?.message || 'Failed to load barangays.');
-        setBarangays([]);
-        setBarangayLoading(false);
-        return;
+        // Fallback to cached data when offline
+        try {
+          const cached = await getCachedBarangays();
+          if (cached && cached.length > 0) {
+            activeItems = cached;
+            setBarangayError('');
+          } else {
+            setBarangayError(barangayResult.error?.message || 'Failed to load barangays.');
+            setBarangays([]);
+            setBarangayLoading(false);
+            return;
+          }
+        } catch {
+          setBarangayError(barangayResult.error?.message || 'Failed to load barangays.');
+          setBarangays([]);
+          setBarangayLoading(false);
+          return;
+        }
+      } else {
+        activeItems = (barangayResult.data || []).filter(item => item.status !== 'inactive' && item.enable_kiosk !== false);
+        // Cache for offline use
+        cacheBarangays(activeItems).catch(() => {});
       }
 
-      const activeItems = (barangayResult.data || []).filter(item => item.status !== 'inactive' && item.enable_kiosk !== false);
       setBarangays(activeItems);
 
       const storedId = getSelectedBarangayId();
@@ -131,6 +156,24 @@ function KioskShell() {
       isActive = false;
     };
   }, [supabase]);
+
+  // Pre-cache residents for offline search when online
+  useEffect(() => {
+    if (!isOnline || !activeBarangayId) return;
+    let isActive = true;
+    async function prefetchResidents() {
+      const { data, error } = await supabase
+        .from('residents')
+        .select('id, first_name, last_name, middle_name, sex, civil_status, birthday, birthplace, address, occupation, education, religion, telephone, email')
+        .eq('barangay_id', activeBarangayId)
+        .order('last_name', { ascending: true })
+        .limit(5000);
+      if (!isActive || error || !data) return;
+      cacheResidents(activeBarangayId, data).catch(() => {});
+    }
+    prefetchResidents();
+    return () => { isActive = false; };
+  }, [supabase, isOnline, activeBarangayId]);
 
   const activeBarangay = useMemo(() => {
     if (!activeBarangayId) return null;
@@ -221,11 +264,22 @@ function KioskShell() {
 
 
   if (stage === 'precheck') {
-    return <PrecheckScreen onClose={handleReset} barangayId={activeBarangayId} />;
+    return <PrecheckScreen onClose={handleReset} barangayId={activeBarangayId} isOnline={isOnline} />;
   }
 
   return (
     <div className="kiosk-shell">
+      {!isOnline && (
+        <div className="kiosk-offline-banner" role="status">
+          <span>⚡ Offline mode — using cached data{pendingCount > 0 ? ` · ${pendingCount} request${pendingCount > 1 ? 's' : ''} queued` : ''}</span>
+          {syncing && <span> · Syncing…</span>}
+        </div>
+      )}
+      {isOnline && pendingCount > 0 && (
+        <div className="kiosk-sync-banner" role="status">
+          <span>Syncing {pendingCount} queued request{pendingCount > 1 ? 's' : ''}…</span>
+        </div>
+      )}
       <div className="kiosk-frame">
         <div className="kiosk-toolbar">
           <div className="kiosk-toolbar-meta">
@@ -275,6 +329,7 @@ function KioskShell() {
         )}
 
         <div className="kiosk-panel kiosk-panel--cta">
+          <GuideModal guideSrc="/kiosk-guide.png" label="Kiosk Guide" className="guide-trigger--light kiosk-guide-btn" />
           <p className="kiosk-subhead">Welcome to the Smart Barangay Kiosk</p>
           <h1 className="kiosk-title kiosk-title--compact">Tap Continue to start</h1>
           <p className="kiosk-body kiosk-note">

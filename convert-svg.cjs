@@ -5,6 +5,8 @@ const fs = require('fs');
 const files = [
   { svg: 'public/resident-request-guide.svg', png: 'public/resident-request-guide.png' },
   { svg: 'public/admin-guide.svg', png: 'public/admin-guide.png' },
+  { svg: 'public/kiosk-guide.svg', png: 'public/kiosk-guide.png' },
+  { svg: 'public/kiosk-pubmat.svg', png: 'public/kiosk-pubmat.png' },
   { svg: 'public/pubmat.svg', png: 'public/pubmat.png' },
 ];
 

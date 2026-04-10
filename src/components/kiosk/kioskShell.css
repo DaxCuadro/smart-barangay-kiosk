@@ -7,6 +7,33 @@
   padding: clamp(1rem, 4vw, 3rem);
 }
 
+/* ─── Offline / Sync Banners ─── */
+.kiosk-offline-banner,
+.kiosk-sync-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.kiosk-offline-banner {
+  background: #fef3c7;
+  color: #92400e;
+  border-bottom: 2px solid #fbbf24;
+}
+
+.kiosk-sync-banner {
+  background: #dbeafe;
+  color: #1e40af;
+  border-bottom: 2px solid #60a5fa;
+}
+
 .kiosk-frame {
   width: min(1100px, 100%);
   display: grid;
@@ -105,10 +132,18 @@
 }
 
 .kiosk-panel--cta {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
+}
+
+.kiosk-guide-btn {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
 }
 
 .kiosk-panel--precheck {

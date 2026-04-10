@@ -9,6 +9,7 @@ import {
   setBarangayInfo,
 } from '../../utils/barangayInfoStorage';
 import ResidentPortalTabs from './ResidentPortalTabs';
+import GuideModal from '../ui/GuideModal';
 import './residentPortalShell.css';
 
 const DEFAULT_DOCUMENT_OPTIONS = [
@@ -1333,6 +1334,7 @@ function ResidentPortalShell() {
                   : 'Sign in to submit barangay document requests online.'}
             </p>
           </div>
+          <GuideModal guideSrc="/resident-request-guide.png" label="Resident Guide" className="guide-trigger--light" />
         </header>
 
         {recoveryMode ? (

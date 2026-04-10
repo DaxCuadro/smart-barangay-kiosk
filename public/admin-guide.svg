@@ -166,7 +166,7 @@
     <tspan x="90" dy="23">• Each card shows: document type, resident</tspan>
     <tspan x="90" dy="23">  name, purpose, and date submitted</tspan>
     <tspan x="90" dy="23">• Click a request to expand full details</tspan>
-    <tspan x="90" dy="23">• Verify resident info before proceeding</tspan>
+    <tspan x="90" dy="23">• Offline kiosk requests sync when online</tspan>
     <tspan x="90" dy="23">• Badge count updates in real-time</tspan>
   </text>
 
@@ -379,14 +379,14 @@
   <rect x="796" y="2648" width="345" height="195" fill="white" rx="18" filter="url(#shadow)"/>
   <circle cx="841" cy="2680" r="18" fill="#DCFCE7"/>
   <text x="841" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="16" text-anchor="middle">🔒</text>
-  <text x="868" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">Security Reminders</text>
+  <text x="868" y="2686" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#1E293B" font-weight="700">Kiosk &amp; Offline Mode</text>
   <text x="826" y="2715" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">
     <tspan x="826" dy="0">Always log out when leaving</tspan>
-    <tspan x="826" dy="20">the admin dashboard. Change</tspan>
-    <tspan x="826" dy="20">your password regularly via</tspan>
-    <tspan x="826" dy="20">the Barangay Info tab. Only</tspan>
-    <tspan x="826" dy="20">approve verified residents in</tspan>
-    <tspan x="826" dy="20">the Verification tab.</tspan>
+    <tspan x="826" dy="20">the admin dashboard. The kiosk</tspan>
+    <tspan x="826" dy="20">works offline and syncs requests</tspan>
+    <tspan x="826" dy="20">automatically when internet</tspan>
+    <tspan x="826" dy="20">returns. Check for synced</tspan>
+    <tspan x="826" dy="20">requests after reconnection.</tspan>
   </text>
 
   <!-- ============================================================ -->

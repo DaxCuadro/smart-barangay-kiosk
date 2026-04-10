@@ -750,6 +750,7 @@ export default function RequestsTab({ barangayId }) {
       source: request.source || null,
       barangay_id: barangayId,
       reference_number: request.reference || null,
+      requested_at: request.submittedAt || null,
     };
 
     const { data, error: insertError } = await supabase

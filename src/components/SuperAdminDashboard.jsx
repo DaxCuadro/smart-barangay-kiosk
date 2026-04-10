@@ -3,6 +3,7 @@ import { supabaseAnonKey, supabaseUrl } from '../supabaseClient';
 import { useSupabase } from '../contexts/SupabaseContext';
 import ConfirmDialog from './ui/ConfirmDialog';
 import ChatPanel from './ui/ChatPanel';
+import DailySummaryPanel from './ui/DailySummaryPanel';
 import { useToast } from '../hooks/useToast';
 
 const SUPERADMIN_TABS = [
@@ -1725,6 +1726,11 @@ export default function SuperAdminDashboard({ onLogout }) {
               )}
             </div>
           </section>
+        ) : null}
+
+        {/* ── Daily Summary (overview tab) ── */}
+        {activeTab === 'overview' ? (
+          <DailySummaryPanel supabase={supabase} barangayId={null} />
         ) : null}
 
         {/* ── Feature 2: Analytics Tab ── */}
