@@ -178,6 +178,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
   const [requestForm, setRequestForm] = useState({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
   const [requestError, setRequestError] = useState('');
   const [requestSaving, setRequestSaving] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const [pricingInfo, setPricingInfo] = useState({ prices: {}, serviceFee: 0, smsFee: 0 });
   const [secretaryPresent, setSecretaryPresent] = useState(true);
   const [successNotice, setSuccessNotice] = useState({ open: false, title: '', message: '', queueNumber: null, reference: '', printStatus: '' });
@@ -353,6 +354,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     setRequestForm({ document: '', purpose: '' });
     setRequestError('');
     setRequestSaving(false);
+    setPrivacyConsent(false);
   }
 
   function closeSuccessNotice() {
@@ -433,6 +435,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     setIntakeSaving(false);
     setIntakeReviewOpen(false);
     setIntakeReviewData(null);
+    setPrivacyConsent(false);
   }
 
   function handleCloseIntake() {
@@ -990,9 +993,31 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                   </div>
                 ) : null}
 
+                <div style={{ margin: '0.75rem 0', padding: '0.75rem', background: '#f8f9fa', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.75rem', lineHeight: '1.5', color: '#475569' }}>
+                  <p style={{ fontWeight: 600, marginBottom: '0.4rem', color: '#1e293b', fontSize: '0.8rem' }}>Data Privacy Consent</p>
+                  <p style={{ marginBottom: '0.5rem' }}>
+                    In accordance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>, I hereby give my free, voluntary, and informed consent to the collection, processing, and storage of my personal information provided in this form.
+                  </p>
+                  <p style={{ marginBottom: '0.5rem' }}>
+                    I understand that my data will be used solely for the purpose of verifying my identity as a resident and processing barangay document requests. My information will be handled with strict confidentiality and will not be shared with unauthorized third parties.
+                  </p>
+                  <p>
+                    I am aware that I may withdraw my consent at any time by contacting the barangay office, subject to applicable legal obligations.
+                  </p>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginTop: '0.6rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, color: '#1e293b' }}>
+                    <input
+                      type="checkbox"
+                      checked={privacyConsent}
+                      onChange={e => setPrivacyConsent(e.target.checked)}
+                      style={{ marginTop: '0.2rem', accentColor: '#2563eb', width: '1rem', height: '1rem', flexShrink: 0 }}
+                    />
+                    <span>I have read and agree to the terms above.</span>
+                  </label>
+                </div>
+
                 <div className="kiosk-intake-actions">
                   <button type="button" className="kiosk-intake-cancel" onClick={handleCloseIntake}>Cancel</button>
-                  <button type="submit" className="kiosk-intake-submit" disabled={intakeSaving}>
+                  <button type="submit" className="kiosk-intake-submit" disabled={intakeSaving || !privacyConsent}>
                     {intakeSaving ? 'Saving...' : 'Submit details'}
                   </button>
                 </div>
@@ -1235,11 +1260,32 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                       rows={3}
                     />
                   </label>
+                  <div style={{ margin: '0.75rem 0', padding: '0.75rem', background: '#f8f9fa', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.75rem', lineHeight: '1.5', color: '#475569' }}>
+                    <p style={{ fontWeight: 600, marginBottom: '0.4rem', color: '#1e293b', fontSize: '0.8rem' }}>Data Privacy Consent</p>
+                    <p style={{ marginBottom: '0.5rem' }}>
+                      In accordance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>, I hereby give my free, voluntary, and informed consent to the collection, processing, and storage of my personal information provided in this form.
+                    </p>
+                    <p style={{ marginBottom: '0.5rem' }}>
+                      I understand that my data will be used solely for the purpose of verifying my identity as a resident and processing barangay document requests. My information will be handled with strict confidentiality and will not be shared with unauthorized third parties.
+                    </p>
+                    <p>
+                      I am aware that I may withdraw my consent at any time by contacting the barangay office, subject to applicable legal obligations.
+                    </p>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginTop: '0.6rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, color: '#1e293b' }}>
+                      <input
+                        type="checkbox"
+                        checked={privacyConsent}
+                        onChange={e => setPrivacyConsent(e.target.checked)}
+                        style={{ marginTop: '0.2rem', accentColor: '#2563eb', width: '1rem', height: '1rem', flexShrink: 0 }}
+                      />
+                      <span>I have read and agree to the terms above.</span>
+                    </label>
+                  </div>
                   <div className="kiosk-intake-actions">
                     <button type="button" className="kiosk-intake-cancel" onClick={handleCloseRequest}>
                       Cancel
                     </button>
-                    <button type="submit" className="kiosk-intake-submit" disabled={requestSaving}>
+                    <button type="submit" className="kiosk-intake-submit" disabled={requestSaving || !privacyConsent}>
                       {requestSaving ? 'Submitting...' : 'Submit request'}
                     </button>
                   </div>

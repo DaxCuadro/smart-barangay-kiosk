@@ -29,7 +29,8 @@ function mapFromSupabase(record) {
     description: record.description || '',
     startDate: record.start_date,
     endDate: record.end_date,
-    imageData: record.image_data,
+    imageData: record.image_data ?? null,
+    hasImage: record.has_image ?? Boolean(record.image_data),
     createdAt: record.created_at,
     updatedAt: record.updated_at,
   };
@@ -90,13 +91,17 @@ export default function AnnouncementsTab({ barangayId }) {
     setError(null);
     const { data, error: fetchError } = await supabase
       .from('announcements')
-      .select('*')
+      .select('id, title, description, start_date, end_date, created_at, updated_at')
       .eq('barangay_id', barangayId)
       .order('start_date', { ascending: true });
     if (fetchError) {
       setError(fetchError.message);
     } else {
-      setAnnouncements((data || []).map(mapFromSupabase));
+      setAnnouncements((data || []).map(row => ({
+        ...mapFromSupabase(row),
+        imageData: null,
+        hasImage: false,
+      })));
     }
     setLoading(false);
   }, [supabase, barangayId]);
@@ -140,8 +145,23 @@ export default function AnnouncementsTab({ barangayId }) {
     setModalState({ open: true, mode: 'create', target: null });
   }
 
-  function handleEdit(announcement) {
-    setModalState({ open: true, mode: 'edit', target: announcement });
+  async function handleEdit(announcement) {
+    // Lazy-load image_data only when editing a single announcement
+    let target = announcement;
+    if (!announcement.imageData) {
+      const { data } = await supabase
+        .from('announcements')
+        .select('image_data')
+        .eq('id', announcement.id)
+        .single();
+      if (data?.image_data) {
+        target = { ...announcement, imageData: data.image_data, hasImage: true };
+        setAnnouncements(prev =>
+          prev.map(item => (item.id === announcement.id ? { ...item, imageData: data.image_data, hasImage: true } : item)),
+        );
+      }
+    }
+    setModalState({ open: true, mode: 'edit', target });
   }
 
   function requestDelete(announcement) {
@@ -175,7 +195,7 @@ export default function AnnouncementsTab({ barangayId }) {
         .single();
       if (updateError) {
         addToast(`Failed to save changes: ${updateError.message}`, 'error');
-        return;
+        throw updateError;
       }
       setAnnouncements(prev =>
         prev.map(item => (item.id === modalState.target.id ? mapFromSupabase(data) : item)),
@@ -189,7 +209,7 @@ export default function AnnouncementsTab({ barangayId }) {
         .single();
       if (insertError) {
         addToast(`Failed to add announcement: ${insertError.message}`, 'error');
-        return;
+        throw insertError;
       }
       setAnnouncements(prev => [...prev, mapFromSupabase(data)]);
       addToast('Announcement created.', 'success');

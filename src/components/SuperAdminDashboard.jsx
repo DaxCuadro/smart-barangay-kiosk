@@ -9,6 +9,7 @@ import { useToast } from '../hooks/useToast';
 const SUPERADMIN_TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'analytics', label: 'Analytics' },
+  { key: 'broadcast', label: 'Broadcast' },
   { key: 'tenants', label: 'Tenants' },
   { key: 'admins', label: 'Admins' },
   { key: 'residents', label: 'Residents' },
@@ -192,6 +193,13 @@ export default function SuperAdminDashboard({ onLogout }) {
   const [barangayHealthSnapshot, setBarangayHealthSnapshot] = useState(EMPTY_HEALTH_SNAPSHOT);
   const [barangayHealthLoading, setBarangayHealthLoading] = useState(false);
   const [barangayHealthError, setBarangayHealthError] = useState('');
+
+  // ── System Broadcast state ──
+  const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '', type: 'info', enabled: false });
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
+  const [broadcastSaving, setBroadcastSaving] = useState(false);
+  const [broadcastInfo, setBroadcastInfo] = useState('');
+  const [broadcastError, setBroadcastError] = useState('');
 
   // ── Feature 1: Audit Log state ──
   const [auditLogs, setAuditLogs] = useState([]);
@@ -471,6 +479,84 @@ export default function SuperAdminDashboard({ onLogout }) {
   useEffect(() => {
     if (activeTab === 'analytics') { const run = async () => { await loadAnalytics(); }; run(); }
   }, [activeTab, loadAnalytics]);
+
+  /* ── System Broadcast loader ────────────────────────────────── */
+  useEffect(() => {
+    if (activeTab !== 'broadcast') return;
+    let isActive = true;
+    setBroadcastLoading(true);
+    setBroadcastError('');
+    (async () => {
+      const { data, error: fetchErr } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'system_broadcast')
+        .maybeSingle();
+      if (!isActive) return;
+      setBroadcastLoading(false);
+      if (fetchErr) {
+        setBroadcastError(fetchErr.message);
+        return;
+      }
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          setBroadcastForm({
+            title: parsed.title || '',
+            message: parsed.message || '',
+            type: parsed.type || 'info',
+            enabled: parsed.enabled ?? false,
+          });
+        } catch {
+          setBroadcastForm({ title: '', message: '', type: 'info', enabled: false });
+        }
+      }
+    })();
+    return () => { isActive = false; };
+  }, [activeTab, supabase]);
+
+  async function handleSaveBroadcast() {
+    setBroadcastSaving(true);
+    setBroadcastInfo('');
+    setBroadcastError('');
+    const payload = JSON.stringify({
+      title: broadcastForm.title.trim(),
+      message: broadcastForm.message.trim(),
+      type: broadcastForm.type,
+      enabled: broadcastForm.enabled,
+      updated_at: new Date().toISOString(),
+    });
+    const { error: upsertErr } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'system_broadcast', value: payload, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    setBroadcastSaving(false);
+    if (upsertErr) {
+      setBroadcastError(`Failed to save: ${upsertErr.message}`);
+      return;
+    }
+    setBroadcastInfo(broadcastForm.enabled ? 'Broadcast is now live across all kiosks and resident portals.' : 'Broadcast saved (currently disabled).');
+    addToast(broadcastForm.enabled ? 'Broadcast published.' : 'Broadcast saved.', 'success');
+    await logAudit(supabase, { action: 'update_broadcast', targetType: 'app_settings', targetLabel: 'system_broadcast', metadata: { enabled: broadcastForm.enabled } });
+  }
+
+  async function handleClearBroadcast() {
+    setBroadcastSaving(true);
+    setBroadcastInfo('');
+    setBroadcastError('');
+    const payload = JSON.stringify({ title: '', message: '', type: 'info', enabled: false, updated_at: new Date().toISOString() });
+    const { error: upsertErr } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'system_broadcast', value: payload, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    setBroadcastSaving(false);
+    if (upsertErr) {
+      setBroadcastError(`Failed to clear: ${upsertErr.message}`);
+      return;
+    }
+    setBroadcastForm({ title: '', message: '', type: 'info', enabled: false });
+    setBroadcastInfo('Broadcast cleared.');
+    addToast('Broadcast cleared.', 'success');
+    await logAudit(supabase, { action: 'clear_broadcast', targetType: 'app_settings', targetLabel: 'system_broadcast' });
+  }
 
   /* ── Feedback loader ─────────────────────────────────────────── */
   const loadAllFeedback = useCallback(async () => {
@@ -1898,6 +1984,110 @@ export default function SuperAdminDashboard({ onLogout }) {
                 <p className="mt-6 text-sm text-gray-400">Click Refresh to load analytics.</p>
               )}
             </div>
+          </section>
+        ) : null}
+
+        {/* ── System Broadcast Tab ── */}
+        {activeTab === 'broadcast' ? (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg space-y-6">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-indigo-500 font-semibold">System-Wide</p>
+              <h2 className="text-xl font-bold text-gray-900">Broadcast Announcement</h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Publish a system-wide notice that appears on <strong>all kiosks</strong> and <strong>resident portals</strong>. Use this for updates, maintenance notices, or bug fix announcements.
+              </p>
+            </div>
+
+            {broadcastLoading ? (
+              <p className="text-sm text-gray-500">Loading current broadcast…</p>
+            ) : (
+              <div className="space-y-5">
+                {broadcastError && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{broadcastError}</p>}
+                {broadcastInfo && <p className="rounded-xl bg-green-50 px-4 py-2 text-sm text-green-700">{broadcastInfo}</p>}
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={broadcastForm.enabled}
+                    onChange={e => setBroadcastForm(prev => ({ ...prev, enabled: e.target.checked }))}
+                    className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-900">
+                    {broadcastForm.enabled ? '🟢 Broadcast is enabled (visible to all users)' : '⚪ Broadcast is disabled (hidden)'}
+                  </span>
+                </label>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Title</label>
+                    <input
+                      type="text"
+                      value={broadcastForm.title}
+                      onChange={e => setBroadcastForm(prev => ({ ...prev, title: e.target.value }))}
+                      className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none"
+                      placeholder="e.g. System Update v2.5 — Bug Fixes & Improvements"
+                      maxLength={150}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Message</label>
+                    <textarea
+                      value={broadcastForm.message}
+                      onChange={e => setBroadcastForm(prev => ({ ...prev, message: e.target.value }))}
+                      className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none"
+                      rows={4}
+                      placeholder="Describe the update, bug fix, or announcement. This message will be displayed to all residents and kiosk users."
+                      maxLength={500}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Type</label>
+                    <select
+                      value={broadcastForm.type}
+                      onChange={e => setBroadcastForm(prev => ({ ...prev, type: e.target.value }))}
+                      className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+                    >
+                      <option value="info">ℹ️ Info</option>
+                      <option value="update">🔄 Update / Bug Fix</option>
+                      <option value="warning">⚠️ Warning / Maintenance</option>
+                      <option value="success">✅ Good News</option>
+                    </select>
+                  </div>
+                </div>
+
+                {broadcastForm.enabled && broadcastForm.title.trim() ? (
+                  <div className={`rounded-2xl border p-4 text-sm ${
+                    broadcastForm.type === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-900'
+                    : broadcastForm.type === 'success' ? 'border-green-200 bg-green-50 text-green-900'
+                    : broadcastForm.type === 'update' ? 'border-blue-200 bg-blue-50 text-blue-900'
+                    : 'border-indigo-200 bg-indigo-50 text-indigo-900'
+                  }`}>
+                    <p className="font-semibold">{broadcastForm.title}</p>
+                    {broadcastForm.message && <p className="mt-1 text-xs opacity-80">{broadcastForm.message}</p>}
+                    <p className="mt-2 text-[11px] opacity-60">Preview — this is how users will see the broadcast</p>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    className="rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-500 disabled:opacity-50"
+                    onClick={handleSaveBroadcast}
+                    disabled={broadcastSaving || !broadcastForm.title.trim()}
+                  >
+                    {broadcastSaving ? 'Saving…' : 'Save & Publish'}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-gray-200 px-6 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    onClick={handleClearBroadcast}
+                    disabled={broadcastSaving}
+                  >
+                    Clear Broadcast
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         ) : null}
 

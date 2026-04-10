@@ -156,3 +156,15 @@ export async function getPendingCount() {
   const db = await openDb();
   return promisify(tx(db, STORES.pendingRequests).count());
 }
+
+// ═══════════════════════════════════════════════
+// Announcements (cached per barangay via settings store)
+// ═══════════════════════════════════════════════
+
+export async function cacheAnnouncements(barangayId, list) {
+  return cacheSetting(`announcements_${barangayId}`, list);
+}
+
+export async function getCachedAnnouncements(barangayId) {
+  return getCachedSetting(`announcements_${barangayId}`);
+}

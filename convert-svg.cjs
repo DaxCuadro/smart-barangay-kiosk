@@ -8,6 +8,8 @@ const files = [
   { svg: 'public/kiosk-guide.svg', png: 'public/kiosk-guide.png' },
   { svg: 'public/kiosk-pubmat.svg', png: 'public/kiosk-pubmat.png' },
   { svg: 'public/pubmat.svg', png: 'public/pubmat.png' },
+  { svg: 'public/pubmat-agdangan-baao.svg', png: 'public/pubmat-agdangan-baao.png' },
+  { svg: 'public/pubmat-pili-presentacion.svg', png: 'public/pubmat-pili-presentacion.png' },
 ];
 
 (async () => {

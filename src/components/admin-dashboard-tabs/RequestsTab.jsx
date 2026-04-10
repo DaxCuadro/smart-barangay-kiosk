@@ -476,6 +476,56 @@ export default function RequestsTab({ barangayId }) {
       return;
     }
 
+    // Auto-send system welcome message when request starts processing
+    if (nextStatus === 'current') {
+      try {
+        let residentAuthUid = null;
+        if (request.residentId) {
+          const { data: profile } = await supabase
+            .from('resident_profiles')
+            .select('user_id')
+            .eq('resident_id', request.residentId)
+            .maybeSingle();
+          residentAuthUid = profile?.user_id || null;
+        }
+
+        let convId = null;
+        const { data: existingConv } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('request_id', request.id)
+          .maybeSingle();
+
+        if (existingConv?.id) {
+          convId = existingConv.id;
+        } else {
+          const { data: newConv } = await supabase
+            .from('conversations')
+            .insert({
+              request_id: request.id,
+              barangay_id: barangayId,
+              resident_user_id: residentAuthUid,
+            })
+            .select('id')
+            .single();
+          convId = newConv?.id || null;
+        }
+
+        if (convId) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const adminUid = sessionData?.session?.user?.id;
+          await supabase.from('messages').insert({
+            conversation_id: convId,
+            sender_role: 'system',
+            sender_id: adminUid,
+            content: `Your ${request.document || 'document'} request (Ref: ${request.reference}) is now being processed. Please wait for the admin/secretary to prepare your document. If you have any questions, feel free to message here and the admin will respond as soon as possible.`,
+          });
+        }
+      } catch {
+        // Non-critical — don't block the status update
+      }
+    }
+
     // Send SMS notification when document is ready for pickup
     if (nextStatus === 'done' && request.telephone) {
       try {
@@ -532,7 +582,7 @@ export default function RequestsTab({ barangayId }) {
           const adminUid = sessionData?.session?.user?.id;
           await supabase.from('messages').insert({
             conversation_id: convId,
-            sender_role: 'admin',
+            sender_role: 'system',
             sender_id: adminUid,
             content: `Your ${request.document || 'document'} (Ref: ${request.reference}) is ready for pickup at the barangay hall. Please bring a valid ID.`,
           });

@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0038A8;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0C2D6B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0038A8;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FBBF24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.12" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.04" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <filter id="softShadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="0" cy="0" r="300" fill="#FBBF24" opacity="0.04"/>
+  <circle cx="1080" cy="1080" r="350" fill="#10B981" opacity="0.04"/>
+  <circle cx="900" cy="150" r="180" fill="#60A5FA" opacity="0.05"/>
+  <circle cx="180" cy="950" r="200" fill="#FBBF24" opacity="0.03"/>
+
+  <!-- Decorative diagonal lines -->
+  <line x1="0" y1="280" x2="1080" y2="180" stroke="#FBBF24" stroke-width="0.5" opacity="0.1"/>
+  <line x1="0" y1="900" x2="1080" y2="800" stroke="#60A5FA" stroke-width="0.5" opacity="0.1"/>
+
+  <!-- Top accent bar -->
+  <rect x="0" y="0" width="1080" height="6" fill="url(#accent)"/>
+
+  <!-- Top badge -->
+  <rect x="340" y="40" width="400" height="38" rx="19" fill="url(#accent)" filter="url(#softShadow)"/>
+  <text x="540" y="65" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#0C2D6B" text-anchor="middle" font-weight="700" letter-spacing="2">SMART BARANGAY KIOSK</text>
+
+  <!-- NEW PARTNER badge -->
+  <rect x="350" y="95" width="380" height="34" rx="17" fill="url(#greenAccent)" filter="url(#softShadow)"/>
+  <text x="540" y="118" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="white" text-anchor="middle" font-weight="700" letter-spacing="1">🎉 BAGONG PARTNER BARANGAY 🎉</text>
+
+  <!-- Main headline -->
+  <text x="540" y="185" font-family="Segoe UI, Arial, sans-serif" font-size="48" fill="white" text-anchor="middle" font-weight="800">REQUEST BARANGAY</text>
+  <text x="540" y="240" font-family="Segoe UI, Arial, sans-serif" font-size="48" fill="white" text-anchor="middle" font-weight="800">DOCUMENTS ONLINE</text>
+
+  <!-- Subheadline -->
+  <text x="540" y="280" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#93C5FD" text-anchor="middle" font-weight="400">Mula sa inyong cellphone o computer — kahit nasa bahay lang kayo!</text>
+
+  <!-- Divider -->
+  <rect x="440" y="300" width="200" height="3" rx="2" fill="url(#accent)"/>
+
+  <!-- Target barangay card -->
+  <rect x="100" y="322" width="880" height="75" rx="16" fill="url(#cardGrad)" stroke="#FBBF24" stroke-width="1.5" stroke-opacity="0.4"/>
+  <text x="540" y="352" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#FBBF24" text-anchor="middle" font-weight="600" letter-spacing="1">PARA SA MGA RESIDENTE NG</text>
+  <text x="540" y="383" font-family="Segoe UI, Arial, sans-serif" font-size="26" fill="white" text-anchor="middle" font-weight="700">Brgy. Pili, Presentacion, Camarines Sur</text>
+
+  <!-- Documents section -->
+  <text x="540" y="440" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#93C5FD" text-anchor="middle" font-weight="600">📄 AVAILABLE DOCUMENTS:</text>
+
+  <!-- Document grid - Row 1 -->
+  <rect x="80" y="458" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="225" y="485" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">Barangay Clearance</text>
+
+  <rect x="395" y="458" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="540" y="485" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">Certificate of Indigency</text>
+
+  <rect x="710" y="458" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="855" y="485" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">Certificate of Residency</text>
+
+  <!-- Document grid - Row 2 -->
+  <rect x="80" y="510" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="225" y="537" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">Good Moral Character</text>
+
+  <rect x="395" y="510" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="540" y="537" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">First Time Job Seeker</text>
+
+  <rect x="710" y="510" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="855" y="537" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">Business Clearance</text>
+
+  <!-- Document grid - Row 3 -->
+  <rect x="240" y="562" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="385" y="589" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">Solo Parent Cert.</text>
+
+  <rect x="555" y="562" width="290" height="42" rx="10" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="700" y="589" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="600">Certification PDA</text>
+
+  <!-- HOW section -->
+  <rect x="80" y="630" width="920" height="210" rx="20" fill="url(#cardGrad)" stroke="white" stroke-width="0.5" stroke-opacity="0.1" filter="url(#softShadow)"/>
+
+  <text x="540" y="666" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#FBBF24" text-anchor="middle" font-weight="700" letter-spacing="1">PAANO GAMITIN?</text>
+
+  <!-- Steps -->
+  <circle cx="175" cy="712" r="22" fill="url(#greenAccent)"/>
+  <text x="175" y="719" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">1</text>
+  <text x="175" y="752" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">Pumunta sa link</text>
+  <text x="175" y="770" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">sa ibaba</text>
+
+  <line x1="240" y1="712" x2="290" y2="712" stroke="#FBBF24" stroke-width="2" stroke-dasharray="6,4"/>
+  <polygon points="288,707 296,712 288,717" fill="#FBBF24"/>
+
+  <circle cx="355" cy="712" r="22" fill="url(#greenAccent)"/>
+  <text x="355" y="719" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">2</text>
+  <text x="355" y="752" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">Gumawa ng</text>
+  <text x="355" y="770" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">account</text>
+
+  <line x1="420" y1="712" x2="470" y2="712" stroke="#FBBF24" stroke-width="2" stroke-dasharray="6,4"/>
+  <polygon points="468,707 476,712 468,717" fill="#FBBF24"/>
+
+  <circle cx="535" cy="712" r="22" fill="url(#greenAccent)"/>
+  <text x="535" y="719" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">3</text>
+  <text x="535" y="752" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">I-verify ang</text>
+  <text x="535" y="770" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">identity</text>
+
+  <line x1="600" y1="712" x2="650" y2="712" stroke="#FBBF24" stroke-width="2" stroke-dasharray="6,4"/>
+  <polygon points="648,707 656,712 648,717" fill="#FBBF24"/>
+
+  <circle cx="715" cy="712" r="22" fill="url(#greenAccent)"/>
+  <text x="715" y="719" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">4</text>
+  <text x="715" y="752" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">Pumili ng</text>
+  <text x="715" y="770" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">document</text>
+
+  <line x1="780" y1="712" x2="830" y2="712" stroke="#FBBF24" stroke-width="2" stroke-dasharray="6,4"/>
+  <polygon points="828,707 836,712 828,717" fill="#FBBF24"/>
+
+  <circle cx="895" cy="712" r="22" fill="url(#greenAccent)"/>
+  <text x="895" y="719" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="700">5</text>
+  <text x="895" y="752" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">Submit at</text>
+  <text x="895" y="770" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="600">hintayin! ✅</text>
+
+  <text x="540" y="822" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#93C5FD" text-anchor="middle">Ma-notify kayo via SMS kapag ready na ang inyong document para i-pickup sa barangay hall.</text>
+
+  <!-- Download as app section -->
+  <rect x="80" y="855" width="920" height="55" rx="14" fill="url(#cardGrad)" stroke="#2DD4BF" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="540" y="889" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#2DD4BF" text-anchor="middle" font-weight="700">📲 I-DOWNLOAD BILANG APP: Chrome → ⋮ Menu → "Add to Home screen"</text>
+
+  <!-- Link box -->
+  <rect x="80" y="930" width="920" height="75" rx="18" fill="#10B981" filter="url(#shadow)"/>
+  <text x="540" y="960" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#D1FAE5" text-anchor="middle" font-weight="600">🌐 PUMUNTA DITO PARA MAG-SIGN UP:</text>
+  <text x="540" y="988" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="white" text-anchor="middle" font-weight="800">smart-barangay-kiosk.vercel.app</text>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="1015" width="1080" height="65" fill="#06183D"/>
+  <text x="540" y="1043" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#64748B" text-anchor="middle">Para sa thesis purposes lamang • In partnership with Brgy. Pili, Presentacion, Camarines Sur</text>
+  <text x="540" y="1063" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#475569" text-anchor="middle">📖 Step-by-step guide: smart-barangay-kiosk.vercel.app/resident-request-guide.svg</text>
+
+  <!-- Bottom accent bar -->
+  <rect x="0" y="1074" width="1080" height="6" fill="url(#accent)"/>
+</svg>

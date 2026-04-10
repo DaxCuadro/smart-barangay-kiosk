@@ -61,7 +61,7 @@ export default defineConfig({
           },
         ],
       },
-      includeAssets: ['favicon.ico', 'favicon.png', 'pwa-192x192.png'],
+      includeAssets: ['favicon.ico', 'favicon.png', 'pwa-192x192.png', 'kiosk-guide.png', 'admin-guide.png', 'resident-request-guide.png'],
       manifest: {
         id: '/',
         name: 'Smart Barangay Kiosk',

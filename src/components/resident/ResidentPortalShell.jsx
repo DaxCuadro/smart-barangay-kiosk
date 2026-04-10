@@ -138,6 +138,7 @@ function ResidentPortalShell() {
   const [otpMaskedPhone, setOtpMaskedPhone] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
+  const [emailResetSending, setEmailResetSending] = useState(false);
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
@@ -186,7 +187,34 @@ function ResidentPortalShell() {
   const [zoneCount, setZoneCount] = useState(() => getBarangayZonesCount());
   const [documentOptions, setDocumentOptions] = useState(DEFAULT_DOCUMENT_OPTIONS);
   const [pricingInfo, setPricingInfo] = useState({ prices: {}, serviceFee: 0, smsFee: 0 });
+  const [systemBroadcast, setSystemBroadcast] = useState(null);
   // account status is inferred from Supabase session; no local state needed
+
+  // Load system broadcast from app_settings
+  useEffect(() => {
+    let isActive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'system_broadcast')
+          .maybeSingle();
+        if (!isActive) return;
+        if (data?.value) {
+          const parsed = JSON.parse(data.value);
+          if (parsed.enabled && parsed.title) {
+            setSystemBroadcast(parsed);
+          } else {
+            setSystemBroadcast(null);
+          }
+        }
+      } catch {
+        // ignore – broadcast is non-critical
+      }
+    })();
+    return () => { isActive = false; };
+  }, [supabase]);
 
   useEffect(() => {
     let isMounted = true;
@@ -750,7 +778,7 @@ function ResidentPortalShell() {
     if (error || data?.error) {
       const msg = data?.error || '';
       if (msg.includes('No phone number')) {
-        setAuthError('No phone number is linked to this account. Contact your barangay admin to add one.');
+        setAuthError('No phone number linked to this account. You can use the email reset option below, or contact your barangay admin.');
       } else {
         setAuthError(msg || error?.message || 'Failed to send OTP. Please try again.');
       }
@@ -764,6 +792,30 @@ function ResidentPortalShell() {
     setConfirmPassword('');
     setAuthInfo(`OTP sent to ${data?.masked_phone || 'your phone'}. Enter it below.`);
     addToast('OTP sent to your phone.', 'success');
+  }
+
+  async function handleEmailReset() {
+    const sanitized = sanitizeEmail(email);
+    if (!sanitized) {
+      setAuthError('Enter your email first.');
+      return;
+    }
+    setEmailResetSending(true);
+    setAuthError('');
+    setAuthInfo('');
+
+    const { error } = await supabase.auth.resetPasswordForEmail(sanitized, {
+      redirectTo: `${window.location.origin}/resident#type=recovery`,
+    });
+
+    setEmailResetSending(false);
+    if (error) {
+      setAuthError(error.message || 'Failed to send reset email.');
+      return;
+    }
+
+    setAuthInfo('Password reset link sent to your email. Check your inbox (and spam folder).');
+    addToast('Reset link sent to your email.', 'success');
   }
 
   async function handleVerifyOtpAndReset(event) {
@@ -1337,6 +1389,18 @@ function ResidentPortalShell() {
           <GuideModal guideSrc="/resident-request-guide.png" label="Resident Guide" className="guide-trigger--light" />
         </header>
 
+        {systemBroadcast && (
+          <div className={`resident-broadcast ${
+            systemBroadcast.type === 'warning' ? 'resident-broadcast--warning'
+            : systemBroadcast.type === 'success' ? 'resident-broadcast--success'
+            : systemBroadcast.type === 'update' ? 'resident-broadcast--update'
+            : 'resident-broadcast--info'
+          }`}>
+            <p className="resident-broadcast-title">{systemBroadcast.title}</p>
+            {systemBroadcast.message && <p className="resident-broadcast-message">{systemBroadcast.message}</p>}
+          </div>
+        )}
+
         {recoveryMode ? (
           <section className="resident-card">
             <div className="resident-card-head">
@@ -1456,6 +1520,14 @@ function ResidentPortalShell() {
               <button
                 type="button"
                 className="resident-link"
+                onClick={handleEmailReset}
+                disabled={emailResetSending}
+              >
+                {emailResetSending ? 'Sending email...' : "Didn't receive SMS? Reset via email instead"}
+              </button>
+              <button
+                type="button"
+                className="resident-link"
                 onClick={() => {
                   setOtpMode(false);
                   setOtpCode('');
@@ -1551,6 +1623,16 @@ function ResidentPortalShell() {
                   disabled={forgotLoading}
                 >
                   {forgotLoading ? 'Sending OTP...' : 'Forgot password?'}
+                </button>
+              ) : null}
+              {authMode === 'signin' ? (
+                <button
+                  type="button"
+                  className="resident-link"
+                  onClick={handleEmailReset}
+                  disabled={emailResetSending}
+                >
+                  {emailResetSending ? 'Sending email...' : 'Reset password via email'}
                 </button>
               ) : null}
               <button

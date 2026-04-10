@@ -4,7 +4,7 @@ import PrecheckScreen from './PrecheckScreen';
 import { getSelectedBarangayId, getSelectedBarangayName, setBarangayInfo } from '../../utils/barangayInfoStorage';
 import useIdleReset from '../../hooks/useIdleReset';
 import useOfflineSync from '../../hooks/useOfflineSync';
-import { cacheBarangays, getCachedBarangays, cacheResidents } from '../../utils/offlineStorage';
+import { cacheBarangays, getCachedBarangays, cacheResidents, cacheAnnouncements, getCachedAnnouncements } from '../../utils/offlineStorage';
 import GuideModal from '../ui/GuideModal';
 import './kioskShell.css';
 
@@ -41,6 +41,7 @@ function KioskShell() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [systemBroadcast, setSystemBroadcast] = useState(null);
   const [barangays, setBarangays] = useState([]);
   const [barangayLoading, setBarangayLoading] = useState(true);
   const [barangayError, setBarangayError] = useState('');
@@ -83,13 +84,27 @@ function KioskShell() {
       if (!isActive) return;
 
       if (fetchError) {
-        setError(fetchError.message);
-        setAnnouncements([]);
+        // Fallback to cached announcements when offline
+        try {
+          const cached = await getCachedAnnouncements(activeBarangayId);
+          if (cached && cached.length > 0) {
+            setAnnouncements(cached);
+            setError(null);
+          } else {
+            setError(fetchError.message);
+            setAnnouncements([]);
+          }
+        } catch {
+          setError(fetchError.message);
+          setAnnouncements([]);
+        }
       } else {
         const mapped = (data || [])
           .map(item => mapFromSupabase(item, today))
           .filter(item => item.status === 'ongoing');
         setAnnouncements(mapped);
+        // Cache for offline use
+        cacheAnnouncements(activeBarangayId, mapped).catch(() => {});
       }
 
       setLoading(false);
@@ -100,6 +115,32 @@ function KioskShell() {
       isActive = false;
     };
   }, [supabase, activeBarangayId]);
+
+  // Load system broadcast from app_settings
+  useEffect(() => {
+    let isActive = true;
+    (async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'system_broadcast')
+        .maybeSingle();
+      if (!isActive) return;
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          if (parsed.enabled && parsed.title) {
+            setSystemBroadcast(parsed);
+          } else {
+            setSystemBroadcast(null);
+          }
+        } catch {
+          setSystemBroadcast(null);
+        }
+      }
+    })();
+    return () => { isActive = false; };
+  }, [supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -296,6 +337,17 @@ function KioskShell() {
             Change
           </button>
         </div>
+        {systemBroadcast && (
+          <div className={`kiosk-broadcast ${
+            systemBroadcast.type === 'warning' ? 'kiosk-broadcast--warning'
+            : systemBroadcast.type === 'success' ? 'kiosk-broadcast--success'
+            : systemBroadcast.type === 'update' ? 'kiosk-broadcast--update'
+            : 'kiosk-broadcast--info'
+          }`}>
+            <p className="kiosk-broadcast-title">{systemBroadcast.title}</p>
+            {systemBroadcast.message && <p className="kiosk-broadcast-message">{systemBroadcast.message}</p>}
+          </div>
+        )}
         {activeBarangay?.enable_announcements !== false && (
         <div className="kiosk-panel kiosk-panel--announcements">
           <p className="kiosk-subhead">Announcements</p>

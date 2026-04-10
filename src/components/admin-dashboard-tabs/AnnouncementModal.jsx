@@ -31,6 +31,7 @@ export default function AnnouncementModal({ open, mode, initialData, onClose, on
   const [form, setForm] = useState(INITIAL_FORM);
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -43,6 +44,7 @@ export default function AnnouncementModal({ open, mode, initialData, onClose, on
       });
       setError('');
       setIsUploading(false);
+      setIsSaving(false);
     }
   }, [open, initialData]);
 
@@ -86,7 +88,7 @@ export default function AnnouncementModal({ open, mode, initialData, onClose, on
     setForm(prev => ({ ...prev, imageData: '' }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     if (!form.title.trim()) {
       setError('Title is required.');
@@ -100,7 +102,15 @@ export default function AnnouncementModal({ open, mode, initialData, onClose, on
       setError('The end date must be later than the start date.');
       return;
     }
-    onSave({ ...form });
+    setIsSaving(true);
+    setError('');
+    try {
+      await onSave({ ...form });
+    } catch (err) {
+      setError(err?.message || 'Failed to save announcement. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -232,9 +242,9 @@ export default function AnnouncementModal({ open, mode, initialData, onClose, on
             <button
               type="submit"
               className="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow hover:bg-blue-500 disabled:opacity-50"
-              disabled={isUploading}
+              disabled={isUploading || isSaving}
             >
-              {mode === 'edit' ? 'Save Changes' : 'Add Announcement'}
+              {isSaving ? 'Saving…' : mode === 'edit' ? 'Save Changes' : 'Add Announcement'}
             </button>
           </div>
           </form>
