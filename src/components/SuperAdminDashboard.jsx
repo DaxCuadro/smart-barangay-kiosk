@@ -4,6 +4,7 @@ import { useSupabase } from '../contexts/SupabaseContext';
 import ConfirmDialog from './ui/ConfirmDialog';
 import ChatPanel from './ui/ChatPanel';
 import DailySummaryPanel from './ui/DailySummaryPanel';
+import ThesisDocumentsTab from './admin-dashboard-tabs/ThesisDocumentsTab';
 import { useToast } from '../hooks/useToast';
 
 const SUPERADMIN_TABS = [
@@ -19,6 +20,7 @@ const SUPERADMIN_TABS = [
   { key: 'feedback', label: 'Feedback' },
   { key: 'cleanup', label: 'Data Cleanup' },
   { key: 'access', label: 'Access & Security' },
+  { key: 'thesis-docs', label: 'Thesis Docs' },
 ];
 
 const CLEANUP_CATEGORIES = [
@@ -2901,6 +2903,13 @@ export default function SuperAdminDashboard({ onLogout }) {
                 Sign out
               </button>
             </div>
+          </section>
+        ) : null}
+
+        {/* ── Thesis Documents Tab ── */}
+        {activeTab === 'thesis-docs' ? (
+          <section className="rounded-3xl border border-violet-100 bg-violet-50/30 p-6 shadow-lg">
+            <ThesisDocumentsTab />
           </section>
         ) : null}
 

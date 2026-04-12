@@ -49,7 +49,8 @@ function App() {
   useEffect(() => {
     const path = location.pathname;
     let href;
-    if (path === '/admin') href = '/manifest-admin.json';
+    if (path === '/kiosk') href = '/manifest-kiosk.json';
+    else if (path === '/admin') href = '/manifest-admin.json';
     else if (path === '/superadmin') href = '/manifest-superadmin.json';
     else return; // default manifest handled by VitePWA plugin
 

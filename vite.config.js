@@ -64,9 +64,9 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'favicon.png', 'pwa-192x192.png', 'kiosk-guide.png', 'admin-guide.png', 'resident-request-guide.png'],
       manifest: {
         id: '/',
-        name: 'Smart Barangay Kiosk',
-        short_name: 'Barangay Kiosk',
-        description: 'Offline-first document requests & resident management for Philippine barangays',
+        name: 'Smart Barangay Resident Portal',
+        short_name: 'Barangay Portal',
+        description: 'Resident portal for barangay document requests & account management',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
