@@ -218,14 +218,26 @@ function ResidentPortalShell() {
 
   useEffect(() => {
     let isMounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (isMounted) {
-        const nextSession = data?.session ?? null;
-        const uid = nextSession?.user?.id ?? null;
-        setSession(nextSession);
-        setSessionUserId(uid);
-        sessionUserIdRef.current = uid;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!isMounted) return;
+      if (error) {
+        // Stale/invalid refresh token — clear it locally to prevent retry storms
+        supabase.auth.signOut({ scope: 'local' });
+        setSession(null);
+        setSessionUserId(null);
+        sessionUserIdRef.current = null;
         setAuthLoading(false);
+        return;
+      }
+      const nextSession = data?.session ?? null;
+      const uid = nextSession?.user?.id ?? null;
+      setSession(nextSession);
+      setSessionUserId(uid);
+      sessionUserIdRef.current = uid;
+      setAuthLoading(false);
+
+      if (nextSession) {
+        supabase.auth.startAutoRefresh();
       }
     });
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -244,6 +256,13 @@ function ResidentPortalShell() {
         setSessionUserId(newUid);
       }
 
+      if (_event === 'SIGNED_IN' && newSession) {
+        supabase.auth.startAutoRefresh();
+      }
+      if (_event === 'SIGNED_OUT') {
+        supabase.auth.stopAutoRefresh();
+      }
+
       if (_event === 'PASSWORD_RECOVERY') {
         setRecoveryMode(true);
         setRecoveryCompleted(false);
@@ -254,6 +273,7 @@ function ResidentPortalShell() {
     return () => {
       isMounted = false;
       authListener.subscription.unsubscribe();
+      supabase.auth.stopAutoRefresh();
     };
   }, [supabase.auth]);
 

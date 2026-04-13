@@ -97,14 +97,33 @@ function App() {
     const client = getSupabaseAdmin();
     let isMounted = true;
 
-    client.auth.getSession().then(({ data }) => {
+    // Single controlled session recovery: getSession reads from localStorage,
+    // and if the access-token is expired it does ONE refresh request.
+    // autoRefreshToken is OFF on this client so no background retry storm.
+    client.auth.getSession().then(({ data, error }) => {
       if (!isMounted) return;
+      if (error) {
+        // Refresh token is invalid/expired — clear stale session so the user
+        // sees the login form instead of an infinite retry loop.
+        client.auth.signOut({ scope: 'local' });
+        setAdminSession(null);
+        setAdminUserId(null);
+        adminUserIdRef.current = null;
+        setAdminSessionLoaded(true);
+        return;
+      }
       const session = data?.session ?? null;
       const uid = session?.user?.id ?? null;
       setAdminSession(session);
       setAdminUserId(uid);
       adminUserIdRef.current = uid;
       setAdminSessionLoaded(true);
+
+      // Session is valid — enable auto-refresh so the token stays fresh
+      // for the duration of this browsing session.
+      if (session) {
+        client.auth.startAutoRefresh();
+      }
     });
 
     const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
@@ -118,11 +137,19 @@ function App() {
         adminUserIdRef.current = newUid;
         setAdminUserId(newUid);
       }
+      // Start auto-refresh after a successful login
+      if (event === 'SIGNED_IN' && newSession) {
+        client.auth.startAutoRefresh();
+      }
+      if (event === 'SIGNED_OUT') {
+        client.auth.stopAutoRefresh();
+      }
     });
 
     return () => {
       isMounted = false;
       authListener.subscription.unsubscribe();
+      client.auth.stopAutoRefresh();
     };
   }, [location.pathname]);
 
@@ -143,14 +170,26 @@ function App() {
     const client = getSupabaseSuperAdmin();
     let isMounted = true;
 
-    client.auth.getSession().then(({ data }) => {
+    client.auth.getSession().then(({ data, error }) => {
       if (!isMounted) return;
+      if (error) {
+        client.auth.signOut({ scope: 'local' });
+        setSuperAdminSession(null);
+        setSuperAdminUserId(null);
+        superAdminUserIdRef.current = null;
+        setSuperAdminSessionLoaded(true);
+        return;
+      }
       const session = data?.session ?? null;
       const uid = session?.user?.id ?? null;
       setSuperAdminSession(session);
       setSuperAdminUserId(uid);
       superAdminUserIdRef.current = uid;
       setSuperAdminSessionLoaded(true);
+
+      if (session) {
+        client.auth.startAutoRefresh();
+      }
     });
 
     const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
@@ -164,11 +203,18 @@ function App() {
         superAdminUserIdRef.current = newUid;
         setSuperAdminUserId(newUid);
       }
+      if (event === 'SIGNED_IN' && newSession) {
+        client.auth.startAutoRefresh();
+      }
+      if (event === 'SIGNED_OUT') {
+        client.auth.stopAutoRefresh();
+      }
     });
 
     return () => {
       isMounted = false;
       authListener.subscription.unsubscribe();
+      client.auth.stopAutoRefresh();
     };
   }, [location.pathname]);
 

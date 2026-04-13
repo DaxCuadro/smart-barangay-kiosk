@@ -50,14 +50,14 @@ export default function AdminDashboard({ onLogout }) {
         .from('admin_users')
         .select('barangay_id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       if (isActive && data?.barangay_id) {
         setBarangayId(data.barangay_id);
         const { data: brgy } = await supabase
           .from('barangays')
           .select('name')
           .eq('id', data.barangay_id)
-          .single();
+          .maybeSingle();
         if (isActive && brgy?.name) {
           setBarangayName(brgy.name);
         }
@@ -79,8 +79,8 @@ export default function AdminDashboard({ onLogout }) {
         supabase.from('resident_intake_requests').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId).neq('status', 'cancelled'),
         supabase.from('resident_verification_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending').eq('barangay_id', barangayId),
         supabase.from('announcements').select('id, start_date, end_date').eq('barangay_id', barangayId),
-        supabase.from('app_settings').select('value').eq('key', pricingKey).single(),
-        supabase.from('app_settings').select('value').eq('key', 'document_options').single(),
+        supabase.from('app_settings').select('value').eq('key', pricingKey).maybeSingle(),
+        supabase.from('app_settings').select('value').eq('key', 'document_options').maybeSingle(),
         supabase.from('resident_feedback').select('id, created_at').eq('barangay_id', barangayId),
         supabase.from('barangay_officials').select('id, role, name').eq('barangay_id', barangayId),
       ]);

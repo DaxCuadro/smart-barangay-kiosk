@@ -21,7 +21,11 @@ let _supabaseAdmin;
 export function getSupabaseAdmin() {
   if (!_supabaseAdmin) {
     _supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { storageKey: 'sb-admin-auth-token' },
+      auth: {
+        storageKey: 'sb-admin-auth-token',
+        autoRefreshToken: false,   // We start auto-refresh manually after validating the session
+        detectSessionInUrl: false, // Admin panel doesn't use OAuth redirects
+      },
     });
   }
   return _supabaseAdmin;
@@ -31,7 +35,11 @@ let _supabaseSuperAdmin;
 export function getSupabaseSuperAdmin() {
   if (!_supabaseSuperAdmin) {
     _supabaseSuperAdmin = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { storageKey: 'sb-superadmin-auth-token' },
+      auth: {
+        storageKey: 'sb-superadmin-auth-token',
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
     });
   }
   return _supabaseSuperAdmin;
@@ -41,7 +49,10 @@ let _supabaseResident;
 export function getSupabaseResident() {
   if (!_supabaseResident) {
     _supabaseResident = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { storageKey: 'sb-resident-auth-token' },
+      auth: {
+        storageKey: 'sb-resident-auth-token',
+        autoRefreshToken: false,
+      },
     });
   }
   return _supabaseResident;
