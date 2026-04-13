@@ -131,6 +131,7 @@ function toLogItem(record) {
     reference: record.reference_number || (record.request_id ? `INTAKE-${String(record.request_id).slice(0, 8).toUpperCase()}` : 'N/A'),
     resident: record.resident_name || 'N/A',
     document: record.document || 'Document',
+    purpose: record.purpose || '',
     contact: record.contact || 'N/A',
     zone: record.zone || 'Zone N/A',
     source: record.source || '',
@@ -290,7 +291,7 @@ export default function RequestsTab({ barangayId }) {
       if (!authSession || !barangayId) return;
       const { data, error: fetchError } = await supabase
         .from(RELEASE_LOGS_TABLE)
-        .select('id, request_id, released_at, resident_name, document, contact, source, zone, reference_number')
+        .select('id, request_id, released_at, resident_name, document, purpose, contact, source, zone, reference_number')
         .eq('barangay_id', barangayId)
         .order('released_at', { ascending: false });
 
@@ -795,6 +796,7 @@ export default function RequestsTab({ barangayId }) {
       resident_id: request.residentId || null,
       resident_name: request.resident,
       document: request.document,
+      purpose: request.purpose || null,
       contact: request.contact,
       zone: request.zone,
       source: request.source || null,
@@ -806,7 +808,7 @@ export default function RequestsTab({ barangayId }) {
     const { data, error: insertError } = await supabase
       .from(RELEASE_LOGS_TABLE)
       .insert(payload)
-      .select('id, request_id, released_at, resident_name, document, contact, source, zone, reference_number')
+      .select('id, request_id, released_at, resident_name, document, purpose, contact, source, zone, reference_number')
       .single();
 
     if (insertError) {
@@ -1191,6 +1193,9 @@ export default function RequestsTab({ barangayId }) {
                   <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-gray-500">
                     <span>Ref {entry.reference}</span>
                     <span>Contact: {entry.contact}</span>
+                    {entry.purpose && (
+                      <span title={entry.purpose}>Purpose: {entry.purpose.length > 40 ? entry.purpose.slice(0, 40) + '…' : entry.purpose}</span>
+                    )}
                     {entry.source && (
                       <span className="rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-blue-600">
                         {entry.source === 'kiosk' ? 'Kiosk request' : 'Remote request'}
@@ -1214,6 +1219,10 @@ export default function RequestsTab({ barangayId }) {
                         <div>
                           <p className="text-[11px] uppercase tracking-wide text-gray-400">Document</p>
                           <p className="text-gray-700">{entry.document || 'N/A'}</p>
+                        </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <p className="text-[11px] uppercase tracking-wide text-gray-400">Purpose</p>
+                          <p className="text-gray-700">{entry.purpose || 'N/A'}</p>
                         </div>
                         <div>
                           <p className="text-[11px] uppercase tracking-wide text-gray-400">Zone</p>
