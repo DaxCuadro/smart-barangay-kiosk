@@ -94,62 +94,43 @@ function App() {
     setAdminSessionLoaded(false);
     setAdminChecking(true);
 
+    // Creating the client triggers ONE internal token refresh (if the stored
+    // session is expired).  Because clients are lazy singletons this is the
+    // only refresh request on this page load.
     const client = getSupabaseAdmin();
     let isMounted = true;
 
-    // Single controlled session recovery: getSession reads from localStorage,
-    // and if the access-token is expired it does ONE refresh request.
-    // autoRefreshToken is OFF on this client so no background retry storm.
-    client.auth.getSession().then(({ data, error }) => {
+    // We rely on onAuthStateChange's INITIAL_SESSION event (supabase-js ≥ 2.39)
+    // instead of calling getSession() separately – this avoids a duplicate
+    // refresh request and prevents race conditions.
+    const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
       if (!isMounted) return;
-      if (error) {
-        // Refresh token is invalid/expired — clear stale session so the user
-        // sees the login form instead of an infinite retry loop.
-        client.auth.signOut({ scope: 'local' });
-        setAdminSession(null);
-        setAdminUserId(null);
-        adminUserIdRef.current = null;
+
+      if (event === 'INITIAL_SESSION') {
+        const session = newSession ?? null;
+        const uid = session?.user?.id ?? null;
+        setAdminSession(session);
+        setAdminUserId(uid);
+        adminUserIdRef.current = uid;
         setAdminSessionLoaded(true);
         return;
       }
-      const session = data?.session ?? null;
-      const uid = session?.user?.id ?? null;
-      setAdminSession(session);
-      setAdminUserId(uid);
-      adminUserIdRef.current = uid;
-      setAdminSessionLoaded(true);
 
-      // Session is valid — enable auto-refresh so the token stays fresh
-      // for the duration of this browsing session.
-      if (session) {
-        client.auth.startAutoRefresh();
-      }
-    });
-
-    const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
-      if (!isMounted) return;
-      // Ignore token refresh failures — keep existing session so users aren't kicked out
+      // Ignore token refresh failures — keep existing session so users aren't
+      // kicked out by a transient network error or 429.
       if (event === 'TOKEN_REFRESHED' && !newSession) return;
+
       setAdminSession(newSession);
-      // Only update user ID (triggering role re-check) if the user actually changed
       const newUid = newSession?.user?.id ?? null;
       if (newUid !== adminUserIdRef.current) {
         adminUserIdRef.current = newUid;
         setAdminUserId(newUid);
-      }
-      // Start auto-refresh after a successful login
-      if (event === 'SIGNED_IN' && newSession) {
-        client.auth.startAutoRefresh();
-      }
-      if (event === 'SIGNED_OUT') {
-        client.auth.stopAutoRefresh();
       }
     });
 
     return () => {
       isMounted = false;
       authListener.subscription.unsubscribe();
-      client.auth.stopAutoRefresh();
     };
   }, [location.pathname]);
 
@@ -170,51 +151,32 @@ function App() {
     const client = getSupabaseSuperAdmin();
     let isMounted = true;
 
-    client.auth.getSession().then(({ data, error }) => {
+    const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
       if (!isMounted) return;
-      if (error) {
-        client.auth.signOut({ scope: 'local' });
-        setSuperAdminSession(null);
-        setSuperAdminUserId(null);
-        superAdminUserIdRef.current = null;
+
+      if (event === 'INITIAL_SESSION') {
+        const session = newSession ?? null;
+        const uid = session?.user?.id ?? null;
+        setSuperAdminSession(session);
+        setSuperAdminUserId(uid);
+        superAdminUserIdRef.current = uid;
         setSuperAdminSessionLoaded(true);
         return;
       }
-      const session = data?.session ?? null;
-      const uid = session?.user?.id ?? null;
-      setSuperAdminSession(session);
-      setSuperAdminUserId(uid);
-      superAdminUserIdRef.current = uid;
-      setSuperAdminSessionLoaded(true);
 
-      if (session) {
-        client.auth.startAutoRefresh();
-      }
-    });
-
-    const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
-      if (!isMounted) return;
-      // Ignore token refresh failures — keep existing session so users aren't kicked out
       if (event === 'TOKEN_REFRESHED' && !newSession) return;
+
       setSuperAdminSession(newSession);
-      // Only update user ID (triggering role re-check) if the user actually changed
       const newUid = newSession?.user?.id ?? null;
       if (newUid !== superAdminUserIdRef.current) {
         superAdminUserIdRef.current = newUid;
         setSuperAdminUserId(newUid);
-      }
-      if (event === 'SIGNED_IN' && newSession) {
-        client.auth.startAutoRefresh();
-      }
-      if (event === 'SIGNED_OUT') {
-        client.auth.stopAutoRefresh();
       }
     });
 
     return () => {
       isMounted = false;
       authListener.subscription.unsubscribe();
-      client.auth.stopAutoRefresh();
     };
   }, [location.pathname]);
 
