@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ChatPanel from '../ui/ChatPanel';
 
-const MORE_DOCS_VALUE = '__more_documents__';
-const MORE_DOCS_NOTICE = 'Other document types are not yet available in this version of the system.';
+const OTHER_DOCUMENT_VALUE = 'Other';
 const CLEARANCE_DOCUMENTS = ['Barangay Clearance', 'Business Clearance'];
 
 const HomeIcon = () => (
@@ -71,7 +70,7 @@ export default function ResidentPortalTabs({
   barangayId,
 }) {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [moreDocsNotice, setMoreDocsNotice] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [announcementIndex, setAnnouncementIndex] = useState(null);
@@ -605,11 +604,8 @@ export default function ResidentPortalTabs({
               <select
                 value={requestForm.document}
                 onChange={event => {
-                  if (event.target.value === MORE_DOCS_VALUE) {
-                    setMoreDocsNotice(true);
-                    return;
-                  }
-                  setRequestForm(prev => ({ ...prev, document: event.target.value }));
+                  const val = event.target.value;
+                  setRequestForm(prev => ({ ...prev, document: val, customDocument: val === OTHER_DOCUMENT_VALUE ? prev.customDocument : '' }));
                 }}
                 required
               >
@@ -619,8 +615,18 @@ export default function ResidentPortalTabs({
                     {option}
                   </option>
                 ))}
-                <option value={MORE_DOCS_VALUE}>Other documents...</option>
+                <option value={OTHER_DOCUMENT_VALUE}>Other documents...</option>
               </select>
+              {requestForm.document === OTHER_DOCUMENT_VALUE && (
+                <input
+                  type="text"
+                  value={requestForm.customDocument || ''}
+                  onChange={event => setRequestForm(prev => ({ ...prev, customDocument: event.target.value }))}
+                  placeholder="Enter document name (e.g. Certificate of Good Moral)"
+                  style={{ marginTop: '0.5rem' }}
+                  required
+                />
+              )}
             </label>
             {requestForm.document ? (
               <div className="resident-note resident-note--info">
@@ -1001,23 +1007,7 @@ export default function ResidentPortalTabs({
         </div>
       ) : null}
 
-      {moreDocsNotice ? (
-        <div className="resident-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="resident-modal" onClick={event => event.stopPropagation()}>
-            <div className="resident-modal-scroll">
-              <div className="resident-card-head">
-                <h2>Not available</h2>
-                <p>{MORE_DOCS_NOTICE}</p>
-              </div>
-              <div className="resident-modal-actions">
-                <button className="resident-submit" type="button" onClick={() => setMoreDocsNotice(false)}>
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+
 
       {feedbackModal ? (
         <div className="resident-modal-backdrop" role="dialog" aria-modal="true">

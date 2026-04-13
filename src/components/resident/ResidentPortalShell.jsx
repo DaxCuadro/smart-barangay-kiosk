@@ -157,7 +157,7 @@ function ResidentPortalShell() {
   const [newApplicantError, setNewApplicantError] = useState('');
   const [newApplicantSaving, setNewApplicantSaving] = useState(false);
   const [newApplicantInfo, setNewApplicantInfo] = useState('');
-  const [requestForm, setRequestForm] = useState({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
+  const [requestForm, setRequestForm] = useState({ document: '', purpose: '', ctcNumber: '', ctcDate: '', customDocument: '' });
   const [requestSaving, setRequestSaving] = useState(false);
   const [requestError, setRequestError] = useState('');
   const [requestSuccessModal, setRequestSuccessModal] = useState({
@@ -1275,8 +1275,15 @@ function ResidentPortalShell() {
       setRequestError('Document type and purpose are required.');
       return;
     }
+    const resolvedDocument = requestForm.document === 'Other'
+      ? (requestForm.customDocument?.trim() || '')
+      : requestForm.document;
+    if (!resolvedDocument) {
+      setRequestError('Please enter the document name.');
+      return;
+    }
     setRequestSaving(true);
-    const selectedDocument = requestForm.document;
+    const selectedDocument = resolvedDocument;
     const basePrice = pricingInfo?.prices?.[selectedDocument];
     const serviceFee = pricingInfo?.serviceFee || 0;
     const smsFee = pricingInfo?.smsFee || 0;
@@ -1301,7 +1308,7 @@ function ResidentPortalShell() {
       religion: selectedResident.religion || null,
       telephone: selectedResident.telephone || null,
       email: selectedResident.email || null,
-      document: requestForm.document,
+      document: resolvedDocument,
       purpose: requestForm.purpose.trim(),
       ctc_number: requestForm.ctcNumber?.trim() || null,
       ctc_date: requestForm.ctcDate || null,
@@ -1313,17 +1320,44 @@ function ResidentPortalShell() {
     const referenceNumber = await generateReferenceNumber();
     payload.reference_number = referenceNumber;
 
-    const { error } = await supabase
+    const { data: insertedRow, error } = await supabase
       .from(REQUESTS_TABLE)
-      .insert(payload);
+      .insert(payload)
+      .select('id')
+      .single();
     if (error) {
       setRequestError(error.message);
       setRequestSaving(false);
       return;
     }
 
+    // Send system chat message for request received
+    if (insertedRow?.id) {
+      try {
+        const { data: newConv } = await supabase
+          .from('conversations')
+          .insert({
+            request_id: insertedRow.id,
+            barangay_id: selectedBarangayId,
+            resident_user_id: session?.user?.id || null,
+          })
+          .select('id')
+          .single();
+        if (newConv?.id) {
+          await supabase.from('messages').insert({
+            conversation_id: newConv.id,
+            sender_role: 'system',
+            sender_id: null,
+            content: `Your request for ${selectedDocument} (Ref: ${referenceNumber}) has been received. Please wait for the barangay admin/secretary to review and process your request. You will be notified here once your document is being prepared.`,
+          });
+        }
+      } catch {
+        // Non-critical — don't block the submission
+      }
+    }
+
     setRequestSaving(false);
-    setRequestForm({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
+    setRequestForm({ document: '', purpose: '', ctcNumber: '', ctcDate: '', customDocument: '' });
     setRequestSuccessModal({
       open: true,
       message: 'Request submitted',

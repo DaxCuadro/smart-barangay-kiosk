@@ -337,6 +337,7 @@ export function generateEndorsementPdf(cfg = {}) {
     punongBarangay = '____________________________',
     barangaySecretary = '____________________________',
     date = '___________________',
+    deploymentDuration = '___________________',
     researchers = [
       'Dennis Leonardo S. Cuadro — BS Computer Engineering',
       'Karl S. Ignacio — BS Computer Engineering',
@@ -408,6 +409,8 @@ export function generateEndorsementPdf(cfg = {}) {
     y += 1;
   });
   y += 3;
+  y = addWrappedText(doc, `The expected duration of the deployment and testing period is ${deploymentDuration}.`, MARGIN, y, contentW, 5);
+  y += 3;
   y = addWrappedText(doc, 'This endorsement is issued upon the request of the above-named researchers for academic and documentation purposes.', MARGIN, y, contentW, 5);
   y += 15;
 
@@ -438,6 +441,7 @@ export function generateDeploymentCertPdf(cfg = {}) {
     barangayName = '____________',
     municipality = '____________',
     province = 'Camarines Sur',
+    deploymentDuration = '___________________',
     punongBarangay = '____________________________',
     barangaySecretary = '____________________________',
     date = '___________________',
@@ -498,6 +502,8 @@ export function generateDeploymentCertPdf(cfg = {}) {
   features.forEach(f => {
     doc.text(`\u2022  ${f}`, MARGIN + 5, y); y += 5;
   });
+  y += 3;
+  y = addWrappedText(doc, `The deployment and testing period was conducted during ${deploymentDuration}.`, MARGIN, y, contentW, 5);
   y += 3;
   y = addWrappedText(doc, 'The barangay confirms that the system was operational during the testing period and that data gathered was used solely for academic research.', MARGIN, y, contentW, 5);
   y += 15;
@@ -614,6 +620,7 @@ export function generateLetterRequestPdf(cfg = {}) {
     punongBarangay = '____________________________',
     thesisAdviser = '____________________________',
     date = '___________________',
+    deploymentDuration = '___________________',
   } = cfg;
 
   const doc = new jsPDF(PAGE);
@@ -644,6 +651,9 @@ export function generateLetterRequestPdf(cfg = {}) {
   doc.setFont('helvetica', 'normal');
   y = addWrappedText(doc, 'In connection with this, we respectfully request your permission to:', MARGIN, y, contentW, 5);
   y += 3;
+
+  y = addWrappedText(doc, `The expected duration of the deployment and testing is ${deploymentDuration}.`, MARGIN, y, contentW, 5);
+  y += 5;
 
   const requests = [
     'Deploy and test our Smart Barangay Kiosk System at your Barangay Hall;',

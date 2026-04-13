@@ -26,6 +26,7 @@ const INITIAL_FORM = {
   email: '',
   telephone: '',
   document: '',
+  customDocument: '',
   purpose: '',
   ctcNumber: '',
   ctcDate: '',
@@ -58,8 +59,7 @@ const SMS_FEE_KEY = 'sms_fee';
 const PRICING_KEY_PREFIX = 'pricing_';
 
 const INTAKE_REQUESTS_TABLE = 'resident_intake_requests';
-const MORE_DOCS_VALUE = '__more_documents__';
-const MORE_DOCS_NOTICE = 'Other document types are not yet available in this version of the system.';
+const OTHER_DOCUMENT_VALUE = 'Other';
 const ZONE_SETTINGS_TABLE = 'barangay_zone_settings';
 
 function formatFullName(record) {
@@ -175,14 +175,14 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
   const [intakeReviewData, setIntakeReviewData] = useState(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [selectedResident, setSelectedResident] = useState(null);
-  const [requestForm, setRequestForm] = useState({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
+  const [requestForm, setRequestForm] = useState({ document: '', customDocument: '', purpose: '', ctcNumber: '', ctcDate: '' });
   const [requestError, setRequestError] = useState('');
   const [requestSaving, setRequestSaving] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [pricingInfo, setPricingInfo] = useState({ prices: {}, serviceFee: 0, smsFee: 0 });
   const [secretaryPresent, setSecretaryPresent] = useState(true);
   const [successNotice, setSuccessNotice] = useState({ open: false, title: '', message: '', queueNumber: null, reference: '', printStatus: '' });
-  const [moreDocsNotice, setMoreDocsNotice] = useState(false);
+
 
   const safeZoneValue = useMemo(
     () => clampZoneValue(intakeForm.zone, zoneCount),
@@ -509,6 +509,15 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       return;
     }
 
+    if (intakeForm.document === OTHER_DOCUMENT_VALUE && !intakeForm.customDocument.trim()) {
+      setIntakeError('Please specify the document name.');
+      return;
+    }
+
+    const resolvedDocument = intakeForm.document === OTHER_DOCUMENT_VALUE && intakeForm.customDocument.trim()
+      ? `Other - ${intakeForm.customDocument.trim()}`
+      : intakeForm.document;
+
     const phoneDigits = (intakeForm.telephone || '').replace(/\D/g, '');
     if (phoneDigits && phoneDigits.length !== 11) {
       setIntakeError('Phone number must be exactly 11 digits (e.g. 09171234567).');
@@ -533,7 +542,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       religion: intakeForm.religion,
       email: intakeForm.email,
       telephone: intakeForm.telephone,
-      document: intakeForm.document,
+      document: resolvedDocument,
       purpose: intakeForm.purpose,
       ctcNumber: intakeForm.ctcNumber,
       ctcDate: intakeForm.ctcDate,
@@ -555,13 +564,42 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
         reference_number: referenceNumber,
         queue_number: queueNumber,
       };
-      const { error: saveError } = await supabase.from(INTAKE_REQUESTS_TABLE).insert(payload);
+      const { data: insertedRow, error: saveError } = await supabase
+        .from(INTAKE_REQUESTS_TABLE)
+        .insert(payload)
+        .select('id')
+        .single();
 
       if (saveError) {
         setIntakeError(saveError.message);
         setIntakeSaving(false);
         setIntakeReviewOpen(false);
         return;
+      }
+
+      // Send system chat message for request received
+      if (insertedRow?.id) {
+        try {
+          const { data: newConv } = await supabase
+            .from('conversations')
+            .insert({
+              request_id: insertedRow.id,
+              barangay_id: barangayId,
+              resident_user_id: null,
+            })
+            .select('id')
+            .single();
+          if (newConv?.id) {
+            await supabase.from('messages').insert({
+              conversation_id: newConv.id,
+              sender_role: 'system',
+              sender_id: null,
+              content: `Your request for ${intakeForm.document || 'document'} (Ref: ${referenceNumber}) has been received. Please wait for the barangay admin/secretary to review and process your request.`,
+            });
+          }
+        } catch {
+          // Non-critical — don't block the submission
+        }
       }
     } else {
       // Offline — generate local reference and queue
@@ -689,6 +727,15 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       return;
     }
 
+    if (requestForm.document === OTHER_DOCUMENT_VALUE && !requestForm.customDocument.trim()) {
+      setRequestError('Please specify the document name.');
+      return;
+    }
+
+    const resolvedDocument = requestForm.document === OTHER_DOCUMENT_VALUE && requestForm.customDocument.trim()
+      ? `Other - ${requestForm.customDocument.trim()}`
+      : requestForm.document;
+
     setRequestSaving(true);
     const payload = {
       resident_id: selectedResident.id,
@@ -706,7 +753,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       religion: selectedResident.religion || null,
       telephone: selectedResident.telephone || null,
       email: selectedResident.email || null,
-      document: requestForm.document,
+      document: resolvedDocument,
       purpose: requestForm.purpose.trim(),
       ctc_number: requestForm.ctcNumber?.trim() || null,
       ctc_date: requestForm.ctcDate || null,
@@ -724,13 +771,49 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       payload.reference_number = referenceNumber;
       payload.queue_number = queueNumber;
 
-      const { error: saveError } = await supabase
+      const { data: insertedRow, error: saveError } = await supabase
         .from(INTAKE_REQUESTS_TABLE)
-        .insert(payload);
+        .insert(payload)
+        .select('id')
+        .single();
       if (saveError) {
         setRequestError(saveError.message);
         setRequestSaving(false);
         return;
+      }
+
+      // Send system chat message for request received
+      if (insertedRow?.id) {
+        try {
+          let residentAuthUid = null;
+          if (selectedResident?.id) {
+            const { data: profile } = await supabase
+              .from('resident_profiles')
+              .select('user_id')
+              .eq('resident_id', selectedResident.id)
+              .maybeSingle();
+            residentAuthUid = profile?.user_id || null;
+          }
+          const { data: newConv } = await supabase
+            .from('conversations')
+            .insert({
+              request_id: insertedRow.id,
+              barangay_id: barangayId,
+              resident_user_id: residentAuthUid,
+            })
+            .select('id')
+            .single();
+          if (newConv?.id) {
+            await supabase.from('messages').insert({
+              conversation_id: newConv.id,
+              sender_role: 'system',
+              sender_id: null,
+              content: `Your request for ${resolvedDocument} (Ref: ${referenceNumber}) has been received. Please wait for the barangay admin/secretary to review and process your request.`,
+            });
+          }
+        } catch {
+          // Non-critical — don't block the submission
+        }
       }
     } else {
       // Offline — generate local reference and queue
@@ -810,17 +893,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     </div>
   ) : null;
 
-  const moreDocsModal = moreDocsNotice ? (
-    <div className="kiosk-confirm-modal" role="dialog" aria-modal="true" style={{ zIndex: 9999 }}>
-      <div className="kiosk-confirm-card" onClick={(event) => event.stopPropagation()}>
-        <h3 className="kiosk-confirm-title">Not available</h3>
-        <p className="kiosk-confirm-subtitle">{MORE_DOCS_NOTICE}</p>
-        <div className="kiosk-confirm-actions">
-          <button type="button" className="kiosk-intake-submit" onClick={() => setMoreDocsNotice(false)}>OK</button>
-        </div>
-      </div>
-    </div>
-  ) : null;
+  const moreDocsModal = null;
 
   if (intakeOpen) {
     return (
@@ -937,19 +1010,28 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                       name="document"
                       value={intakeForm.document}
                       onChange={event => {
-                        if (event.target.value === MORE_DOCS_VALUE) {
-                          setMoreDocsNotice(true);
-                          return;
-                        }
-                        handleIntakeChange(event);
+                        const val = event.target.value;
+                        setIntakeForm(prev => ({ ...prev, document: val, customDocument: val === OTHER_DOCUMENT_VALUE ? prev.customDocument : '' }));
                       }}
                       required
                       className="kiosk-intake-select"
                     >
                       <option value="">Select</option>
                       {documentOptions.map(option => <option key={option} value={option}>{option}</option>)}
-                      <option value={MORE_DOCS_VALUE}>Other documents...</option>
+                      <option value={OTHER_DOCUMENT_VALUE}>Other documents...</option>
                     </select>
+                    {intakeForm.document === OTHER_DOCUMENT_VALUE && (
+                      <input
+                        type="text"
+                        name="customDocument"
+                        value={intakeForm.customDocument}
+                        onChange={handleIntakeChange}
+                        className="kiosk-intake-input"
+                        placeholder="Enter document name (e.g. Certificate of Good Moral)"
+                        style={{ marginTop: '0.5rem' }}
+                        required
+                      />
+                    )}
                   </label>
                   <label className="kiosk-intake-field">
                     <span>Purpose *</span>
@@ -1204,11 +1286,8 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                       name="document"
                       value={requestForm.document}
                       onChange={event => {
-                        if (event.target.value === MORE_DOCS_VALUE) {
-                          setMoreDocsNotice(true);
-                          return;
-                        }
-                        setRequestForm(prev => ({ ...prev, document: event.target.value }));
+                        const val = event.target.value;
+                        setRequestForm(prev => ({ ...prev, document: val, customDocument: val === OTHER_DOCUMENT_VALUE ? prev.customDocument : '' }));
                       }}
                       required
                       className="kiosk-intake-select"
@@ -1219,8 +1298,19 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                           {option}
                         </option>
                       ))}
-                      <option value={MORE_DOCS_VALUE}>Other documents...</option>
+                      <option value={OTHER_DOCUMENT_VALUE}>Other documents...</option>
                     </select>
+                    {requestForm.document === OTHER_DOCUMENT_VALUE && (
+                      <input
+                        type="text"
+                        value={requestForm.customDocument}
+                        onChange={event => setRequestForm(prev => ({ ...prev, customDocument: event.target.value }))}
+                        className="kiosk-intake-input"
+                        placeholder="Enter document name (e.g. Certificate of Good Moral)"
+                        style={{ marginTop: '0.5rem' }}
+                        required
+                      />
+                    )}
                   </label>
                     {requestForm.document ? (
                       <div className="kiosk-intake-note kiosk-intake-note--info">

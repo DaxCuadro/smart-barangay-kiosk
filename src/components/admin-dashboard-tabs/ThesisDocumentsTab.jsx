@@ -63,6 +63,7 @@ export default function ThesisDocumentsTab() {
   const [adviser, setAdviser] = useState('');
   const [contactInfo, setContactInfo] = useState('');
   const [docDate, setDocDate] = useState('');
+  const [deploymentDuration, setDeploymentDuration] = useState('');
 
   const [generating, setGenerating] = useState(null);
 
@@ -73,7 +74,7 @@ export default function ThesisDocumentsTab() {
     setGenerating(type);
     try {
       const shared = { researchers, program, partnerBarangays, barangayOptions: parseBrgyOptions() };
-      const physicalShared = { barangayName: brgyName || '____________', municipality: municipality || '____________', province, punongBarangay: punong || '____________________________', barangaySecretary: secretary || '____________________________', date: docDate || '___________________' };
+      const physicalShared = { barangayName: brgyName || '____________', municipality: municipality || '____________', province, punongBarangay: punong || '____________________________', barangaySecretary: secretary || '____________________________', date: docDate || '___________________', deploymentDuration: deploymentDuration || '___________________' };
       let doc;
       let filename;
       switch (type) {
@@ -108,7 +109,7 @@ export default function ThesisDocumentsTab() {
     } finally {
       setGenerating(null);
     }
-  }, [researchers, program, partnerBarangays, parseBrgyOptions, brgyName, municipality, province, punong, secretary, adviser, contactInfo, docDate]);
+  }, [researchers, program, partnerBarangays, parseBrgyOptions, brgyName, municipality, province, punong, secretary, adviser, contactInfo, docDate, deploymentDuration]);
 
   const generateAll = useCallback(async () => {
     for (const type of ['pre-test', 'post-eval', 'endorsement', 'deployment', 'consent', 'letter']) {
@@ -198,6 +199,7 @@ export default function ThesisDocumentsTab() {
             <Field label="Thesis Adviser" value={adviser} onChange={setAdviser} placeholder="Full name" />
             <Field label="Contact Info (for consent form)" value={contactInfo} onChange={setContactInfo} placeholder="Email or phone" />
             <Field label="Date" value={docDate} onChange={setDocDate} placeholder="e.g. April 13, 2026" />
+            <Field label="Deployment/Testing Duration" value={deploymentDuration} onChange={setDeploymentDuration} placeholder="e.g. March 15 – April 15, 2026" />
           </div>
         </section>
 
