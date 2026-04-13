@@ -1,11 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AdminLogin from './components/AdminLogin.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import PwaUpdatePrompt from './components/ui/PwaUpdatePrompt.jsx';
 import { ToastProvider } from './components/ui/Toast.jsx';
 import { SupabaseProvider } from './contexts/SupabaseContext.js';
-import { supabaseAdmin, supabaseResident, supabaseSuperAdmin } from './supabaseClient.js';
+import { getSupabaseAdmin, getSupabaseResident, getSupabaseSuperAdmin } from './supabaseClient.js';
 import './App.css';
 
 const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
@@ -23,6 +23,13 @@ function CatchAllRedirect() {
     return null;
   }
   return <Navigate to="/" replace />;
+}
+
+// Thin wrapper that lazily creates the Supabase client when the route mounts,
+// preventing all panel clients from being created (and refreshing tokens) on startup.
+function LazySupabaseProvider({ getClient, children }) {
+  const client = useMemo(() => getClient(), [getClient]);
+  return <SupabaseProvider client={client}>{children}</SupabaseProvider>;
 }
 
 function App() {
@@ -71,11 +78,26 @@ function App() {
     };
   }, [location.pathname]);
 
-  // Admin session listener
+  // Admin session listener — only active on /admin route to avoid
+  // creating the Supabase client (and triggering token refresh) on other routes.
   useEffect(() => {
+    if (location.pathname !== '/admin') {
+      // Not on admin route — reset state but don't create the client
+      setAdminSession(null);
+      setAdminUserId(null);
+      adminUserIdRef.current = null;
+      setAdminSessionLoaded(true);
+      setAdminChecking(false);
+      return;
+    }
+
+    setAdminSessionLoaded(false);
+    setAdminChecking(true);
+
+    const client = getSupabaseAdmin();
     let isMounted = true;
 
-    supabaseAdmin.auth.getSession().then(({ data }) => {
+    client.auth.getSession().then(({ data }) => {
       if (!isMounted) return;
       const session = data?.session ?? null;
       const uid = session?.user?.id ?? null;
@@ -85,7 +107,7 @@ function App() {
       setAdminSessionLoaded(true);
     });
 
-    const { data: authListener } = supabaseAdmin.auth.onAuthStateChange((event, newSession) => {
+    const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
       if (!isMounted) return;
       // Ignore token refresh failures — keep existing session so users aren't kicked out
       if (event === 'TOKEN_REFRESHED' && !newSession) return;
@@ -102,13 +124,26 @@ function App() {
       isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [location.pathname]);
 
-  // SuperAdmin session listener
+  // SuperAdmin session listener — only active on /superadmin route
   useEffect(() => {
+    if (location.pathname !== '/superadmin') {
+      setSuperAdminSession(null);
+      setSuperAdminUserId(null);
+      superAdminUserIdRef.current = null;
+      setSuperAdminSessionLoaded(true);
+      setSuperAdminChecking(false);
+      return;
+    }
+
+    setSuperAdminSessionLoaded(false);
+    setSuperAdminChecking(true);
+
+    const client = getSupabaseSuperAdmin();
     let isMounted = true;
 
-    supabaseSuperAdmin.auth.getSession().then(({ data }) => {
+    client.auth.getSession().then(({ data }) => {
       if (!isMounted) return;
       const session = data?.session ?? null;
       const uid = session?.user?.id ?? null;
@@ -118,7 +153,7 @@ function App() {
       setSuperAdminSessionLoaded(true);
     });
 
-    const { data: authListener } = supabaseSuperAdmin.auth.onAuthStateChange((event, newSession) => {
+    const { data: authListener } = client.auth.onAuthStateChange((event, newSession) => {
       if (!isMounted) return;
       // Ignore token refresh failures — keep existing session so users aren't kicked out
       if (event === 'TOKEN_REFRESHED' && !newSession) return;
@@ -135,7 +170,7 @@ function App() {
       isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [location.pathname]);
 
   // Check admin role — only when user ID changes, not on token refreshes
   useEffect(() => {
@@ -151,7 +186,7 @@ function App() {
       }
 
       setAdminChecking(true);
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await getSupabaseAdmin()
         .from('admin_users')
         .select('user_id, role')
         .eq('user_id', adminUserId)
@@ -184,7 +219,7 @@ function App() {
       }
 
       setSuperAdminChecking(true);
-      const { data, error } = await supabaseSuperAdmin
+      const { data, error } = await getSupabaseSuperAdmin()
         .from('admin_users')
         .select('user_id, role')
         .eq('user_id', superAdminUserId)
@@ -212,12 +247,12 @@ function App() {
   }
 
   async function handleAdminLogout() {
-    await supabaseAdmin.auth.signOut();
+    await getSupabaseAdmin().auth.signOut();
     setAdminSession(null);
   }
 
   async function handleSuperAdminLogout() {
-    await supabaseSuperAdmin.auth.signOut();
+    await getSupabaseSuperAdmin().auth.signOut();
     setSuperAdminSession(null);
   }
 
@@ -268,9 +303,9 @@ function App() {
         <div className="sbk-shell">
           <Suspense fallback={loadingFallback}>
             <Routes>
-              <Route path="/" element={<SupabaseProvider client={supabaseResident}><ResidentPortalShell /></SupabaseProvider>} />
-              <Route path="/admin" element={<SupabaseProvider client={supabaseAdmin}>{adminElement}</SupabaseProvider>} />
-              <Route path="/superadmin" element={<SupabaseProvider client={supabaseSuperAdmin}>{superAdminElement}</SupabaseProvider>} />
+              <Route path="/" element={<LazySupabaseProvider getClient={getSupabaseResident}><ResidentPortalShell /></LazySupabaseProvider>} />
+              <Route path="/admin" element={<LazySupabaseProvider getClient={getSupabaseAdmin}>{adminElement}</LazySupabaseProvider>} />
+              <Route path="/superadmin" element={<LazySupabaseProvider getClient={getSupabaseSuperAdmin}>{superAdminElement}</LazySupabaseProvider>} />
               <Route path="/kiosk" element={<KioskShell />} />
               <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
