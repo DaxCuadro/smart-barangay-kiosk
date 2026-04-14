@@ -314,6 +314,15 @@ export default function ResidentsTab({ barangayId }) {
     }
 
     if (linkedUserId) {
+      // Force a token refresh so the Edge Function receives a valid JWT.
+      // getSession() may return a stale cached token; getUser() validates
+      // against the server and triggers a refresh when necessary.
+      const { error: refreshError } = await supabase.auth.getUser();
+      if (refreshError) {
+        setDeleteBusy(false);
+        addToast('Failed to delete auth account: Could not refresh admin session.', 'error');
+        return;
+      }
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token || '';
       if (sessionError || !accessToken) {
@@ -322,14 +331,19 @@ export default function ResidentsTab({ barangayId }) {
         return;
       }
 
-      const { error: deleteUserError } = await supabase.functions.invoke('delete_user', {
+      const { data: deleteData, error: deleteUserError } = await supabase.functions.invoke('delete_user', {
         body: { user_id: linkedUserId },
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (deleteUserError) {
         setDeleteBusy(false);
-        const extra = deleteUserError.context ? ` (${JSON.stringify(deleteUserError.context)})` : '';
-        addToast(`Failed to delete auth account: ${deleteUserError.message}${extra}`, 'error');
+        // Try to extract the error detail from the response body
+        let detail = '';
+        try {
+          const body = deleteData ?? (deleteUserError.context && typeof deleteUserError.context.json === 'function' ? await deleteUserError.context.json() : null);
+          if (body?.error) detail = body.error + (body.detail ? ` (${body.detail})` : '');
+        } catch { /* ignore parse errors */ }
+        addToast(`Failed to delete auth account: ${detail || deleteUserError.message}`, 'error');
         return;
       }
     }

@@ -7,6 +7,28 @@
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Barangay Kiosk</title>
+    <script>
+      // Immediately swap the PWA manifest based on the URL path so the browser
+      // reads the correct identity BEFORE the React app loads.  This ensures
+      // "Add to Home Screen" installs each panel as a separate app.
+      (function () {
+        var p = location.pathname;
+        var m = p === '/kiosk' ? '/manifest-kiosk.json'
+              : p === '/admin' ? '/manifest-admin.json'
+              : p === '/superadmin' ? '/manifest-superadmin.json'
+              : null;
+        if (m) {
+          var el = document.querySelector('link[rel="manifest"]');
+          if (el) { el.href = m; }
+          else {
+            el = document.createElement('link');
+            el.rel = 'manifest';
+            el.href = m;
+            document.head.appendChild(el);
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

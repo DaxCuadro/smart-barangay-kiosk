@@ -45,28 +45,54 @@ export default function FeedbackTab({ barangayId }) {
     async function loadFeedback() {
       if (!barangayId) { setLoading(false); return; }
       setLoading(true);
-      const { data, error } = await supabase
-        .from('resident_feedback')
-        .select(`
-          id,
-          rating,
-          comment,
-          created_at,
-          release_log_id,
-          resident_id,
-          release_logs!inner ( document, resident_name, released_at )
-        `)
-        .eq('barangay_id', barangayId)
-        .order('created_at', { ascending: false })
-        .limit(200);
+
+      // Fetch both resident_feedback and kiosk_feedback in parallel
+      const [residentResult, kioskResult] = await Promise.all([
+        supabase
+          .from('resident_feedback')
+          .select(`
+            id,
+            rating,
+            comment,
+            created_at,
+            release_log_id,
+            resident_id,
+            release_logs!inner ( document, resident_name, released_at )
+          `)
+          .eq('barangay_id', barangayId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+        supabase
+          .from('kiosk_feedback')
+          .select('id, rating, comment, created_at, resident_name, document')
+          .eq('barangay_id', barangayId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+      ]);
       if (!isActive) return;
-      setFeedback(error ? [] : (data || []));
+
+      const residentRows = (residentResult.data || []).map(item => ({
+        ...item,
+        _source: 'release',
+        _name: item.release_logs?.resident_name || 'Resident',
+        _document: item.release_logs?.document || 'Document',
+      }));
+      const kioskRows = (kioskResult.data || []).map(item => ({
+        ...item,
+        _source: 'kiosk',
+        _name: item.resident_name || 'Walk-in',
+        _document: item.document || 'N/A',
+      }));
+      const merged = [...residentRows, ...kioskRows].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+      setFeedback(merged);
       setLoading(false);
     }
     loadFeedback();
 
     // Real-time updates
-    const channel = supabase
+    const ch1 = supabase
       .channel(`admin-feedback-${barangayId}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -75,10 +101,20 @@ export default function FeedbackTab({ barangayId }) {
         filter: `barangay_id=eq.${barangayId}`,
       }, () => { loadFeedback(); })
       .subscribe();
+    const ch2 = supabase
+      .channel(`admin-kiosk-feedback-${barangayId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'kiosk_feedback',
+        filter: `barangay_id=eq.${barangayId}`,
+      }, () => { loadFeedback(); })
+      .subscribe();
 
     return () => {
       isActive = false;
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
     };
   }, [supabase, barangayId]);
 
@@ -87,12 +123,7 @@ export default function FeedbackTab({ barangayId }) {
     return feedback.filter(item => {
       if (ratingFilter !== 'all' && String(item.rating) !== ratingFilter) return false;
       if (!q) return true;
-      const release = item.release_logs;
-      const haystack = [
-        release?.document,
-        release?.resident_name,
-        item.comment,
-      ].join(' ').toLowerCase();
+      const haystack = [item._document, item._name, item.comment].join(' ').toLowerCase();
       return haystack.includes(q);
     });
   }, [feedback, search, ratingFilter]);
@@ -111,13 +142,14 @@ export default function FeedbackTab({ barangayId }) {
   const handleExport = () => {
     const rows = feedback.map(item => ({
       date: formatDate(item.created_at),
-      resident: item.release_logs?.resident_name || 'N/A',
-      document: item.release_logs?.document || 'N/A',
+      source: item._source === 'kiosk' ? 'Kiosk' : 'Release',
+      resident: item._name,
+      document: item._document,
       rating: item.rating,
       label: STAR_LABELS[item.rating] || '',
       comment: item.comment || '',
     }));
-    downloadCSV(rows, ['date', 'resident', 'document', 'rating', 'label', 'comment'], 'feedback_export.csv');
+    downloadCSV(rows, ['date', 'source', 'resident', 'document', 'rating', 'label', 'comment'], 'feedback_export.csv');
   };
 
   return (
@@ -127,7 +159,7 @@ export default function FeedbackTab({ barangayId }) {
           <div>
             <p className="text-xs uppercase tracking-widest text-amber-600 font-semibold">Feedback</p>
             <h2 className="text-xl font-bold text-gray-900">Resident Feedback & Ratings</h2>
-            <p className="text-sm text-gray-500">Ratings submitted by residents after claiming their documents.</p>
+            <p className="text-sm text-gray-500">Ratings submitted by residents after claiming documents and from kiosk walk-ins.</p>
           </div>
           {feedback.length > 0 ? (
             <button
@@ -204,9 +236,8 @@ export default function FeedbackTab({ barangayId }) {
         ) : filtered.length ? (
           <div className="mt-4 max-h-130 overflow-y-auto space-y-2">
             {filtered.map(item => {
-              const release = item.release_logs;
               return (
-                <div key={item.id} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <div key={`${item._source}-${item.id}`} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -214,9 +245,12 @@ export default function FeedbackTab({ barangayId }) {
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
                           {STAR_LABELS[item.rating]}
                         </span>
+                        {item._source === 'kiosk' ? (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">Kiosk</span>
+                        ) : null}
                       </div>
                       <p className="text-sm font-semibold text-gray-900">
-                        {release?.resident_name || 'Resident'} — {release?.document || 'Document'}
+                        {item._name} — {item._document}
                       </p>
                       {item.comment ? (
                         <p className="text-sm text-gray-600 mt-1">"{item.comment}"</p>

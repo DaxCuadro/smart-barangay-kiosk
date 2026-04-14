@@ -563,21 +563,44 @@ export default function SuperAdminDashboard({ onLogout }) {
   /* ── Feedback loader ─────────────────────────────────────────── */
   const loadAllFeedback = useCallback(async () => {
     setFeedbackLoading(true);
-    const { data, error: fbError } = await supabase
-      .from('resident_feedback')
-      .select(`
-        id,
-        rating,
-        comment,
-        created_at,
-        barangay_id,
-        release_log_id,
-        resident_id,
-        release_logs!inner ( document, resident_name, released_at )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(500);
-    if (fbError) { setAllFeedback([]); } else { setAllFeedback(data || []); }
+    const [residentResult, kioskResult] = await Promise.all([
+      supabase
+        .from('resident_feedback')
+        .select(`
+          id,
+          rating,
+          comment,
+          created_at,
+          barangay_id,
+          release_log_id,
+          resident_id,
+          release_logs!inner ( document, resident_name, released_at )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(500),
+      supabase
+        .from('kiosk_feedback')
+        .select('id, rating, comment, created_at, barangay_id, resident_name, document')
+        .order('created_at', { ascending: false })
+        .limit(500),
+    ]);
+
+    const residentRows = (residentResult.data || []).map(item => ({
+      ...item,
+      _source: 'release',
+      _name: item.release_logs?.resident_name || 'Resident',
+      _document: item.release_logs?.document || 'Document',
+    }));
+    const kioskRows = (kioskResult.data || []).map(item => ({
+      ...item,
+      _source: 'kiosk',
+      _name: item.resident_name || 'Walk-in',
+      _document: item.document || 'N/A',
+    }));
+    const merged = [...residentRows, ...kioskRows].sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+    setAllFeedback(merged);
     setFeedbackLoading(false);
   }, [supabase]);
 
@@ -591,8 +614,7 @@ export default function SuperAdminDashboard({ onLogout }) {
       if (feedbackRatingFilter !== 'all' && String(item.rating) !== feedbackRatingFilter) return false;
       if (feedbackBarangayFilter !== 'all' && item.barangay_id !== feedbackBarangayFilter) return false;
       if (!q) return true;
-      const release = item.release_logs;
-      return [release?.document, release?.resident_name, item.comment].join(' ').toLowerCase().includes(q);
+      return [item._document, item._name, item.comment].join(' ').toLowerCase().includes(q);
     });
   }, [allFeedback, feedbackSearch, feedbackRatingFilter, feedbackBarangayFilter]);
 
@@ -3234,12 +3256,13 @@ export default function SuperAdminDashboard({ onLogout }) {
                     const rows = allFeedback.map(item => ({
                       date: formatTimestamp(item.created_at),
                       barangay: barangayMap[item.barangay_id] || item.barangay_id,
-                      resident: item.release_logs?.resident_name || 'N/A',
-                      document: item.release_logs?.document || 'N/A',
+                      source: item._source === 'kiosk' ? 'Kiosk' : 'Release',
+                      resident: item._name,
+                      document: item._document,
                       rating: item.rating,
                       comment: item.comment || '',
                     }));
-                    downloadCSV(rows, ['date', 'barangay', 'resident', 'document', 'rating', 'comment'], 'all_feedback_export.csv');
+                    downloadCSV(rows, ['date', 'barangay', 'source', 'resident', 'document', 'rating', 'comment'], 'all_feedback_export.csv');
                     addToast('Feedback exported.', 'success');
                   }}>Export CSV</button>
                 ) : null}
@@ -3309,11 +3332,10 @@ export default function SuperAdminDashboard({ onLogout }) {
             ) : filteredFeedback.length ? (
               <div className="mt-4 max-h-130 overflow-y-auto space-y-2">
                 {filteredFeedback.map(item => {
-                  const release = item.release_logs;
                   const brgyName = barangays.find(b => b.id === item.barangay_id)?.name || 'Unknown';
                   const starLabels = ['', 'Very Poor', 'Poor', 'Average', 'Good', 'Excellent'];
                   return (
-                    <div key={item.id} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div key={`${item._source}-${item.id}`} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -3325,9 +3347,12 @@ export default function SuperAdminDashboard({ onLogout }) {
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
                               {starLabels[item.rating]}
                             </span>
+                            {item._source === 'kiosk' ? (
+                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">Kiosk</span>
+                            ) : null}
                           </div>
                           <p className="text-sm font-semibold text-gray-900">
-                            {release?.resident_name || 'Resident'} — {release?.document || 'Document'}
+                            {item._name} — {item._document}
                           </p>
                           <p className="text-xs text-gray-500">{brgyName}</p>
                           {item.comment ? (

@@ -24,9 +24,11 @@ function buildReceiptText(info) {
     barangayName = 'Barangay',
     date,
     reference,
+    referenceNumbers,
     queueNumber,
     residentName,
     document,
+    documents,
     total,
     message,
   } = info;
@@ -41,9 +43,16 @@ function buildReceiptText(info) {
   lines.push(center('Document Request Receipt', W));
   lines.push(sep);
 
-  // Date & reference
+  // Date
   lines.push(`Date: ${date}`);
-  lines.push(`Ref:  ${reference}`);
+
+  // Handle multi-document or single document
+  const docList = documents || (document ? [document] : []);
+  const refList = referenceNumbers || (reference ? [reference] : []);
+
+  if (refList.length === 1) {
+    lines.push(`Ref:  ${refList[0]}`);
+  }
 
   if (queueNumber) {
     lines.push('');
@@ -55,7 +64,16 @@ function buildReceiptText(info) {
 
   // Resident details
   lines.push(`Name: ${residentName}`);
-  lines.push(`Doc:  ${document}`);
+
+  if (docList.length <= 1) {
+    lines.push(`Doc:  ${docList[0] || '—'}`);
+  } else {
+    lines.push('Documents:');
+    docList.forEach((doc, idx) => {
+      const refStr = refList[idx] ? ` [${refList[idx]}]` : '';
+      lines.push(` ${idx + 1}. ${doc}${refStr}`);
+    });
+  }
 
   lines.push(thin);
 

@@ -25,7 +25,7 @@ const INITIAL_FORM = {
   religion: '',
   email: '',
   telephone: '',
-  document: '',
+  documents: [],
   customDocument: '',
   purpose: '',
   ctcNumber: '',
@@ -175,13 +175,18 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
   const [intakeReviewData, setIntakeReviewData] = useState(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [selectedResident, setSelectedResident] = useState(null);
-  const [requestForm, setRequestForm] = useState({ document: '', customDocument: '', purpose: '', ctcNumber: '', ctcDate: '' });
+  const [requestForm, setRequestForm] = useState({ documents: [], customDocument: '', purpose: '', ctcNumber: '', ctcDate: '' });
   const [requestError, setRequestError] = useState('');
   const [requestSaving, setRequestSaving] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [pricingInfo, setPricingInfo] = useState({ prices: {}, serviceFee: 0, smsFee: 0 });
   const [secretaryPresent, setSecretaryPresent] = useState(true);
   const [successNotice, setSuccessNotice] = useState({ open: false, title: '', message: '', queueNumber: null, reference: '', printStatus: '' });
+  const [feedbackStep, setFeedbackStep] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackSaving, setFeedbackSaving] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
 
 
   const safeZoneValue = useMemo(
@@ -189,12 +194,17 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     [intakeForm.zone, zoneCount],
   );
   const age = useMemo(() => computeAge(intakeForm.birthday), [intakeForm.birthday]);
-  const selectedPrice = pricingInfo.prices?.[requestForm.document] ?? null;
   const serviceFee = pricingInfo.serviceFee || 0;
   const smsFee = pricingInfo.smsFee || 0;
-  const totalPrice = selectedPrice !== null ? selectedPrice + serviceFee + smsFee : null;
-  const intakeSelectedPrice = pricingInfo.prices?.[intakeForm.document] ?? null;
-  const intakeTotalPrice = intakeSelectedPrice !== null ? intakeSelectedPrice + serviceFee + smsFee : null;
+  // Multi-doc price: sum of individual document prices (null items treated as 0 but flagged)
+  const selectedDocsWithPrices = requestForm.documents.filter(d => d !== OTHER_DOCUMENT_VALUE).map(d => ({ doc: d, price: pricingInfo.prices?.[d] ?? null }));
+  const selectedPriceSum = selectedDocsWithPrices.reduce((s, i) => s + toNumber(i.price, 0), 0);
+  const anyRequestPriceUnset = selectedDocsWithPrices.some(i => i.price === null || i.price === undefined);
+  const totalPrice = requestForm.documents.length > 0 ? selectedPriceSum + serviceFee + smsFee : null;
+  const intakeDocsWithPrices = intakeForm.documents.filter(d => d !== OTHER_DOCUMENT_VALUE).map(d => ({ doc: d, price: pricingInfo.prices?.[d] ?? null }));
+  const intakeSelectedPriceSum = intakeDocsWithPrices.reduce((s, i) => s + toNumber(i.price, 0), 0);
+  const anyIntakePriceUnset = intakeDocsWithPrices.some(i => i.price === null || i.price === undefined);
+  const intakeTotalPrice = intakeForm.documents.length > 0 ? intakeSelectedPriceSum + serviceFee + smsFee : null;
   const formatCurrency = value => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2 }).format(value || 0);
 
   useEffect(() => {
@@ -351,7 +361,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
   }
 
   function resetRequestState() {
-    setRequestForm({ document: '', purpose: '' });
+    setRequestForm({ documents: [], customDocument: '', purpose: '', ctcNumber: '', ctcDate: '' });
     setRequestError('');
     setRequestSaving(false);
     setPrivacyConsent(false);
@@ -359,6 +369,11 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
 
   function closeSuccessNotice() {
     setSuccessNotice({ open: false, title: '', message: '', queueNumber: null, reference: '', printStatus: '' });
+    setFeedbackStep(false);
+    setFeedbackRating(0);
+    setFeedbackComment('');
+    setFeedbackSaving(false);
+    setFeedbackDone(false);
   }
 
   async function getNextQueueNumber() {
@@ -393,7 +408,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     return `REQ-${datePart}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
   }
 
-  function tryPrintReceipt({ residentName, document, purpose, referenceNumber, queueNumber, docPrice }) {
+  function tryPrintReceipt({ residentName, documents, purpose, referenceNumbers, queueNumber, docPrice }) {
     try {
       const now = new Date();
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -401,10 +416,10 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       const result = printReceipt({
         barangayName: getSelectedBarangayName() || 'Barangay',
         date: dateStr,
-        reference: referenceNumber,
+        referenceNumbers,
         queueNumber,
         residentName,
-        document,
+        documents,
         purpose,
         total: safeDocPrice + serviceFee + smsFee,
         message: secretaryPresent ? 'Please proceed to the secretary desk.' : '',
@@ -459,7 +474,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       religion: toNullableText(intakeForm.religion),
       email: toNullableText(intakeForm.email),
       telephone: toNullableText(intakeForm.telephone),
-      document: toNullableText(intakeForm.document),
+      document: null, // set per-document in submission loop
       purpose: toNullableText(intakeForm.purpose),
       ctc_number: toNullableText(intakeForm.ctcNumber),
       ctc_date: intakeForm.ctcDate || null,
@@ -504,19 +519,21 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       return;
     }
 
-    if (!intakeForm.document || !intakeForm.purpose.trim()) {
-      setIntakeError('Document type and purpose are required.');
+    if (!intakeForm.documents.length || !intakeForm.purpose.trim()) {
+      setIntakeError('At least one document and a purpose are required.');
       return;
     }
 
-    if (intakeForm.document === OTHER_DOCUMENT_VALUE && !intakeForm.customDocument.trim()) {
+    if (intakeForm.documents.includes(OTHER_DOCUMENT_VALUE) && !intakeForm.customDocument.trim()) {
       setIntakeError('Please specify the document name.');
       return;
     }
 
-    const resolvedDocument = intakeForm.document === OTHER_DOCUMENT_VALUE && intakeForm.customDocument.trim()
-      ? `Other - ${intakeForm.customDocument.trim()}`
-      : intakeForm.document;
+    const resolvedDocuments = intakeForm.documents.map(doc =>
+      doc === OTHER_DOCUMENT_VALUE && intakeForm.customDocument.trim()
+        ? `Other - ${intakeForm.customDocument.trim()}`
+        : doc
+    );
 
     const phoneDigits = (intakeForm.telephone || '').replace(/\D/g, '');
     if (phoneDigits && phoneDigits.length !== 11) {
@@ -542,7 +559,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       religion: intakeForm.religion,
       email: intakeForm.email,
       telephone: intakeForm.telephone,
-      document: resolvedDocument,
+      documents: resolvedDocuments,
       purpose: intakeForm.purpose,
       ctcNumber: intakeForm.ctcNumber,
       ctcDate: intakeForm.ctcDate,
@@ -553,71 +570,81 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
   async function handleConfirmIntake() {
     setIntakeSaving(true);
 
-    let referenceNumber;
+    const resolvedDocuments = intakeReviewData?.documents || [];
+    const referenceNumbers = [];
     let queueNumber = null;
 
     if (isOnline) {
-      referenceNumber = await generateReferenceNumber();
       queueNumber = secretaryPresent ? await getNextQueueNumber() : null;
-      const payload = {
-        ...buildIntakePayload(),
-        reference_number: referenceNumber,
-        queue_number: queueNumber,
-      };
-      const { data: insertedRow, error: saveError } = await supabase
-        .from(INTAKE_REQUESTS_TABLE)
-        .insert(payload)
-        .select('id')
-        .single();
 
-      if (saveError) {
-        setIntakeError(saveError.message);
-        setIntakeSaving(false);
-        setIntakeReviewOpen(false);
-        return;
-      }
+      for (const doc of resolvedDocuments) {
+        const referenceNumber = await generateReferenceNumber();
+        referenceNumbers.push(referenceNumber);
+        const payload = {
+          ...buildIntakePayload(),
+          document: doc,
+          reference_number: referenceNumber,
+          queue_number: queueNumber,
+        };
+        const { data: insertedRow, error: saveError } = await supabase
+          .from(INTAKE_REQUESTS_TABLE)
+          .insert(payload)
+          .select('id')
+          .single();
 
-      // Send system chat message for request received
-      if (insertedRow?.id) {
-        try {
-          const { data: newConv } = await supabase
-            .from('conversations')
-            .insert({
-              request_id: insertedRow.id,
-              barangay_id: barangayId,
-              resident_user_id: null,
-            })
-            .select('id')
-            .single();
-          if (newConv?.id) {
-            await supabase.from('messages').insert({
-              conversation_id: newConv.id,
-              sender_role: 'system',
-              sender_id: null,
-              content: `Your request for ${intakeForm.document || 'document'} (Ref: ${referenceNumber}) has been received. Please wait for the barangay admin/secretary to review and process your request.`,
-            });
+        if (saveError) {
+          setIntakeError(saveError.message);
+          setIntakeSaving(false);
+          setIntakeReviewOpen(false);
+          return;
+        }
+
+        // Send system chat message for request received
+        if (insertedRow?.id) {
+          try {
+            const { data: newConv } = await supabase
+              .from('conversations')
+              .insert({
+                request_id: insertedRow.id,
+                barangay_id: barangayId,
+                resident_user_id: null,
+              })
+              .select('id')
+              .single();
+            if (newConv?.id) {
+              await supabase.from('messages').insert({
+                conversation_id: newConv.id,
+                sender_role: 'system',
+                sender_id: null,
+                content: `Your request for ${doc} (Ref: ${referenceNumber}) has been received. Please wait for the barangay admin/secretary to review and process your request.`,
+              });
+            }
+          } catch {
+            // Non-critical — don't block the submission
           }
-        } catch {
-          // Non-critical — don't block the submission
         }
       }
     } else {
       // Offline — generate local reference and queue
       const now = new Date();
       const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-      referenceNumber = `REQ-${datePart}-OFF${String(Math.floor(1000 + Math.random() * 9000))}`;
-      const payload = {
-        ...buildIntakePayload(),
-        reference_number: referenceNumber,
-        queue_number: null,
-      };
-      try {
-        await queuePendingRequest(payload);
-      } catch {
-        setIntakeError('Failed to save offline. Please try again.');
-        setIntakeSaving(false);
-        setIntakeReviewOpen(false);
-        return;
+      for (const doc of resolvedDocuments) {
+        const referenceNumber = `REQ-${datePart}-OFF${String(Math.floor(1000 + Math.random() * 9000))}`;
+        referenceNumbers.push(referenceNumber);
+        const payload = {
+          ...buildIntakePayload(),
+          document: doc,
+          reference_number: referenceNumber,
+          queue_number: null,
+        };
+        try {
+          await queuePendingRequest(payload);
+        } catch {
+          setIntakeError('Failed to save offline. Please try again.');
+          setIntakeSaving(false);
+          setIntakeReviewOpen(false);
+          return;
+        }
       }
     }
 
@@ -626,14 +653,14 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     setIntakeOpen(false);
 
     const residentName = [intakeForm.firstName, intakeForm.middleName, intakeForm.lastName].filter(Boolean).join(' ');
-    const docPrice = pricingInfo.prices?.[intakeForm.document] ?? null;
+    const docPriceTotal = resolvedDocuments.reduce((sum, doc) => sum + toNumber(pricingInfo.prices?.[doc], 0), 0);
     const printStatus = await tryPrintReceipt({
       residentName,
-      document: intakeForm.document,
+      documents: resolvedDocuments,
       purpose: intakeForm.purpose,
-      referenceNumber,
+      referenceNumbers,
       queueNumber,
-      docPrice,
+      docPrice: docPriceTotal,
     });
 
     setSuccessNotice({
@@ -647,10 +674,28 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
             : 'Please wait for the text message from the secretary.')
         : 'Your request was saved and will be submitted automatically when the internet connection returns.',
       queueNumber,
-      reference: referenceNumber,
+      references: referenceNumbers,
+      documents: resolvedDocuments,
+      residentName,
       printStatus,
     });
     setIntakeForm(INITIAL_FORM);
+  }
+
+  async function handleFeedbackSubmit() {
+    if (!feedbackRating) return;
+    setFeedbackSaving(true);
+    try {
+      await supabase.from('kiosk_feedback').insert({
+        barangay_id: barangayId || null,
+        resident_name: successNotice.residentName || '',
+        document: (successNotice.documents || []).join(', '),
+        rating: feedbackRating,
+        comment: feedbackComment.trim(),
+      });
+    } catch { /* non-critical */ }
+    setFeedbackSaving(false);
+    setFeedbackDone(true);
   }
 
   async function handleSearchSubmit(event) {
@@ -722,113 +767,149 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       return;
     }
 
-    if (!requestForm.document || !requestForm.purpose.trim()) {
-      setRequestError('Document type and purpose are required.');
+    if (!requestForm.documents.length || !requestForm.purpose.trim()) {
+      setRequestError('At least one document and a purpose are required.');
       return;
     }
 
-    if (requestForm.document === OTHER_DOCUMENT_VALUE && !requestForm.customDocument.trim()) {
+    if (requestForm.documents.includes(OTHER_DOCUMENT_VALUE) && !requestForm.customDocument.trim()) {
       setRequestError('Please specify the document name.');
       return;
     }
 
-    const resolvedDocument = requestForm.document === OTHER_DOCUMENT_VALUE && requestForm.customDocument.trim()
-      ? `Other - ${requestForm.customDocument.trim()}`
-      : requestForm.document;
+    const resolvedDocuments = requestForm.documents.map(doc =>
+      doc === OTHER_DOCUMENT_VALUE && requestForm.customDocument.trim()
+        ? `Other - ${requestForm.customDocument.trim()}`
+        : doc
+    );
 
     setRequestSaving(true);
-    const payload = {
-      resident_id: selectedResident.id,
-      first_name: selectedResident.first_name || null,
-      last_name: selectedResident.last_name || null,
-      middle_name: selectedResident.middle_name || null,
-      sex: selectedResident.sex || null,
-      civil_status: selectedResident.civil_status || null,
-      birthday: selectedResident.birthday || null,
-      birthplace: selectedResident.birthplace || null,
-      address: selectedResident.address || null,
-      zone: null,
-      occupation: selectedResident.occupation || null,
-      education: selectedResident.education || '',
-      religion: selectedResident.religion || null,
-      telephone: selectedResident.telephone || null,
-      email: selectedResident.email || null,
-      document: resolvedDocument,
-      purpose: requestForm.purpose.trim(),
-      ctc_number: requestForm.ctcNumber?.trim() || null,
-      ctc_date: requestForm.ctcDate || null,
-      status: 'pending',
-      request_source: 'kiosk',
-      barangay_id: barangayId || null,
-    };
-
-    let referenceNumber;
+    const referenceNumbers = [];
     let queueNumber = null;
 
+    // Look up resident auth UID once (used for conversation creation)
+    let residentAuthUid = null;
+    if (isOnline && selectedResident?.id) {
+      try {
+        const { data: profile } = await supabase
+          .from('resident_profiles')
+          .select('user_id')
+          .eq('resident_id', selectedResident.id)
+          .maybeSingle();
+        residentAuthUid = profile?.user_id || null;
+      } catch { /* ignore */ }
+    }
+
     if (isOnline) {
-      referenceNumber = await generateReferenceNumber();
       queueNumber = secretaryPresent ? await getNextQueueNumber() : null;
-      payload.reference_number = referenceNumber;
-      payload.queue_number = queueNumber;
 
-      const { data: insertedRow, error: saveError } = await supabase
-        .from(INTAKE_REQUESTS_TABLE)
-        .insert(payload)
-        .select('id')
-        .single();
-      if (saveError) {
-        setRequestError(saveError.message);
-        setRequestSaving(false);
-        return;
-      }
+      for (const doc of resolvedDocuments) {
+        const referenceNumber = await generateReferenceNumber();
+        referenceNumbers.push(referenceNumber);
+        const payload = {
+          resident_id: selectedResident.id,
+          first_name: selectedResident.first_name || null,
+          last_name: selectedResident.last_name || null,
+          middle_name: selectedResident.middle_name || null,
+          sex: selectedResident.sex || null,
+          civil_status: selectedResident.civil_status || null,
+          birthday: selectedResident.birthday || null,
+          birthplace: selectedResident.birthplace || null,
+          address: selectedResident.address || null,
+          zone: null,
+          occupation: selectedResident.occupation || null,
+          education: selectedResident.education || '',
+          religion: selectedResident.religion || null,
+          telephone: selectedResident.telephone || null,
+          email: selectedResident.email || null,
+          document: doc,
+          purpose: requestForm.purpose.trim(),
+          ctc_number: requestForm.ctcNumber?.trim() || null,
+          ctc_date: requestForm.ctcDate || null,
+          status: 'pending',
+          request_source: 'kiosk',
+          barangay_id: barangayId || null,
+          reference_number: referenceNumber,
+          queue_number: queueNumber,
+        };
 
-      // Send system chat message for request received
-      if (insertedRow?.id) {
-        try {
-          let residentAuthUid = null;
-          if (selectedResident?.id) {
-            const { data: profile } = await supabase
-              .from('resident_profiles')
-              .select('user_id')
-              .eq('resident_id', selectedResident.id)
-              .maybeSingle();
-            residentAuthUid = profile?.user_id || null;
+        const { data: insertedRow, error: saveError } = await supabase
+          .from(INTAKE_REQUESTS_TABLE)
+          .insert(payload)
+          .select('id')
+          .single();
+        if (saveError) {
+          setRequestError(saveError.message);
+          setRequestSaving(false);
+          return;
+        }
+
+        // Send system chat message for request received
+        if (insertedRow?.id) {
+          try {
+            const { data: newConv } = await supabase
+              .from('conversations')
+              .insert({
+                request_id: insertedRow.id,
+                barangay_id: barangayId,
+                resident_user_id: residentAuthUid,
+              })
+              .select('id')
+              .single();
+            if (newConv?.id) {
+              await supabase.from('messages').insert({
+                conversation_id: newConv.id,
+                sender_role: 'system',
+                sender_id: null,
+                content: `Your request for ${doc} (Ref: ${referenceNumber}) has been received. Please wait for the barangay admin/secretary to review and process your request.`,
+              });
+            }
+          } catch {
+            // Non-critical — don't block the submission
           }
-          const { data: newConv } = await supabase
-            .from('conversations')
-            .insert({
-              request_id: insertedRow.id,
-              barangay_id: barangayId,
-              resident_user_id: residentAuthUid,
-            })
-            .select('id')
-            .single();
-          if (newConv?.id) {
-            await supabase.from('messages').insert({
-              conversation_id: newConv.id,
-              sender_role: 'system',
-              sender_id: null,
-              content: `Your request for ${resolvedDocument} (Ref: ${referenceNumber}) has been received. Please wait for the barangay admin/secretary to review and process your request.`,
-            });
-          }
-        } catch {
-          // Non-critical — don't block the submission
         }
       }
     } else {
       // Offline — generate local reference and queue
       const now = new Date();
       const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-      referenceNumber = `REQ-${datePart}-OFF${String(Math.floor(1000 + Math.random() * 9000))}`;
-      payload.reference_number = referenceNumber;
-      payload.queue_number = null;
+      for (const doc of resolvedDocuments) {
+        const referenceNumber = `REQ-${datePart}-OFF${String(Math.floor(1000 + Math.random() * 9000))}`;
+        referenceNumbers.push(referenceNumber);
+        const payload = {
+          resident_id: selectedResident.id,
+          first_name: selectedResident.first_name || null,
+          last_name: selectedResident.last_name || null,
+          middle_name: selectedResident.middle_name || null,
+          sex: selectedResident.sex || null,
+          civil_status: selectedResident.civil_status || null,
+          birthday: selectedResident.birthday || null,
+          birthplace: selectedResident.birthplace || null,
+          address: selectedResident.address || null,
+          zone: null,
+          occupation: selectedResident.occupation || null,
+          education: selectedResident.education || '',
+          religion: selectedResident.religion || null,
+          telephone: selectedResident.telephone || null,
+          email: selectedResident.email || null,
+          document: doc,
+          purpose: requestForm.purpose.trim(),
+          ctc_number: requestForm.ctcNumber?.trim() || null,
+          ctc_date: requestForm.ctcDate || null,
+          status: 'pending',
+          request_source: 'kiosk',
+          barangay_id: barangayId || null,
+          reference_number: referenceNumber,
+          queue_number: null,
+        };
 
-      try {
-        await queuePendingRequest(payload);
-      } catch (queueErr) {
-        setRequestError('Failed to save offline. Please try again.');
-        setRequestSaving(false);
-        return;
+        try {
+          await queuePendingRequest(payload);
+        } catch {
+          setRequestError('Failed to save offline. Please try again.');
+          setRequestSaving(false);
+          return;
+        }
       }
     }
 
@@ -836,14 +917,14 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     setRequestOpen(false);
 
     const residentName = formatFullName(selectedResident);
-    const docPrice = pricingInfo.prices?.[requestForm.document] ?? null;
+    const docPriceTotal = resolvedDocuments.reduce((sum, doc) => sum + toNumber(pricingInfo.prices?.[doc], 0), 0);
     const printStatus = await tryPrintReceipt({
       residentName,
-      document: requestForm.document,
+      documents: resolvedDocuments,
       purpose: requestForm.purpose.trim(),
-      referenceNumber,
+      referenceNumbers,
       queueNumber,
-      docPrice,
+      docPrice: docPriceTotal,
     });
 
     setSuccessNotice({
@@ -857,38 +938,129 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
             : 'Please wait for the text message from the secretary.')
         : 'Your request was saved and will be submitted automatically when the internet connection returns.',
       queueNumber,
-      reference: referenceNumber,
+      references: referenceNumbers,
+      documents: resolvedDocuments,
+      residentName,
       printStatus,
     });
-    setRequestForm({ document: '', purpose: '', ctcNumber: '', ctcDate: '' });
+    setRequestForm({ documents: [], customDocument: '', purpose: '', ctcNumber: '', ctcDate: '' });
   }
+
+  const STAR_LABELS = ['', 'Very Poor', 'Poor', 'Average', 'Good', 'Excellent'];
 
   const successNoticeModal = successNotice.open ? (
     <div className="kiosk-confirm-modal" role="dialog" aria-modal="true">
       <div className="kiosk-confirm-card" onClick={(event) => event.stopPropagation()}>
-        <h3 className="kiosk-confirm-title">{successNotice.title || 'Submission received'}</h3>
-        {successNotice.queueNumber ? (
-          <div className="kiosk-queue-card" aria-live="polite">
-            <span>Your queue number</span>
-            <strong>#{successNotice.queueNumber}</strong>
-          </div>
-        ) : null}
-        {successNotice.reference ? (
-          <p className="kiosk-confirm-subtitle" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
-            Reference: {successNotice.reference}
-          </p>
-        ) : null}
-        <p className="kiosk-confirm-subtitle">{successNotice.message}</p>
-        {successNotice.printStatus === 'printed' ? (
-          <p className="kiosk-print-notice kiosk-print-notice--success">Receipt sent to printer via RawBT.</p>
-        ) : successNotice.printStatus === 'no-rawbt' ? (
-          <p className="kiosk-print-notice kiosk-print-notice--warn">Could not send to printer. Make sure RawBT is installed and paired with the printer.</p>
-        ) : successNotice.printStatus === 'error' ? (
-          <p className="kiosk-print-notice kiosk-print-notice--warn">Receipt could not be printed. Please ask at the desk.</p>
-        ) : null}
-        <div className="kiosk-confirm-actions">
-          <button type="button" className="kiosk-intake-submit" onClick={() => { closeSuccessNotice(); handleCloseIntake(); }}>Done</button>
-        </div>
+        {!feedbackStep ? (
+          <>
+            <h3 className="kiosk-confirm-title">{successNotice.title || 'Submission received'}</h3>
+            {successNotice.queueNumber ? (
+              <div className="kiosk-queue-card" aria-live="polite">
+                <span>Your queue number</span>
+                <strong>#{successNotice.queueNumber}</strong>
+              </div>
+            ) : null}
+            {successNotice.documents?.length > 0 ? (
+              <div style={{ margin: '0.75rem 0', textAlign: 'left', fontSize: '0.85rem' }}>
+                <strong style={{ display: 'block', marginBottom: '0.4rem' }}>Documents requested:</strong>
+                {successNotice.documents.map((doc, idx) => (
+                  <div key={idx} style={{ marginBottom: '0.25rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                    {idx + 1}. {doc}{successNotice.references?.[idx] ? ` — ${successNotice.references[idx]}` : ''}
+                  </div>
+                ))}
+              </div>
+            ) : successNotice.reference ? (
+              <p className="kiosk-confirm-subtitle" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                Reference: {successNotice.reference}
+              </p>
+            ) : null}
+            <p className="kiosk-confirm-subtitle">{successNotice.message}</p>
+            {successNotice.printStatus === 'printed' ? (
+              <p className="kiosk-print-notice kiosk-print-notice--success">Receipt sent to printer via RawBT.</p>
+            ) : successNotice.printStatus === 'no-rawbt' ? (
+              <p className="kiosk-print-notice kiosk-print-notice--warn">Could not send to printer. Make sure RawBT is installed and paired with the printer.</p>
+            ) : successNotice.printStatus === 'error' ? (
+              <p className="kiosk-print-notice kiosk-print-notice--warn">Receipt could not be printed. Please ask at the desk.</p>
+            ) : null}
+            <div className="kiosk-confirm-actions">
+              <button type="button" className="kiosk-intake-submit" onClick={() => setFeedbackStep(true)}>Continue</button>
+            </div>
+          </>
+        ) : feedbackDone ? (
+          <>
+            <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
+              <h3 className="kiosk-confirm-title" style={{ marginBottom: '0.5rem' }}>Thank you for your feedback!</h3>
+              <p className="kiosk-confirm-subtitle">Your rating helps us improve our services.</p>
+            </div>
+            <div className="kiosk-confirm-actions" style={{ justifyContent: 'center' }}>
+              <button type="button" className="kiosk-intake-submit" onClick={() => { closeSuccessNotice(); handleCloseIntake(); }}>Done</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="kiosk-confirm-title" style={{ textAlign: 'center' }}>Rate your experience</h3>
+            <p className="kiosk-confirm-subtitle" style={{ textAlign: 'center' }}>
+              How was your experience using the kiosk today?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setFeedbackRating(star)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '2.5rem',
+                    color: star <= feedbackRating ? '#f59e0b' : '#d1d5db',
+                    transition: 'color 0.15s, transform 0.15s',
+                    transform: star <= feedbackRating ? 'scale(1.15)' : 'scale(1)',
+                    padding: '0.15rem',
+                    lineHeight: 1,
+                  }}
+                  aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            {feedbackRating > 0 ? (
+              <p style={{ textAlign: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#f59e0b', margin: '0' }}>
+                {STAR_LABELS[feedbackRating]}
+              </p>
+            ) : null}
+            <label className="kiosk-intake-field" style={{ marginTop: '0.5rem' }}>
+              <span>Comments or suggestions <em style={{ fontWeight: 400, color: '#94a3b8' }}>(optional)</em></span>
+              <textarea
+                value={feedbackComment}
+                onChange={e => setFeedbackComment(e.target.value)}
+                className="kiosk-intake-textarea"
+                placeholder="Tell us what you think..."
+                rows={3}
+                maxLength={500}
+              />
+            </label>
+            <div className="kiosk-confirm-actions">
+              <button
+                type="button"
+                className="kiosk-intake-cancel"
+                onClick={() => { closeSuccessNotice(); handleCloseIntake(); }}
+              >
+                Skip
+              </button>
+              <button
+                type="button"
+                className="kiosk-intake-submit"
+                disabled={!feedbackRating || feedbackSaving}
+                onClick={handleFeedbackSubmit}
+              >
+                {feedbackSaving ? 'Submitting...' : 'Submit Rating'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   ) : null;
@@ -1004,23 +1176,46 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                 </div>
 
                 <div className="kiosk-intake-grid kiosk-intake-grid--two">
-                  <label className="kiosk-intake-field">
-                    <span>Requested Document *</span>
-                    <select
-                      name="document"
-                      value={intakeForm.document}
-                      onChange={event => {
-                        const val = event.target.value;
-                        setIntakeForm(prev => ({ ...prev, document: val, customDocument: val === OTHER_DOCUMENT_VALUE ? prev.customDocument : '' }));
-                      }}
-                      required
-                      className="kiosk-intake-select"
-                    >
-                      <option value="">Select</option>
-                      {documentOptions.map(option => <option key={option} value={option}>{option}</option>)}
-                      <option value={OTHER_DOCUMENT_VALUE}>Other documents...</option>
-                    </select>
-                    {intakeForm.document === OTHER_DOCUMENT_VALUE && (
+                  <div className="kiosk-intake-field">
+                    <span>Requested Documents * <em style={{ fontWeight: 400, color: '#64748b' }}>(select one or more)</em></span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 1rem', marginTop: '0.35rem' }}>
+                      {documentOptions.map(option => (
+                        <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={intakeForm.documents.includes(option)}
+                            onChange={() => {
+                              setIntakeForm(prev => {
+                                const next = prev.documents.includes(option)
+                                  ? prev.documents.filter(d => d !== option)
+                                  : [...prev.documents, option];
+                                return { ...prev, documents: next };
+                              });
+                            }}
+                            style={{ accentColor: '#2563eb', width: '1rem', height: '1rem', flexShrink: 0 }}
+                          />
+                          {option}
+                        </label>
+                      ))}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={intakeForm.documents.includes(OTHER_DOCUMENT_VALUE)}
+                          onChange={() => {
+                            setIntakeForm(prev => {
+                              const has = prev.documents.includes(OTHER_DOCUMENT_VALUE);
+                              const next = has
+                                ? prev.documents.filter(d => d !== OTHER_DOCUMENT_VALUE)
+                                : [...prev.documents, OTHER_DOCUMENT_VALUE];
+                              return { ...prev, documents: next, customDocument: has ? '' : prev.customDocument };
+                            });
+                          }}
+                          style={{ accentColor: '#2563eb', width: '1rem', height: '1rem', flexShrink: 0 }}
+                        />
+                        Other documents...
+                      </label>
+                    </div>
+                    {intakeForm.documents.includes(OTHER_DOCUMENT_VALUE) && (
                       <input
                         type="text"
                         name="customDocument"
@@ -1032,7 +1227,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                         required
                       />
                     )}
-                  </label>
+                  </div>
                   <label className="kiosk-intake-field">
                     <span>Purpose *</span>
                     <textarea
@@ -1047,7 +1242,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                   </label>
                 </div>
 
-                {CLEARANCE_DOCUMENTS.includes(intakeForm.document) && (
+                {intakeForm.documents.some(d => CLEARANCE_DOCUMENTS.includes(d)) && (
                   <div className="kiosk-intake-grid kiosk-intake-grid--two">
                     <label className="kiosk-intake-field">
                       <span>CTC / Cedula Number</span>
@@ -1060,15 +1255,18 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                   </div>
                 )}
 
-                {intakeForm.document ? (
+                {intakeForm.documents.length > 0 ? (
                   <div className="kiosk-intake-note kiosk-intake-note--info">
                     <strong>Price review</strong>
                     <div className="kiosk-price-lines">
-                      <div><span>Document: </span><span>{intakeSelectedPrice !== null ? formatCurrency(intakeSelectedPrice) : 'Not set'}</span></div>
+                      {intakeDocsWithPrices.map(({ doc, price }) => (
+                        <div key={doc}><span>{doc}: </span><span>{price !== null && price !== undefined ? formatCurrency(price) : 'Not set'}</span></div>
+                      ))}
                       <div><span>Service fee: </span><span>{formatCurrency(serviceFee)}</span></div>
                       <div><span>SMS fee: </span><span>{formatCurrency(smsFee)}</span></div>
-                      <div><span>Total: </span><span>{intakeTotalPrice !== null ? formatCurrency(intakeTotalPrice) : 'Not set'}</span></div>
+                      <div><span>Total: </span><span>{intakeTotalPrice !== null ? formatCurrency(intakeTotalPrice) : 'Not set'}{anyIntakePriceUnset ? ' *' : ''}</span></div>
                     </div>
+                    {anyIntakePriceUnset ? <p style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.25rem' }}>* Some document prices are not set.</p> : null}
                     <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#b45309', lineHeight: 1.4 }}>
                       <strong>Note:</strong> SMS notifications are currently available only for <strong>Globe</strong> and <strong>TM</strong> subscribers. Smart, TNT, and DITO numbers will not receive SMS.
                     </p>
@@ -1126,20 +1324,23 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                 <div><span>Religion</span><strong>{intakeReviewData?.religion || '—'}</strong></div>
                 <div><span>Email</span><strong>{intakeReviewData?.email || '—'}</strong></div>
                 <div><span>Telephone</span><strong>{intakeReviewData?.telephone || '—'}</strong></div>
-                <div><span>Document</span><strong>{intakeReviewData?.document || '—'}</strong></div>
+                <div><span>Documents</span><strong>{intakeReviewData?.documents?.join(', ') || '—'}</strong></div>
                 <div><span>Purpose</span><strong>{intakeReviewData?.purpose || '—'}</strong></div>
                 {intakeReviewData?.ctcNumber ? <div><span>CTC / Cedula No.</span><strong>{intakeReviewData.ctcNumber}</strong></div> : null}
                 {intakeReviewData?.ctcDate ? <div><span>CTC Date Issued</span><strong>{intakeReviewData.ctcDate}</strong></div> : null}
               </div>
-              {intakeForm.document ? (
+              {intakeForm.documents.length > 0 ? (
                 <div className="kiosk-intake-note kiosk-intake-note--info" style={{ marginTop: '1rem' }}>
                   <strong>Price review</strong>
                   <div className="kiosk-price-lines">
-                    <div><span>Document: </span><span>{intakeSelectedPrice !== null ? formatCurrency(intakeSelectedPrice) : 'Not set'}</span></div>
+                    {intakeDocsWithPrices.map(({ doc, price }) => (
+                      <div key={doc}><span>{doc}: </span><span>{price !== null && price !== undefined ? formatCurrency(price) : 'Not set'}</span></div>
+                    ))}
                     <div><span>Service fee: </span><span>{formatCurrency(serviceFee)}</span></div>
                     <div><span>SMS fee: </span><span>{formatCurrency(smsFee)}</span></div>
-                    <div><span>Total: </span><span>{intakeTotalPrice !== null ? formatCurrency(intakeTotalPrice) : 'Not set'}</span></div>
+                    <div><span>Total: </span><span>{intakeTotalPrice !== null ? formatCurrency(intakeTotalPrice) : 'Not set'}{anyIntakePriceUnset ? ' *' : ''}</span></div>
                   </div>
+                  {anyIntakePriceUnset ? <p style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.25rem' }}>* Some document prices are not set.</p> : null}
                   <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#b45309', lineHeight: 1.4 }}>
                     <strong>Note:</strong> SMS notifications are currently available only for <strong>Globe</strong> and <strong>TM</strong> subscribers. Smart, TNT, and DITO numbers will not receive SMS.
                   </p>
@@ -1280,27 +1481,46 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                       <strong>{selectedResident?.telephone || selectedResident?.email || 'N/A'}</strong>
                     </div>
                   </div>
-                  <label className="kiosk-intake-field">
-                    <span>Requested Document *</span>
-                    <select
-                      name="document"
-                      value={requestForm.document}
-                      onChange={event => {
-                        const val = event.target.value;
-                        setRequestForm(prev => ({ ...prev, document: val, customDocument: val === OTHER_DOCUMENT_VALUE ? prev.customDocument : '' }));
-                      }}
-                      required
-                      className="kiosk-intake-select"
-                    >
-                      <option value="">Select</option>
+                  <div className="kiosk-intake-field">
+                    <span>Requested Documents * <em style={{ fontWeight: 400, color: '#64748b' }}>(select one or more)</em></span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 1rem', marginTop: '0.35rem' }}>
                       {documentOptions.map(option => (
-                        <option key={option} value={option}>
+                        <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={requestForm.documents.includes(option)}
+                            onChange={() => {
+                              setRequestForm(prev => {
+                                const next = prev.documents.includes(option)
+                                  ? prev.documents.filter(d => d !== option)
+                                  : [...prev.documents, option];
+                                return { ...prev, documents: next };
+                              });
+                            }}
+                            style={{ accentColor: '#2563eb', width: '1rem', height: '1rem', flexShrink: 0 }}
+                          />
                           {option}
-                        </option>
+                        </label>
                       ))}
-                      <option value={OTHER_DOCUMENT_VALUE}>Other documents...</option>
-                    </select>
-                    {requestForm.document === OTHER_DOCUMENT_VALUE && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={requestForm.documents.includes(OTHER_DOCUMENT_VALUE)}
+                          onChange={() => {
+                            setRequestForm(prev => {
+                              const has = prev.documents.includes(OTHER_DOCUMENT_VALUE);
+                              const next = has
+                                ? prev.documents.filter(d => d !== OTHER_DOCUMENT_VALUE)
+                                : [...prev.documents, OTHER_DOCUMENT_VALUE];
+                              return { ...prev, documents: next, customDocument: has ? '' : prev.customDocument };
+                            });
+                          }}
+                          style={{ accentColor: '#2563eb', width: '1rem', height: '1rem', flexShrink: 0 }}
+                        />
+                        Other documents...
+                      </label>
+                    </div>
+                    {requestForm.documents.includes(OTHER_DOCUMENT_VALUE) && (
                       <input
                         type="text"
                         value={requestForm.customDocument}
@@ -1311,22 +1531,25 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
                         required
                       />
                     )}
-                  </label>
-                    {requestForm.document ? (
+                  </div>
+                    {requestForm.documents.length > 0 ? (
                       <div className="kiosk-intake-note kiosk-intake-note--info">
                         <strong>Price review</strong>
                         <div className="kiosk-price-lines">
-                          <div><span>Document: </span><span>{selectedPrice !== null ? formatCurrency(selectedPrice) : 'Not set'}</span></div>
+                          {selectedDocsWithPrices.map(({ doc, price }) => (
+                            <div key={doc}><span>{doc}: </span><span>{price !== null && price !== undefined ? formatCurrency(price) : 'Not set'}</span></div>
+                          ))}
                           <div><span>Service fee: </span><span>{formatCurrency(serviceFee)}</span></div>
                           <div><span>SMS fee: </span><span>{formatCurrency(smsFee)}</span></div>
-                          <div><span>Total: </span><span>{totalPrice !== null ? formatCurrency(totalPrice) : 'Not set'}</span></div>
+                          <div><span>Total: </span><span>{totalPrice !== null ? formatCurrency(totalPrice) : 'Not set'}{anyRequestPriceUnset ? ' *' : ''}</span></div>
                         </div>
+                        {anyRequestPriceUnset ? <p style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.25rem' }}>* Some document prices are not set.</p> : null}
                         <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#b45309', lineHeight: 1.4 }}>
                           <strong>Note:</strong> SMS notifications are currently available only for <strong>Globe</strong> and <strong>TM</strong> subscribers. Smart, TNT, and DITO numbers will not receive SMS.
                         </p>
                       </div>
                     ) : null}
-                  {CLEARANCE_DOCUMENTS.includes(requestForm.document) && (
+                  {requestForm.documents.some(d => CLEARANCE_DOCUMENTS.includes(d)) && (
                     <div className="kiosk-intake-grid kiosk-intake-grid--two">
                       <label className="kiosk-intake-field">
                         <span>CTC / Cedula Number</span>
