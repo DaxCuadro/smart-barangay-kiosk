@@ -97,13 +97,22 @@ export default function SurveyModal({
 
   return (
     <div
-      className={isKiosk ? 'kiosk-confirm-modal' : 'resident-modal-backdrop'}
+      className={isKiosk ? 'kiosk-confirm-modal' : undefined}
       role="dialog"
       aria-modal="true"
-      style={isKiosk ? {} : { zIndex: 9999 }}
+      style={isKiosk ? {} : {
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(15, 23, 42, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.5rem',
+        zIndex: 9999,
+      }}
     >
       <div
-        className={isKiosk ? 'kiosk-confirm-card' : 'resident-modal'}
+        className={isKiosk ? 'kiosk-confirm-card' : undefined}
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: isKiosk ? '720px' : '600px',
@@ -112,6 +121,12 @@ export default function SurveyModal({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          ...(!isKiosk ? {
+            background: '#fff',
+            borderRadius: '24px',
+            border: '1px solid rgba(226, 232, 240, 0.9)',
+            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.25)',
+          } : {}),
         }}
       >
         {/* Header */}
