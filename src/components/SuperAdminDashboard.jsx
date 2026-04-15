@@ -5,6 +5,7 @@ import ConfirmDialog from './ui/ConfirmDialog';
 import ChatPanel from './ui/ChatPanel';
 import DailySummaryPanel from './ui/DailySummaryPanel';
 import ThesisDocumentsTab from './admin-dashboard-tabs/ThesisDocumentsTab';
+import SurveyResponsesTab from './admin-dashboard-tabs/SurveyResponsesTab';
 import { useToast } from '../hooks/useToast';
 
 const SUPERADMIN_TABS = [
@@ -18,6 +19,7 @@ const SUPERADMIN_TABS = [
   { key: 'documents', label: 'Documents' },
   { key: 'audit', label: 'Audit Log' },
   { key: 'feedback', label: 'Feedback' },
+  { key: 'surveys', label: 'Surveys' },
   { key: 'cleanup', label: 'Data Cleanup' },
   { key: 'access', label: 'Access & Security' },
   { key: 'thesis-docs', label: 'Thesis Docs' },
@@ -32,6 +34,7 @@ const CLEANUP_CATEGORIES = [
   { key: 'events', label: 'Calendar Events', table: 'admin_events', description: 'All calendar events added by admins' },
   { key: 'residents', label: 'Residents', table: 'residents', description: 'All registered residents (also removes linked requests, releases, feedback)' },
   { key: 'audit_logs', label: 'Audit Logs', table: 'audit_logs', description: 'All audit log entries (superadmin action history)' },
+  { key: 'surveys', label: 'Survey Responses', table: 'survey_responses', description: 'All anonymous survey responses (pre and post usage)' },
 ];
 
 /* ── Audit helper ─────────────────────────────────────────────── */
@@ -227,6 +230,15 @@ export default function SuperAdminDashboard({ onLogout }) {
   const [feedbackSearch, setFeedbackSearch] = useState('');
   const [feedbackRatingFilter, setFeedbackRatingFilter] = useState('all');
   const [feedbackBarangayFilter, setFeedbackBarangayFilter] = useState('all');
+  const [feedbackSourceFilter, setFeedbackSourceFilter] = useState('all');
+
+  // ── Manual Rating state ──
+  const [manualRateOpen, setManualRateOpen] = useState(false);
+  const [unratedItems, setUnratedItems] = useState([]);
+  const [unratedLoading, setUnratedLoading] = useState(false);
+  const [manualRatings, setManualRatings] = useState({}); // id → { rating, comment }
+  const [manualRateSaving, setManualRateSaving] = useState(false);
+  const [manualRateBarangay, setManualRateBarangay] = useState('all');
 
   // ── Data Cleanup state ──
   const [cleanupBarangayId, setCleanupBarangayId] = useState('');
@@ -613,18 +625,120 @@ export default function SuperAdminDashboard({ onLogout }) {
     return allFeedback.filter(item => {
       if (feedbackRatingFilter !== 'all' && String(item.rating) !== feedbackRatingFilter) return false;
       if (feedbackBarangayFilter !== 'all' && item.barangay_id !== feedbackBarangayFilter) return false;
+      if (feedbackSourceFilter !== 'all' && item._source !== feedbackSourceFilter) return false;
       if (!q) return true;
       return [item._document, item._name, item.comment].join(' ').toLowerCase().includes(q);
     });
-  }, [allFeedback, feedbackSearch, feedbackRatingFilter, feedbackBarangayFilter]);
+  }, [allFeedback, feedbackSearch, feedbackRatingFilter, feedbackBarangayFilter, feedbackSourceFilter]);
 
   const feedbackStats = useMemo(() => {
-    if (!allFeedback.length) return { avg: 0, total: 0, distribution: [0, 0, 0, 0, 0] };
+    if (!filteredFeedback.length) return { avg: 0, total: 0, distribution: [0, 0, 0, 0, 0] };
     const dist = [0, 0, 0, 0, 0];
     let sum = 0;
-    allFeedback.forEach(item => { sum += item.rating; dist[item.rating - 1] += 1; });
-    return { avg: sum / allFeedback.length, total: allFeedback.length, distribution: dist };
-  }, [allFeedback]);
+    filteredFeedback.forEach(item => { sum += item.rating; dist[item.rating - 1] += 1; });
+    return { avg: sum / filteredFeedback.length, total: filteredFeedback.length, distribution: dist };
+  }, [filteredFeedback]);
+
+  /* ── Manual Rating: load unrated items ───────────────────────── */
+  const loadUnratedItems = useCallback(async () => {
+    setUnratedLoading(true);
+    // Fetch release_logs and kiosk_feedback + resident_feedback IDs in parallel
+    const [releasesRes, kioskFbRes, residentFbRes, intakeRes, kioskFbReqRes] = await Promise.all([
+      supabase.from('release_logs')
+        .select('id, barangay_id, resident_id, document, resident_name, released_at')
+        .order('released_at', { ascending: false })
+        .limit(500),
+      supabase.from('kiosk_feedback')
+        .select('request_id')
+        .not('request_id', 'is', null),
+      supabase.from('resident_feedback')
+        .select('release_log_id'),
+      supabase.from('resident_intake_requests')
+        .select('id, barangay_id, document, first_name, last_name, created_at, status')
+        .order('created_at', { ascending: false })
+        .limit(500),
+      supabase.from('kiosk_feedback')
+        .select('request_id')
+        .not('request_id', 'is', null),
+    ]);
+
+    const ratedReleaseIds = new Set((residentFbRes.data || []).map(r => r.release_log_id));
+    const ratedRequestIds = new Set((kioskFbReqRes.data || []).map(r => r.request_id));
+
+    const unratedReleases = (releasesRes.data || [])
+      .filter(r => !ratedReleaseIds.has(r.id))
+      .map(r => ({
+        _id: `release-${r.id}`,
+        _type: 'release',
+        _dbId: r.id,
+        barangay_id: r.barangay_id,
+        resident_id: r.resident_id,
+        name: r.resident_name || 'Resident',
+        document: r.document || 'Document',
+        date: r.released_at,
+      }));
+
+    const unratedIntake = (intakeRes.data || [])
+      .filter(r => !ratedRequestIds.has(r.id))
+      .map(r => ({
+        _id: `intake-${r.id}`,
+        _type: 'intake',
+        _dbId: r.id,
+        barangay_id: r.barangay_id,
+        name: [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Walk-in',
+        document: r.document || 'Document',
+        date: r.created_at,
+        status: r.status,
+      }));
+
+    setUnratedItems([...unratedReleases, ...unratedIntake].sort((a, b) => new Date(b.date) - new Date(a.date)));
+    setUnratedLoading(false);
+  }, [supabase]);
+
+  const filteredUnrated = useMemo(() => {
+    if (manualRateBarangay === 'all') return unratedItems;
+    return unratedItems.filter(i => i.barangay_id === manualRateBarangay);
+  }, [unratedItems, manualRateBarangay]);
+
+  async function submitManualRatings() {
+    const entries = Object.entries(manualRatings).filter(([, v]) => v.rating > 0);
+    if (!entries.length) { addToast('No ratings to submit. Click the stars first.', 'error'); return; }
+    setManualRateSaving(true);
+    let ok = 0;
+    let fail = 0;
+    for (const [itemId, { rating, comment }] of entries) {
+      const item = unratedItems.find(i => i._id === itemId);
+      if (!item) continue;
+      let error;
+      if (item._type === 'release' && item.resident_id) {
+        // Insert into resident_feedback so it shows as rated on the resident portal
+        ({ error } = await supabase.from('resident_feedback').insert({
+          release_log_id: item._dbId,
+          resident_id: item.resident_id,
+          barangay_id: item.barangay_id,
+          rating,
+          comment: (comment || '').trim(),
+        }));
+      } else {
+        // Kiosk intake or release without resident_id — use kiosk_feedback
+        ({ error } = await supabase.from('kiosk_feedback').insert({
+          barangay_id: item.barangay_id,
+          request_id: item._type === 'intake' ? item._dbId : null,
+          resident_name: item.name,
+          document: item.document,
+          rating,
+          comment: (comment || '').trim(),
+        }));
+      }
+      if (error) { fail++; } else { ok++; }
+    }
+    setManualRateSaving(false);
+    if (ok) addToast(`${ok} rating${ok > 1 ? 's' : ''} saved.`, 'success');
+    if (fail) addToast(`${fail} failed to save.`, 'error');
+    setManualRatings({});
+    loadUnratedItems();
+    loadAllFeedback();
+  }
 
   /* ── Feature 5: Global Search ────────────────────────────────── */
   const handleGlobalSearch = useCallback(async (query) => {
@@ -3247,6 +3361,9 @@ export default function SuperAdminDashboard({ onLogout }) {
                 <p className="text-sm text-gray-500">All ratings submitted by residents across barangays.</p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <button type="button" className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100" onClick={() => { setManualRateOpen(o => !o); if (!unratedItems.length) loadUnratedItems(); }}>
+                  {manualRateOpen ? 'Close Manual Rate' : '⭐ Manual Rate'}
+                </button>
                 <button type="button" className="rounded-full border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50" onClick={loadAllFeedback} disabled={feedbackLoading}>
                   {feedbackLoading ? 'Loading…' : 'Refresh'}
                 </button>
@@ -3320,11 +3437,90 @@ export default function SuperAdminDashboard({ onLogout }) {
                 <option value="all">All ratings</option>
                 {[5, 4, 3, 2, 1].map(r => (<option key={r} value={String(r)}>{r} star{r > 1 ? 's' : ''}</option>))}
               </select>
+              <select value={feedbackSourceFilter} onChange={e => setFeedbackSourceFilter(e.target.value)} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900">
+                <option value="all">All sources</option>
+                <option value="release">Remote</option>
+                <option value="kiosk">Kiosk</option>
+              </select>
               <select value={feedbackBarangayFilter} onChange={e => setFeedbackBarangayFilter(e.target.value)} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900">
                 <option value="all">All barangays</option>
                 {barangays.map(b => (<option key={b.id} value={b.id}>{b.name}</option>))}
               </select>
             </div>
+
+            {/* ─── Manual Rating Panel ─── */}
+            {manualRateOpen ? (
+              <div className="mt-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/30 p-4">
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">Manual Rate Unrated Requests</h3>
+                    <p className="text-xs text-gray-500">Click stars to rate, then submit all at once.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select value={manualRateBarangay} onChange={e => setManualRateBarangay(e.target.value)} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-900">
+                      <option value="all">All barangays</option>
+                      {barangays.map(b => (<option key={b.id} value={b.id}>{b.name}</option>))}
+                    </select>
+                    <button type="button" className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100" onClick={loadUnratedItems} disabled={unratedLoading}>
+                      {unratedLoading ? 'Loading…' : 'Refresh'}
+                    </button>
+                    {Object.values(manualRatings).some(v => v.rating > 0) ? (
+                      <button type="button" className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700" onClick={submitManualRatings} disabled={manualRateSaving}>
+                        {manualRateSaving ? 'Saving…' : `Submit ${Object.values(manualRatings).filter(v => v.rating > 0).length} Rating${Object.values(manualRatings).filter(v => v.rating > 0).length !== 1 ? 's' : ''}`}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                {unratedLoading ? (
+                  <p className="text-xs text-gray-400">Loading unrated requests…</p>
+                ) : filteredUnrated.length ? (
+                  <div className="max-h-96 overflow-y-auto space-y-1.5">
+                    {filteredUnrated.map(item => {
+                      const brgyName = barangays.find(b => b.id === item.barangay_id)?.name || '';
+                      const cur = manualRatings[item._id] || { rating: 0, comment: '' };
+                      return (
+                        <div key={item._id} className={`rounded-xl border px-3 py-2 transition-colors ${cur.rating > 0 ? 'border-emerald-200 bg-emerald-50' : 'border-gray-100 bg-white'}`}>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {item.document}
+                                {brgyName ? ` · ${brgyName}` : ''}
+                                {item.status ? ` · ${item.status}` : ''}
+                                <span className="ml-1 text-gray-400">{formatTimestamp(item.date)}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => setManualRatings(prev => ({ ...prev, [item._id]: { ...prev[item._id], rating: star, comment: prev[item._id]?.comment || '' } }))}
+                                  className="text-xl leading-none transition-colors"
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: star <= cur.rating ? '#f59e0b' : '#d1d5db', padding: '2px' }}
+                                  aria-label={`${star} star`}
+                                >★</button>
+                              ))}
+                            </div>
+                            {cur.rating > 0 ? (
+                              <input
+                                type="text"
+                                placeholder="Comment (optional)"
+                                value={cur.comment}
+                                onChange={e => setManualRatings(prev => ({ ...prev, [item._id]: { ...prev[item._id], comment: e.target.value } }))}
+                                className="w-40 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 placeholder:text-gray-400"
+                              />
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 py-2">No unrated requests found. All requests have been rated!</p>
+                )}
+              </div>
+            ) : null}
 
             {/* Feedback list */}
             {feedbackLoading ? (
@@ -3375,6 +3571,11 @@ export default function SuperAdminDashboard({ onLogout }) {
               </p>
             )}
           </section>
+        ) : null}
+
+        {/* ── Surveys Tab ── */}
+        {activeTab === 'surveys' ? (
+          <SurveyResponsesTab supabase={supabase} barangays={barangays} addToast={addToast} />
         ) : null}
 
         {/* ── Feature 1: Audit Log Tab ── */}

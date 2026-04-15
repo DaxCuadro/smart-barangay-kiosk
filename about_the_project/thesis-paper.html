@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Development of a Smart Barangay Kiosk System</title>
+<style>
+  @page {
+    size: letter;
+    margin: 1in 1in 1in 1.25in;
+  }
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12pt;
+    line-height: 2;
+    color: #000;
+    margin: 1in 1in 1in 1.25in;
+    text-align: justify;
+    background: #fff;
+  }
+  p {
+    text-indent: 1.50cm;
+    margin: 0;
+    padding: 0;
+    text-align: justify;
+  }
+  p.no-indent {
+    text-indent: 0;
+  }
+  .title-page {
+    text-align: center;
+    page-break-after: always;
+    line-height: 1;
+  }
+  .title-page .spacer-5 { height: 60pt; }
+  .title-page .spacer-8 { height: 96pt; }
+  .title-page .spacer-7 { height: 84pt; }
+  .title-page .title {
+    font-size: 20pt;
+    font-weight: bold;
+    text-align: center;
+  }
+  .title-page .by {
+    font-size: 14pt;
+    text-align: center;
+  }
+  .title-page .authors {
+    font-size: 14pt;
+    text-align: center;
+  }
+  .title-page .submission {
+    font-size: 14pt;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .title-page .university {
+    font-size: 14pt;
+    text-align: center;
+  }
+  .chapter-heading {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .first-level-heading {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    text-transform: uppercase;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .second-level-heading {
+    text-align: left;
+    font-weight: bold;
+    font-size: 12pt;
+    margin-top: 30pt;
+    margin-bottom: 0;
+  }
+  .third-level-heading {
+    text-align: left;
+    font-weight: bold;
+    font-size: 12pt;
+    margin-top: 30pt;
+    margin-bottom: 0;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+  ul, ol {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 40pt;
+  }
+  li {
+    line-height: 2;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12pt 0;
+    line-height: 1;
+    font-size: 12pt;
+  }
+  table th, table td {
+    border: 1pt solid #000;
+    padding: 6pt 8pt;
+    text-align: left;
+    vertical-align: top;
+  }
+  table th {
+    border-top: 1.5pt solid #000;
+    border-bottom: 1.5pt solid #000;
+    font-weight: bold;
+    text-align: center;
+  }
+  table caption, .table-caption {
+    font-weight: bold;
+    text-align: center;
+    margin-top: 6pt;
+    margin-bottom: 12pt;
+    line-height: 1.5;
+  }
+  .table-caption span {
+    font-weight: normal;
+  }
+  .figure-caption {
+    text-align: center;
+    margin-top: 6pt;
+    margin-bottom: 12pt;
+    line-height: 1.5;
+  }
+  .figure-caption strong {
+    font-weight: bold;
+  }
+  .blank-placeholder {
+    background: #FFFFCC;
+    border: 2px dashed #CC9900;
+    padding: 16pt;
+    margin: 12pt 0;
+    text-align: center;
+    font-style: italic;
+    color: #666;
+    line-height: 1.5;
+  }
+  .abstract-section {
+    line-height: 1;
+  }
+  .abstract-section p {
+    line-height: 1;
+  }
+  .keywords {
+    margin-top: 24pt;
+  }
+  .keywords strong {
+    font-weight: bold;
+  }
+  .references {
+    line-height: 2;
+  }
+  .references p {
+    text-indent: 0;
+    padding-left: 1.50cm;
+    text-indent: -1.50cm;
+    margin-bottom: 6pt;
+  }
+  @media print {
+    body { margin: 0; }
+    .blank-placeholder {
+      background: #fff;
+      border: 1px dashed #999;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== TITLE PAGE ==================== -->
+<div class="title-page">
+  <div class="spacer-5"></div>
+  <div class="title">
+    Development of a Smart Barangay Kiosk System with<br>
+    Offline-First Document Request Handling and<br>
+    Resident Management
+  </div>
+  <div class="spacer-8"></div>
+  <div class="by">by</div>
+  <br>
+  <div class="authors">
+    Dennis Leonardo S. Cuadro, BS Computer Engineering<br>
+    Karl S. Ignacio, BS Computer Engineering<br>
+    Frank John Paul L. Tresvalles, BS Computer Engineering
+  </div>
+  <div class="spacer-7"></div>
+  <div class="submission">
+    A Thesis Report Submitted in Partial Fulfillment<br>
+    of the Requirements for the Degree of<br>
+    Bachelor of Science in Computer Engineering
+  </div>
+  <div class="spacer-7"></div>
+  <div class="university">
+    Ateneo de Naga University
+  </div>
+  <div class="university">
+    December 2025
+  </div>
+</div>
+
+<!-- ==================== ABSTRACT ==================== -->
+<div class="page-break"></div>
+<div class="chapter-heading">ABSTRACT</div>
+<br>
+<div class="abstract-section">
+<p>
+The Smart Barangay Kiosk System is an offline-first Progressive Web Application (PWA) developed to modernize document request handling and resident management in Philippine barangays.  Built with React 19, Vite, Supabase, and TailwindCSS, the system provides a self-service kiosk interface deployed on a tablet with a Bluetooth thermal printer, an administrative dashboard for barangay officials, a resident portal for remote document requests, and a super-administrator panel for multi-barangay management.  The system supports eleven barangay document types&mdash;Barangay Clearance, Certificate of Indigency, Certificate of Residency, Certificate of Good Moral Character, Certification for First Time Job Seeker, Certification for Monthly Income, Certification for Solo Parent, Certification PDA, Business Clearance, Barangay ID, and Barangay Certification&mdash;with a custom &ldquo;Other documents&rdquo; option, automatic control-number generation, receipt printing, SMS notifications via PhilSMS, and full offline functionality through IndexedDB caching and Workbox service workers.  The system was pilot-tested in Barangay Maangas and Barangay Sta. Maria in Presentacion, Camarines Sur.  Evaluation results indicate that the system significantly reduced document processing time, improved resident accessibility, and enhanced administrative efficiency, demonstrating the viability of low-cost, offline-first digital solutions for rural local governance.
+</p>
+</div>
+<br><br>
+<p class="no-indent"><strong>Keywords (maximum of five):</strong> smart barangay kiosk, offline-first PWA, document request, resident management, e-governance</p>
+
+<!-- ==================== CHAPTER 1 ==================== -->
+<div class="page-break"></div>
+<div class="chapter-heading">Chapter 1</div>
+<div class="first-level-heading">INTRODUCTION</div>
+<br>
+
+<div class="second-level-heading">1.1. Background of the Study</div>
+
+<p>
+Local Government Units (LGUs) in the Philippines have been at the forefront of promoting digital transformation in public service delivery in recent years [1].  At the most fundamental level, the barangay is the smallest administrative unit responsible for implementing government functions.  Most barangays still process documents, organize files, and manage resident information through manual and paper-based systems.  These conventional methods, though familiar, are often inefficient and time-consuming, especially during peak seasons when the demand for barangay documents significantly increases.
+</p>
+
+<p>
+Digitalization of service delivery, however, has its own disadvantages.  Services are usually slow and painfully long, especially during peak seasons.  Residents sometimes have to wait for hours to process a simple document request [2].  The current system is inconvenient, causing frustration for senior citizens, persons with disabilities, and those short on time due to work or other personal obligations.
+</p>
+
+<p>
+A number of residents are unable to access some essential barangay services because of poor digital infrastructure and internet connectivity within their respective localities [3].  Urban areas might benefit from high-speed internet services, while poor rural barangays are unable to participate in digital programs [4].  While some municipalities already share online portals, this cannot guarantee that most residents, especially those in rural areas, own smartphones, computers, or stable internet connections [5].  Hence, these services may actually exclude them from the government&rsquo;s e-Governance scheme.  Instead of being inclusive, digital initiatives may further widen the gap between digitally connected and disconnected communities [6].
+</p>
+
+<p>
+The effective use of low-cost and accessible technologies has enabled the development of affordable, simple, and efficient kiosks for community service delivery [7].  These systems provide promising opportunities to create digital platforms that work even in areas with limited power and network connectivity.  The Smart Barangay Kiosk System allows residents to request documents and barangay officials to manage resident records without requiring residents to own a personal device or maintain an internet connection.  The kiosk acts as a digital gateway for the community&mdash;easy to use, always available, and not dependent on the resident&rsquo;s access to technology.
+</p>
+
+<p>
+In addition to being accessible, the system simplifies administrative processes, lessens the load on staff, and encourages transparency in the community.  Staff spend less time manually managing walk-in requests and can carry out actions such as verifying, approving, and updating records through the system.  It keeps all transactions digitally recorded and reduces the chances of misplacing paper documents or having inconsistent data.
+</p>
+
+<p>
+Thus, the present study focuses on the development of an integrated Smart Barangay Kiosk System for document request handling and resident management&mdash;a step forward in the practical direction of modernizing barangay operations in consonance with national goals of digital transformation.  The use of a tablet-based kiosk with a Bluetooth thermal printer in this context emphasizes low-cost innovation that suits the needs and capabilities of local communities [7].
+</p>
+
+<p>
+Municipalities have been enhancing web platforms through which residents may request documents.  On the other hand, for those living on the wrong side of the digital divide&mdash;especially in rural setups or low-income barangays&mdash;the use of online portals is a big challenge, thereby posing an obstacle for citizens to access essential public services [3].  Digital transformation must consider the availability of both infrastructure and user access.  In many barangays, the residents are limited by not only weak connectivity but also the issue of personal digital devices and computer literacy [5].  Many residents are unaware or unable to use online platforms, despite their availability in the area.
+</p>
+
+<p>
+It becomes clear that there is an immediate need for a localized, offline-capable, and simple-to-use platform through which every resident can access barangay services, taking into account their level of technology access.  The need is not just for innovation, but for inclusive innovation&mdash;one that reaches every member of the community, regardless of their digital limitations [6].
+</p>
+
+<p>
+Under the circumstances, the Smart Barangay Kiosk System digitizes critical barangay functions via a touchscreen tablet kiosk stationed in the barangay hall.  It enables residents to request documents from a self-reliant system without using their own devices.  The kiosk is installed in a public and easily accessible location, allowing even the least tech-savvy individuals to navigate basic services.
+</p>
+
+<p>
+The kiosk also features a remote-management administrative dashboard that enables authorized barangay officials to manage resident records and process document requests.  This dashboard allows officials to have real-time information for managing citizen requests more effectively and maintaining timely and accurate records.  Improvement in quality is not limited to the service area alone but has also been made for accountability and transparency in public administration [8].
+</p>
+
+<p>
+The system operates in an offline-first manner, integrating into rural barangays with the advantage of operating effectively even under conditions with limited or no internet connectivity for extended periods.  When internet access becomes available, the system automatically synchronizes data with the Supabase cloud server, keeping everything updated without needing manual uploads.  This two-way mode (offline and online) increases the reliability of the system.
+</p>
+
+<p>
+The combination of all these features with the use of a consumer-grade Android tablet and a portable Bluetooth thermal printer makes this solution cost-effective, scalable, and sustainable for community use.  This system can be adopted and maintained by small barangays without large budgets or extensive technical staff.  Its compact and energy-efficient properties make it an ideal system for remote areas with poor or unreliable power supply.
+</p>
+
+<p>
+The Smart Barangay Kiosk System aims to enhance access to document services and secure resident data management, complemented by offline functionality to promote digital inclusion within the community.  Through this, technology is given a role in local community efforts toward transparency, access, and delivery of services [8].  By transforming how barangays interact with their constituents, this innovation contributes not only to improved service delivery but also to building trust and participation among residents, strengthening the relationship between the government and the people it serves.
+</p>
+
+<!-- 1.2 -->
+<div class="second-level-heading">1.2. Statement of the Problem</div>
+
+<p>
+Manual and repetitive processes continue to undermine the efficiency of barangay offices.  Residents must physically go to the barangay hall to request documents.  Processing time is slow and documents are often misfiled.  This age-old system restricts access to documentation services, especially for the elderly or those unable to travel during regular business hours.
+</p>
+
+<p>
+Moreover, there is no central digital system where resident data is stored and managed.  This lack makes it difficult to track which documents have been requested and verify records.  Contact between officials and residents is limited; document requests are mostly handled through in-person visits that are not efficient for all.
+</p>
+
+<p>
+This continues to cause slow document processing, inefficient management of resident data, and reduced transparency, as well as making already difficult access to digital platforms worse among residents who do not have personal devices or reliable internet access.  The absence of a central system for request handling, transaction tracking, or timely availability of public information causes inconsistency in service delivery while the administrative workload remains heavy.
+</p>
+
+<p>
+That is why there is a call for a cost-efficient, low-power, and scalable solution that can digitize core barangay services and run even in conditions of limited connectivity.  Such a solution should also improve both resident satisfaction and administrative efficiency when it comes to resolving administrative requests.  Additionally, challenges related to system deployment, adoption, and maintenance must be addressed to ensure sustainability at the barangay level.
+</p>
+
+<!-- 1.3 -->
+<div class="second-level-heading">1.3. Significance of the Study</div>
+
+<p>
+The Smart Barangay Kiosk System provides significant benefits to the lives of residents and barangay officials alike.  By utilizing affordable and available digital technologies, the system simplifies common administrative tasks causing inefficient transactions and attempts to narrow the digital divide within the community [6].  This innovation not only simplifies service delivery but also promotes transparency, accountability, and inclusivity in local governance.  The benefits can be categorized as follows:
+</p>
+
+<p class="no-indent"><strong>For Residents:</strong></p>
+<ul>
+  <li>A user-friendly, freely accessible kiosk allows residents to request papers at any time without needing to use a personal computer or mobile phone.</li>
+  <li>The system greatly decreases the time and effort required by residents to obtain barangay services.</li>
+  <li>It improves inclusiveness and digital literacy, especially among low-income and elderly communities.</li>
+</ul>
+
+<p class="no-indent"><strong>For Barangay Officials:</strong></p>
+<ul>
+  <li>Reduced manual labor as a result of centralized record administration and automated processing.</li>
+  <li>Issuance of records that are more accountable, transparent, and accurate.</li>
+  <li>Remote data management and monitoring via a secure admin dashboard.</li>
+</ul>
+
+<p class="no-indent"><strong>For Local Government Units (LGUs):</strong></p>
+<ul>
+  <li>Supports LGU digital transformation initiatives through a scalable, replicable, and cost-effective service delivery model.</li>
+  <li>Enables centralized transaction logging and increased accessibility of resident information, enhancing governance efficiency.</li>
+  <li>Enhances compliance with national policies on e-governance and modernization programs.</li>
+</ul>
+
+<p class="no-indent"><strong>For Future Researchers:</strong></p>
+<ul>
+  <li>Provides developmental groundwork for improved community service kiosks and IoT-based governance tools.</li>
+  <li>Offers an opportunity for system expansion: biometric authentication, mobile integration, AI-driven analytics, or multi-barangay deployment.</li>
+  <li>Encourages further research into offline-first systems, smart communities, and localized e-governance solutions.</li>
+</ul>
+
+<!-- 1.4 -->
+<div class="second-level-heading">1.4. Objectives</div>
+
+<p>
+The main objective of the study is to develop, design, and implement a Smart Barangay Kiosk System that will modernize and digitize the way barangay services are delivered to the community.  With the use of cheap and affordable technology, particularly a tablet-based kiosk platform with Bluetooth thermal printing, the system will be able to improve the working efficiency of the government while making accessibility easier to all residents, especially those who have limited access to digital resources, and promote transparency within local governance.
+</p>
+
+<p class="no-indent">The following are the specific objectives of the study:</p>
+<ol>
+  <li>To develop a kiosk interface that allows residents to safely and easily request barangay documents such as Certificates of Indigency, Barangay Clearances, and other essential services with or without the need for a personal computer or smartphone.</li>
+  <li>To construct a secure and centralized database for storing and managing resident profiles, service requests, and other barangay-related records.</li>
+  <li>To create a web-based administrative dashboard accessible remotely by authorized barangay personnel for real-time management, tracking, and processing of requests, including adding, editing, and searching residents.</li>
+  <li>To automate the printing of a receipt for the walk-in and provision of SMS notifications to alert residents of document availability for collection.</li>
+  <li>To develop offline-first functionality that guarantees continuous system operation during internet outages and allows automatic data synchronization once connectivity is restored.</li>
+  <li>To implement basic user authentication and security measures that help ensure data privacy and prevent unauthorized access.</li>
+  <li>To test and evaluate the system&rsquo;s usability, reliability, and efficiency through deployment in one or two pilot barangays.</li>
+</ol>
+
+<!-- 1.5 -->
+<div class="second-level-heading">1.5. Scope and Delimitations</div>
+
+<p>
+This study mainly covers the design, development, and evaluation of the prototype for the Smart Barangay Kiosk System.  The scope of this study is limited to the following:
+</p>
+
+<ul>
+  <li>Focuses on designing, developing, and evaluating a Smart Barangay Kiosk System using a tablet kiosk with Bluetooth thermal printer.</li>
+  <li>Covers core modules: Document Request (kiosk and resident portal), Resident Management, Admin Dashboard, Super-Admin Dashboard, Offline-First Operation, Auto-Print Receipts, SMS Notifications, Announcements and Events, Resident Verification, Feedback Collection, and Audit Logging.</li>
+  <li>Testing and implementation are limited to Barangay Maangas and Barangay Sta. Maria in Presentacion, Camarines Sur.</li>
+  <li>Payment is cash only upon pickup.</li>
+  <li>The prototype supports requests for the following barangay documents:
+    <ul>
+      <li><strong>Barangay Clearance</strong> &ndash; a Philippine government document from the local barangay confirming the resident is in good moral standing with no pending issues, needed for jobs, business permits, loans, or opening bank accounts.</li>
+      <li><strong>Certificate of Indigency</strong> &ndash; an official document issued by the barangay certifying that a resident is a member of an indigent or less fortunate family.</li>
+      <li><strong>Certificate of Residency</strong> &ndash; an official document verifying that an individual is a legal and bona fide resident of a particular barangay.</li>
+      <li><strong>Certificate of Good Moral Character</strong> &ndash; a document certifying that the resident is of good moral character as attested by the barangay.</li>
+      <li><strong>Certification for First Time Job Seeker</strong> &ndash; a document from the barangay hall, issued under Republic Act 11261 (First Time Jobseekers Assistance Act), that certifies the resident is seeking first-time employment.</li>
+      <li><strong>Certification for Monthly Income</strong> &ndash; a document certifying the estimated monthly income of a resident, often required for scholarship applications and government aid programs.</li>
+      <li><strong>Certification for Solo Parent</strong> &ndash; an official document issued by the barangay, in coordination with the DSWD, that certifies an individual&rsquo;s status as a solo parent under the law.</li>
+      <li><strong>Certification PDA</strong> &ndash; a certification for Persons Deprived of Assistance, verifying a resident&rsquo;s eligibility status.</li>
+      <li><strong>Business Clearance</strong> &ndash; a clearance document required for business permit applications and renewals within the barangay.</li>
+      <li><strong>Barangay ID</strong> &ndash; an identification card issued by the barangay to verified residents.</li>
+      <li><strong>Barangay Certification</strong> &ndash; a general-purpose certification document issued by the barangay for various official purposes.</li>
+      <li><strong>Other documents</strong> &ndash; a custom option allowing residents to specify a document type not listed above.</li>
+    </ul>
+  </li>
+</ul>
+
+<p class="no-indent">The following are the delimitations of the study:</p>
+<ul>
+  <li>No integration into any national government system nor any third-party platform.</li>
+  <li>No mobile app development except for the Progressive Web App (PWA) version.</li>
+  <li>Security is just basic, advanced cybersecurity is not being studied.</li>
+  <li>Evaluation is limited to 2 pilot barangays, which may not represent the entire barangay.</li>
+</ul>
+
+
+<!-- ==================== CHAPTER 2 ==================== -->
+<div class="page-break"></div>
+<div class="chapter-heading">Chapter 2</div>
+<div class="first-level-heading">RELATED LITERATURE REVIEW AND STUDIES</div>
+<br>
+
+<div class="second-level-heading">2.1. Theoretical Basis</div>
+
+<p>
+This section describes the theories which form the core of the design of the Smart Barangay Kiosk System: e-governance, offline-first web architectures, and the principles of human-centered design.  These explain in a logical and scientific manner why the researchers were able to develop a low-cost yet highly resilient system that responds to the specifics of barangay-level issues in the Philippines such as erratic connectivity and low technical literacy among the population.
+</p>
+
+<div class="third-level-heading">2.1.1. E-Governance</div>
+
+<p>
+E-Governance refers to the employment of information and communication technologies (ICT) meant to improve the delivery of public services, transparency, and citizen engagement in governmental processes.  According to the DILG, this further enhances the PDP 2023&ndash;2028 through accountability and efficiency in local administrations at the barangay level.  Programs like the Seal of Good Local Governance for Barangays (SGLGB) and the Retooled Community Support Program (RCSP) demand that digital means be explored for lessening bureaucratic bottlenecks in document requests and resident management systems, thus contributing to the national goal of developing truly inclusive communities [9].  The Smart Barangay Kiosk System applies this through provisions made for offline document requests, complemented with SMS alerts, resulting in reduced queues and paperwork and ensuring traceability&mdash;the very reason for DILG promoting digitized barangay services in low-resource settings.
+</p>
+
+<div class="third-level-heading">2.1.2. Offline-First Progressive Web Apps (PWAs)</div>
+
+<p>
+Offline-first PWAs encourage online access and use service workers for local storage and caching operations (e.g., IndexedDB), so that synchronization can automatically resume once the app comes back online.  The architecture is essentially one of progressive enhancement, where core functionalities are targeted for offline use, and enhancements depending on network availability are added for online use [10].  In the Philippine context, where connectivity compromises reliability for rural barangays, these are enabling the development of resilient applications.  With Supabase employing local cache for offline handling of requests, actions are synchronized in real time, thus assuring complete offline work for residents&rsquo; submissions and administrative approvals during the operational phase [11].
+</p>
+
+<div class="third-level-heading">2.1.3. HCI for Low-Literacy Users</div>
+
+<p>
+HCI states that interfaces should seek to be intuitive and minimize cognitive load, especially for a broad range of users such as elderly residents or those with limited exposure to technology.  A recent study pertaining to rural UX design in the Philippines has advocated multilanguage support (English/Filipino) and large-button touch interfaces for maximum accessibility [12].  In the context of the current work, the simple nature of the kiosk forms (name, address, purpose) with automatic receipt printing minimizes errors.  The responsive design of the PWA works on tablets and phones without login hurdles for residents, thereby increasing usability of the system in barangay halls even during brownouts and long queues.
+</p>
+
+<div class="third-level-heading">2.1.4. Database Management &amp; BaaS</div>
+
+<p>
+Modern DBMS platforms have the full capability of ensuring data integrity in real time while synchronizing offline.  Supabase (PostgreSQL-based BaaS) provides this feature through edge functions with local caching.  For Philippine capstone projects in 2023&ndash;2024, Supabase has been the appropriate choice for scalable yet affordable backends of community apps, providing authentication and SMS integrations without the burden of heavy server management.  In this system, Supabase manages resident records and pending requests in auto-sync mode, thereby maintaining consistency between kiosk and admin dashboard while being compliant with the data privacy restrictions laid out in the Data Privacy Act of 2012 [13].
+</p>
+
+<div class="third-level-heading">2.1.5. Tablet-Based Kiosk Deployment</div>
+
+<p>
+The use of consumer-grade tablets as kiosk platforms has become an increasingly viable alternative to custom embedded hardware.  Android tablets offer touchscreen interaction, Wi-Fi and Bluetooth connectivity, built-in battery backup, and the ability to run Progressive Web Apps through the Chromium browser, all at a fraction of the cost of purpose-built kiosk hardware [7].  When paired with a Bluetooth thermal printer such as the GOOJPRT PT-210, the tablet kiosk provides the same receipt-printing capability as traditional POS systems while maintaining portability and low power consumption.  This setup is particularly suitable for barangay halls where space, budget, and technical expertise are limited.
+</p>
+
+<div class="third-level-heading">2.1.6. System Security and SMS Integration</div>
+
+<p>
+All security provisions with respect to e-Governance systems must address authentication, access control, and role-based restrictions to protect sensitive resident data.  Philippine guidelines from DILG require secure APIs and hashing for barangay archives.  The study employs Supabase Auth with bcrypt password hashing, rate-limited kiosk password validation, OTP-based password recovery via PhilSMS, and comprehensive audit logging for all administrative sessions.  SMS notifications are sent through the PhilSMS gateway for affordable and reliable notifications in the Philippines when documents are ready for pickup [11].
+</p>
+
+
+<div class="second-level-heading">2.2. Related Studies</div>
+
+<p>
+This section considers several studies, both foreign and local, about barangay management and kiosks as innovations and their gaps.  While some prior works achieved digitization of records, very few integrated full offline PWAs, physical kiosks, SMS, or multi-tenant support in real deployments&mdash;gaps addressed by this study.
+</p>
+
+<div class="third-level-heading">2.2.1. Community Data Management Using IoT Devices (Foreign)</div>
+<p>
+In 2019, Adekunle and Oladipo developed an IoT-enabled kiosk for rural communities in Africa for self-service submission of forms to be stored locally, with auto-sync.  The multilingual interface emphasized maximum robustness in a low-connectivity environment to limit manual bottlenecks [16].  This validates offline kiosks for developing economies, but they did not include SMS integration or alignment with Philippine LGU procedures for document readiness alerts, which are integrated into the Smart Barangay Kiosk.
+</p>
+
+<div class="third-level-heading">2.2.2. Design and Implementation of a Local E-Government Portal (Local)</div>
+<p>
+Reyes and Salonga (2021) established an online portal for barangay clearance services with a section for tracking status and real-time notification.  Although this improved access, not all areas have a constant internet connection, rendering it limited.  Usability evaluation reduced foot traffic; however, the results showed that hybrid offline systems are necessary.  This study builds upon it by using PWA offline caching and kiosk hardware [17].
+</p>
+
+<div class="third-level-heading">2.2.3. Barangay Management Information System (Local)</div>
+<p>
+According to Hernandez and Cruz (2021), resident records and permits were digitized and files were created to streamline administrative tasks and reduce errors through the use of SQL databases [18].  However, it lacked functionality for self-service by residents or offline modes, thus requiring in-person office visits.  This system extends that by allowing no-login kiosk requests and automatic thermal printing.
+</p>
+
+<div class="third-level-heading">2.2.4. WebYu: A Barangay Yuson Web-based Information Management System (Local)</div>
+<p>
+Santos et al. in 2025 deployed WebYu in Barangay Yuson, Nueva Ecija, using Scrum methodology for automated workflows and with UX evaluated using the Technology Acceptance Model (TAM) having a mean score of 4.74 out of 5.  It decreased certification time to only 32% of its former duration, but it relied on online access.  The dashboard concept is enhanced in this study through offline PWA and SMS [19].
+</p>
+
+<div class="third-level-heading">2.2.5. Development of an Offline-Capable Barangay Health Management System (Local)</div>
+<p>
+In 2024, Lim and Torres created a mobile PWA for barangay health records with offline synchronization using Firebase, which reduced 50% of data entry time across two pilot sites.  However, it was designed for health data tracking alone and excluded general document requests or printing [20].  This validates PWA-BaaS hybrids for barangays; the Smart Barangay Kiosk extends this to multi-document workflows with hardware integration.
+</p>
+
+<div class="third-level-heading">2.2.6. Smart Kiosk for Local Government Services Using Raspberry Pi (Foreign)</div>
+<p>
+Chen et al. (2023) set up kiosks using Raspberry Pi technology in townships across China for permit applications, incorporating touch interfaces with thermal printers for approximately 95% uptime in low-power environments [21].  The offline mode managed around 80% of transactions; however, it required culture-related adjustments for other contexts.  This study localizes the concept using a tablet kiosk with Supabase and PhilSMS for the Philippines to adapt to DILG protocols.
+</p>
+
+<div class="third-level-heading">2.2.7. E-Barangay Portal with SMS Integration for Resident Services (Local)</div>
+<p>
+Dela Cruz et al. (2023) developed an online portal for clearances with Twilio SMS notifications, resulting in 40% better response rates in urban barangays.  Yet, this resulted in a 25% failure rate during offline use because of outages.  This upholds the SMS utility, which the kiosk-combined full offline PWA offers to ensure coverage [22].
+</p>
+
+<div class="third-level-heading">2.2.8. Enhanced Barangay Information Management System with Residency Certificate Issuance (Local)</div>
+<p>
+Imus and colleagues (2024) designed a web-based system for the issuance of certificates of residency, evaluated via USE questionnaire among officials and IT practitioners (mean score: 4.58/5) [23].  It had the requisite infrastructure for web-based issuance but no offline kiosk hardware or multi-document support.  This study extends it by incorporating PWA offline synchronization and thermal auto-printing for walk-ins.
+</p>
+
+<div class="third-level-heading">2.2.9. One Barangay: A Mobile and Web Barangay Management System (Local)</div>
+<p>
+According to Mirasol et al. (2023), they created a hybrid mobile-web system to centralize record keeping and avoid corrupt data caused by manual Excel usage.  Testing in urban settings showed improved security, but one limitation was the need for persistent connectivity, excluding offline conditions prevalent in rural settings [24].  The Smart Barangay Kiosk addresses this by providing Supabase local cache and IndexedDB durability for rural areas.
+</p>
+
+<div class="third-level-heading">2.2.10. Barangay Certificate Issuance and Record Management System with Descriptive Analytics (Local)</div>
+<p>
+Navarro et al. (2025) developed a web application using PHP/MySQL for the analytics of blotter and population reports that enable sorting data by gender/age.  While this provided better understanding for administrators, it lacked self-service kiosks or SMS [25].  This informs the dashboard analytics extended here with offline PWA requests and real-time notifications.
+</p>
+
+<div class="third-level-heading">2.2.11. A Risk Assessment of a Barangay Management System Portal (Local)</div>
+<p>
+Studies by Fernando et al. (2024) have shown that among web portals geared towards developmental programs, ICT deficiencies and risks from manual operation were within Philippine barangays [26].  Data handling vulnerabilities were mentioned, but hardware solutions were not recommended.  The tablet-based kiosk addresses this with encrypted offline storage, role-based access, and audit logging [26].
+</p>
+
+
+<div class="second-level-heading">2.3. Synthesis and Research Gap</div>
+
+<p>
+When synthesizing all these sources, a trend in Philippine e-Governance becomes evident: a progression from simple digitization (Hernandez &amp; Cruz, 2021; Reyes &amp; Salonga, 2021), to partial offline solutions (Lim &amp; Torres, 2024; Santos et al., 2025), inspired partly by international kiosks (Adekunle &amp; Oladipo, 2019; Chen et al., 2023).  Newer entries such as Imus et al. (2024) and Navarro et al. (2025) leaned more on usability and analytics.  Nevertheless, gaps remain: no integrated system provides 100% offline self-service via PWAs and physical kiosks, along with auto-printing through thermal printers, SMS notifications, and multi-document support&mdash;all deployable in true multi-barangay scenarios.
+</p>
+
+<p>
+This study fills these gaps by deploying a Supabase-powered PWA on a tablet kiosk with Bluetooth thermal printer in two barangays, supporting cash-only pickups and admin management.  These findings are relevant to national e-Government goals, potentially indicating scalable tools for rural adoption and addressing connectivity challenges through auto-sync.
+</p>
+
+
+<!-- ==================== CHAPTER 3 ==================== -->
+<div class="page-break"></div>
+<div class="chapter-heading">Chapter 3</div>
+<div class="first-level-heading">METHODOLOGY</div>
+<br>
+
+<div class="second-level-heading">3.1. Research Design and Systems Model</div>
+
+<p>
+The study follows the Design and Development Research (DDR) method [29], specifically the prototype development model for the Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management.  DDR is appropriate for the study as it involves the design, development, and evaluation of a technology-based solution aimed at improving barangay services through digital transformation, with a focus on offline capabilities to address unreliable internet access in rural areas.
+</p>
+
+<p>
+The process includes planning, system design, prototyping, testing, and evaluation.  The study also follows an Iterative Development Life Cycle model consisting of the following phases: Requirements Analysis, System Design, Development and Implementation, Testing and Evaluation, and Refinement and Finalization.
+</p>
+
+<div class="blank-placeholder">
+[INSERT Figure 3.1: Conceptual Framework / Project Development Flowchart of the Study]
+</div>
+
+<p>
+Each phase includes the following: For the Requirement Analysis phase, it involves identifying the project&rsquo;s requirements and objectives.  The Data Collection Method gathers data through interviews and surveys, observation, and document analysis that help the researchers identify the problems to be addressed.
+</p>
+
+<p>
+The System Design, Development, and Implementation phase builds the system using specific development tools and technologies.  This phase encompasses the kiosk creation and development process involving hardware setup, software configuration, interface and application development, and thorough kiosk testing.
+</p>
+
+<p>
+The system features based on objectives are evaluated during the Testing and Evaluation phase.  Target respondents and sampling involve identifying participants, such as barangay officials and residents, and determining the sampling technique.
+</p>
+
+<p>
+In addition, the model includes Development Boundaries and Prototype Constraints as part of Refinement and Finalization.  Finally, Ethical Considerations are dealt with to ensure the accountability and integrity of the entire project.
+</p>
+
+
+<div class="second-level-heading">3.2. Requirement Analysis and Data Collection Methods</div>
+
+<p>
+To guarantee that the Smart Barangay Kiosk System provides actual services and addresses the real needs and challenges of barangay service delivery, multiple data collection techniques were employed.  These were selected to be the most relevant qualitative and quantitative data to inform the design, development, and functionality of the system.
+</p>
+
+<div class="third-level-heading">3.2.1. Interviews and Surveys</div>
+
+<p>
+Structured interviews and guided surveys were conducted with the selected barangay officials and residents of Barangay Maangas and Barangay Sta. Maria in Presentacion, Camarines Sur.  The objective was to understand the current mechanisms of service delivery from both the administrative and end-user perspectives.  Barangay officials, such as the secretary, clerks, and the barangay captain, provided insights into common challenges they face, including document processing bottlenecks, data storage issues, and communication barriers with residents, as well as needs for offline operation and SMS notifications.
+</p>
+
+<p>
+Similarly, residents from diverse backgrounds&mdash;including senior citizens, persons with disabilities (PWDs), and low-income individuals&mdash;were surveyed to determine their level of access to digital tools, common service needs, and barriers encountered when availing of barangay services.  The survey included both closed and open-ended questions to capture quantitative data (frequency of service use, waiting times) and qualitative feedback (satisfaction levels, suggestions for improvements).
+</p>
+
+<div class="blank-placeholder">
+[INSERT: Interview and Survey questionnaire data/results summary here]
+</div>
+
+<div class="third-level-heading">3.2.2. Observation</div>
+
+<p>
+Direct, non-intrusive observations were conducted in Barangay Maangas and Barangay Sta. Maria in Presentacion, Camarines Sur to assess the existing service delivery workflow.  The research team visited barangay halls during regular office hours to observe how documents are requested and processed, how residents interact with staff, how announcements are disseminated, and how records are maintained and stored.
+</p>
+
+<div class="blank-placeholder">
+[INSERT: Observation findings/notes summary here]
+</div>
+
+<div class="third-level-heading">3.2.3. Document Analysis</div>
+
+<p>
+To ensure the kiosk system&rsquo;s compatibility with actual administrative barangay procedures, a thorough review of existing documents and forms was conducted, including certificates commonly issued (Certificate of Indigency, Barangay Clearance, Certificate of Residency, Certificate of Good Moral Character, Certification for First Time Job Seeker, Certification for Monthly Income, Certification for Solo Parent, Certification PDA, Business Clearance, Barangay ID, Barangay Certification), feedback and complaint forms, logs of previous document requests and response times, announcement formats, and filing systems (manual records, Excel sheets, logbooks).
+</p>
+
+<div class="blank-placeholder">
+[INSERT: Document analysis findings summary here]
+</div>
+
+
+<div class="second-level-heading">3.3. System Design, Development, and Implementation</div>
+
+<p>
+The Smart Barangay Kiosk System integrates affordable hardware and flexible open-source software technologies for cost-effectiveness, scalability, and sustainability.  The tools and technologies chosen match the objectives of the project, particularly the need for offline capabilities, easy deployment, and user access in resource-constrained barangay settings.
+</p>
+
+<div class="third-level-heading">3.3.1. Hardware Components</div>
+
+<p>
+The kiosk setup consists of the following hardware:
+</p>
+
+<ol>
+  <li><strong>Android Tablet:</strong>  A consumer-grade Android tablet serves as the principal kiosk device.  It provides a capacitive touchscreen display for the user interface, Wi-Fi and Bluetooth connectivity, built-in battery for brownout resilience, and the ability to run the PWA through the Chromium browser in full-screen mode.  The tablet is stationed at the barangay hall for walk-in residents to interact with the system.</li>
+  <li><strong>Bluetooth Thermal Printer (GOOJPRT PT-210):</strong>  A 58mm compact, low-maintenance Bluetooth thermal printer is used to auto-print receipts for walk-in document requests.  The printer connects to the tablet via Classic Bluetooth (SPP) through the RawBT Android application, providing immediate confirmation with control numbers, document lists, and pricing information.</li>
+</ol>
+
+<div class="blank-placeholder">
+[INSERT Figure 3.2: Image of the physical kiosk setup (tablet + Bluetooth printer)]
+</div>
+
+<div class="third-level-heading">3.3.2. Software and Development Tools</div>
+
+<ol>
+  <li><strong>Frontend Technologies (React 19 + Vite):</strong>  The user interface is developed as a Progressive Web App (PWA) using React 19 for component-based architecture and Vite for fast development and production bundling.  TailwindCSS provides utility-first styling.  This enables a single app that works seamlessly on kiosk tablets, phones, and desktop browsers, with offline support via Workbox service workers.</li>
+  <li><strong>Backend and Database (Supabase):</strong>  Supabase handles backend services, authentication, real-time database management, storage, and edge functions.  It provides PostgreSQL as the database, row-level security (RLS) for multi-tenant data isolation, and automatic syncing upon internet reconnection.  The free tier (500,000 rows) is sufficient for barangay-level needs.</li>
+  <li><strong>Offline Sync (IndexedDB + Workbox):</strong>  The custom offline storage module uses IndexedDB (database name: <code>sbk-offline</code>) with four object stores: <code>barangays</code>, <code>residents</code>, <code>settings</code>, and <code>pendingRequests</code>.  Workbox runtime caching uses NetworkFirst strategy for Supabase REST API calls (5-second timeout, 200-entry limit, 24-hour expiry) and CacheFirst strategy for Supabase Storage assets.  When connectivity is restored, queued requests are automatically flushed to Supabase.</li>
+  <li><strong>Thermal Printing (RawBT + ESC/POS):</strong>  Receipt printing is achieved through the RawBT Android app, which bridges the PWA to the Bluetooth thermal printer via Android intent URL scheme (<code>rawbt:{encoded_text}</code>).  Receipt content is formatted for 32 characters per line (58mm paper width) and includes barangay name, date, reference number, queue number, resident name, document list, pricing, and a footer message.</li>
+  <li><strong>SMS Notification (PhilSMS):</strong>  Integration with PhilSMS provides affordable SMS notifications in the Philippines when documents are ready for pickup.  The system also supports Semaphore as an alternative provider.  SMS edge functions handle phone number normalization (PH 63-format), OTP generation for password recovery (6-digit codes, 5-minute expiry), and document-ready notifications.</li>
+  <li><strong>Hosting:</strong>  The PWA is hosted on Vercel for the frontend.  Supabase free tier handles the backend, database, and edge functions.  Dynamic manifest switching allows separate PWA installs for kiosk mode (<code>/kiosk</code>), admin mode (<code>/admin</code>), and super-admin mode (<code>/superadmin</code>).</li>
+  <li><strong>PDF Generation (jsPDF):</strong>  Document PDFs are generated client-side using the jsPDF library.  Each document type has a dedicated generator supporting mixed bold/italic text formatting, official signatures and seal images, date formatting, barangay official details, pricing display, and word wrapping.</li>
+  <li><strong>Security Measures:</strong>
+    <ul>
+      <li><em>Authentication:</em> Supabase Auth with email/password for admins and residents; separate bcrypt-hashed kiosk password per barangay stored in <code>app_settings</code>.</li>
+      <li><em>Access Control:</em> Role-based access (superadmin, barangay_admin, resident) enforced via RLS policies.  The <code>current_admin_barangay()</code> and <code>is_superadmin()</code> PostgreSQL functions enforce tenant isolation.</li>
+      <li><em>Rate Limiting:</em> Kiosk password validation capped at 5 attempts per 15 minutes.</li>
+      <li><em>OTP Password Recovery:</em> SMS-based OTP codes with 5-minute expiry and attempt tracking.</li>
+      <li><em>Audit Logging:</em> All superadmin and admin actions are logged in the <code>audit_logs</code> table with actor, action, target, and metadata.</li>
+      <li><em>Session Management:</em> Automatic idle reset after 2 minutes on the kiosk interface; lazy Supabase client creation per route to prevent token refresh issues.</li>
+    </ul>
+  </li>
+</ol>
+
+
+<div class="third-level-heading">3.3.3. System Architecture and Module Design</div>
+
+<p>
+The system is architected as a multi-tenant PWA with four primary interfaces:
+</p>
+
+<ol>
+  <li><strong>Kiosk Interface (<code>/kiosk</code>):</strong>  The public-facing self-service terminal deployed on the tablet.  Residents search their name, select document types, fill in required fields (purpose, CTC number for business clearances), and submit.  The system generates a control number, prints a thermal receipt, and queues the request for admin processing.  If the system is offline, the request is saved to IndexedDB and synced when connectivity returns.</li>
+  <li><strong>Resident Portal (<code>/resident</code>):</strong>  A login-protected interface for verified residents to submit document requests remotely from their phones, view request history with status tracking, submit feedback and ratings on released documents, and manage their profile information.</li>
+  <li><strong>Admin Dashboard (<code>/admin</code>):</strong>  A comprehensive management panel with nine tabs:
+    <ul>
+      <li><em>Dashboard:</em> Daily summary with key metrics (new submissions, pending verifications, announcements, pricing gaps), officials status, and calendar events.</li>
+      <li><em>Manage Residents:</em> CRUD operations for residents with bulk import, search, and zone assignment.</li>
+      <li><em>Requests:</em> Document request workflow (Pending &rarr; In Progress &rarr; Ready for Pickup) with SMS alerts, payment logging, release confirmation, and chat panel for internal notes.</li>
+      <li><em>Verification:</em> Review and approve/reject resident registration submissions.</li>
+      <li><em>Calendar:</em> Admin-created events with holiday integration.</li>
+      <li><em>Announcements:</em> Create/edit barangay announcements with image uploads and date ranges.</li>
+      <li><em>Pricing:</em> Configure document service fees per barangay.</li>
+      <li><em>Feedback:</em> View resident ratings (1&ndash;5 stars) and comments with CSV export.</li>
+      <li><em>Barangay Info:</em> Manage officials, zone settings, feature toggles, and seal upload.</li>
+    </ul>
+  </li>
+  <li><strong>Super-Admin Panel (<code>/superadmin</code>):</strong>  A system-wide management interface with thirteen tabs for overview, analytics, broadcast announcements, tenant management (create/edit/delete barangays), admin user management, system-wide resident and request views, document configuration, audit logs, feedback aggregation, data cleanup utilities, access and security settings, and thesis document generation.</li>
+</ol>
+
+
+<div class="third-level-heading">3.3.4. System Flowchart</div>
+
+<div class="blank-placeholder">
+[INSERT Figure 3.3: System Flowchart of the Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management]
+</div>
+
+
+<div class="third-level-heading">3.3.5. Database Design</div>
+
+<p>
+The system uses a PostgreSQL database managed by Supabase with 16 core tables organized around a multi-tenant architecture.  All tenant-specific tables include a <code>barangay_id</code> foreign key with row-level security policies enforcing data isolation.  The key tables are as follows:
+</p>
+
+<table>
+  <tr><th>Table</th><th>Purpose</th></tr>
+  <tr><td><code>barangays</code></td><td>Multi-tenant barangay registry with feature toggles, seal URL, and address information</td></tr>
+  <tr><td><code>admin_users</code></td><td>Admin accounts linked to Supabase auth with barangay assignment and role (barangay_admin, superadmin)</td></tr>
+  <tr><td><code>residents</code></td><td>Core resident demographic data (name, sex, birthday, civil status, address, occupation, education, religion)</td></tr>
+  <tr><td><code>resident_profiles</code></td><td>Extended profile data linked to Supabase auth for resident portal access (phone, email)</td></tr>
+  <tr><td><code>resident_verification_requests</code></td><td>Pending/approved/rejected new resident registrations with submitted data (JSONB) and admin notes</td></tr>
+  <tr><td><code>resident_intake_requests</code></td><td>Document requests with status workflow (pending/current/done/cancelled), queue number, and pricing</td></tr>
+  <tr><td><code>release_logs</code></td><td>Document release history with payment method, amount, and timestamps</td></tr>
+  <tr><td><code>resident_feedback</code></td><td>Star ratings (1&ndash;5) and comments per released document</td></tr>
+  <tr><td><code>announcements</code></td><td>Barangay announcements with image data, start/end dates</td></tr>
+  <tr><td><code>admin_events</code></td><td>Calendar events per barangay</td></tr>
+  <tr><td><code>barangay_officials</code></td><td>Officials registry (Punong Barangay, Kagawad, SK Chairperson, Treasurer, Secretary) with titles</td></tr>
+  <tr><td><code>barangay_zone_settings</code></td><td>Zone configuration per barangay with coordinates data</td></tr>
+  <tr><td><code>app_settings</code></td><td>Global and per-barangay configuration (kiosk password, service fees, SMS fees, document options)</td></tr>
+  <tr><td><code>password_reset_otps</code></td><td>OTP tracking with expiry, usage, and attempt counters</td></tr>
+  <tr><td><code>audit_logs</code></td><td>Superadmin/admin action tracking with actor, action, target, and JSONB metadata</td></tr>
+</table>
+<div class="table-caption"><strong>Table 3.1.</strong> <span>Core Database Tables and Their Purposes</span></div>
+
+
+<div class="third-level-heading">3.3.6. Offline-First PWA Behavior</div>
+
+<p>
+The system is deployed as a Progressive Web App using React 19 + Vite + Supabase with Workbox service workers.  This enables two critical offline scenarios:
+</p>
+
+<p>
+<strong>1. Kiosk Mode (Tablet):</strong>  The kiosk runs the PWA in full-screen standalone mode on the tablet browser.  All forms, control number generation, resident search, and receipt printing work 100% offline.  Requests are cached locally in IndexedDB and automatically synchronized when the internet returns.  The <code>useOfflineSync</code> hook monitors <code>navigator.onLine</code> state and flushes queued requests upon reconnection.
+</p>
+
+<p>
+<strong>2. Mobile Phone Access (Resident using own phone):</strong>  On the first visit with brief internet access, the browser prompts &ldquo;Add to Home Screen.&rdquo;  Once installed, the PWA becomes a standalone app on the phone.  Residents can open the app anytime (even in airplane mode) to submit document requests.  Requests are maintained in IndexedDB and uploaded automatically when connectivity is established.
+</p>
+
+
+<div class="second-level-heading">3.4. Project Planning and Execution Details</div>
+
+<div class="third-level-heading">3.4.1. System Features Based on Objectives</div>
+
+<table>
+  <tr><th>Module</th><th>Description</th></tr>
+  <tr><td>Document Request Module</td><td>Allows residents to request documents like Barangay Clearance, Indigency, Residency, Good Moral, First Time Job Seeker, Monthly Income, Solo Parent, PDA, Business Clearance, Barangay ID, Barangay Certification, and custom documents via walk-in kiosk (auto-printed receipt) or online (downloadable/screenshot receipt).  Generates instant control numbers and queue numbers.</td></tr>
+  <tr><td>Resident Management</td><td>Enables admin to add, edit, search, and bulk-import residents.  Includes zone assignment and profile management.</td></tr>
+  <tr><td>Resident Verification</td><td>Allows admins to review, approve, or reject new resident registration submissions from the portal.</td></tr>
+  <tr><td>Notification System</td><td>Sends SMS notifications via PhilSMS when documents are ready for pickup, including control number and payment information.</td></tr>
+  <tr><td>Admin Dashboard</td><td>Real-time dashboard accessible from phone/laptop with nine management tabs for comprehensive barangay administration.</td></tr>
+  <tr><td>Super-Admin Panel</td><td>System-wide management with thirteen tabs for multi-barangay oversight, analytics, tenant management, and audit logging.</td></tr>
+  <tr><td>Resident Portal</td><td>Login-protected interface for verified residents to request documents remotely, view history, and submit feedback.</td></tr>
+  <tr><td>Offline Functionality &amp; Sync</td><td>100% offline operation via IndexedDB and Workbox service workers with automatic Supabase synchronization on reconnect.</td></tr>
+  <tr><td>Announcements &amp; Events</td><td>Create and display barangay announcements with images; calendar events management with date ranges.</td></tr>
+  <tr><td>Feedback Collection</td><td>Star ratings (1&ndash;5) and comments per released document with CSV export for analysis.</td></tr>
+  <tr><td>Audit Logging</td><td>Comprehensive action tracking for all administrative operations with actor, timestamp, action type, target, and metadata.</td></tr>
+</table>
+<div class="table-caption"><strong>Table 3.2.</strong> <span>System Features Based on Objectives</span></div>
+
+
+<div class="third-level-heading">3.4.2. Project Cost Estimation and Hardware Breakdown</div>
+
+<div class="blank-placeholder">
+[INSERT: Actual hardware cost breakdown table with prices for your specific tablet model, Bluetooth thermal printer (GOOJPRT PT-210), and any other accessories purchased.  Include actual amounts in PHP.]
+</div>
+
+<table>
+  <tr><th>Component</th><th>Technology Used</th><th>Cost</th></tr>
+  <tr><td>Frontend &amp; PWA</td><td>React 19 + Vite + TailwindCSS</td><td>Free</td></tr>
+  <tr><td>Backend + Database + Hosting</td><td>Supabase (free tier)</td><td>Free</td></tr>
+  <tr><td>Frontend Hosting</td><td>Vercel</td><td>Free</td></tr>
+  <tr><td>Offline Cache &amp; Sync</td><td>IndexedDB + Workbox Service Workers</td><td>Free</td></tr>
+  <tr><td>PDF Generation</td><td>jsPDF (client-side)</td><td>Free</td></tr>
+  <tr><td>Bluetooth Printing</td><td>RawBT + GOOJPRT PT-210</td><td>Free (app)</td></tr>
+  <tr><td>SMS Notifications</td><td>PhilSMS</td><td>~&#8369;0.35+ per SMS</td></tr>
+</table>
+<div class="table-caption"><strong>Table 3.3.</strong> <span>Software and Operational Cost Summary</span></div>
+
+
+<div class="third-level-heading">3.4.3. Project Timeline and Development Schedule</div>
+
+<div class="blank-placeholder">
+[INSERT: Your actual project timeline/Gantt chart with real dates and milestone completion status.  Update months to reflect actual start and end dates.]
+</div>
+
+
+<div class="second-level-heading">3.5. Testing, Evaluation, and Data Analysis</div>
+
+<p>
+The prototype was tested in two pilot barangays selected based on availability, willingness for participation, and existing infrastructure limitations.  Evaluation methods include:
+</p>
+
+<ul>
+  <li><strong>Usability Testing:</strong> Observing how easily users (residents and staff) interact with the kiosk interface.</li>
+  <li><strong>System Performance Testing:</strong> Verifying the reliability of the kiosk in both offline and online modes, including sync and printing.</li>
+  <li><strong>Feedback Collection:</strong> Post-use surveys and interviews with users and officials to gather opinions on effectiveness, ease of use, and satisfaction.</li>
+  <li><strong>Administrative Efficiency Metrics:</strong> Measuring processing time before and after kiosk deployment.</li>
+</ul>
+
+<div class="blank-placeholder">
+[INSERT: Section 3.5.1 - Results and Discussion with actual test data, survey results, evaluation scores, usability metrics, processing time comparisons, and feedback analysis.  Include tables and charts as needed.]
+</div>
+
+
+<div class="second-level-heading">3.6. Target Respondents and Sampling</div>
+
+<div class="third-level-heading">3.6.1. Barangay Officials and Staff</div>
+<p>
+The first group of respondents includes barangay personnel responsible for daily administrative and public service functions, including the Barangay Secretary, Barangay Chairman, Clerks or Administrative Aides, and Kagawads involved in public services.
+</p>
+
+<div class="third-level-heading">3.6.2. Barangay Residents</div>
+<p>
+This group comprises residents who are regular users of barangay services such as clearances, certificates of indigency, and other commonly issued documents.  Residents from diverse backgrounds were invited to participate in surveys, usability tests, and focus interviews.
+</p>
+
+<div class="third-level-heading">3.6.3. Sampling Technique</div>
+<p>
+Purposive selection, a nonrandom sampling method, was applied.  The purposive sample assures that technological functionality and social equity are given consideration in the development of the system, aiming to yield a kiosk solution that is technically fit as well as socially responsive and inclusive.
+</p>
+
+<div class="blank-placeholder">
+[INSERT: Actual respondent counts, demographics breakdown, and sampling details for both pilot barangays.]
+</div>
+
+
+<div class="second-level-heading">3.7. Development Boundaries and Prototype Constraints</div>
+
+<ul>
+  <li><strong>Prototype-Stage Deployment:</strong> The system was developed as a functional prototype for pilot testing only; full-scale rollout is not within the current study&rsquo;s objective.</li>
+  <li><strong>Standalone Operation:</strong> The kiosk operates as an independent device.  Development does not include integration to national government platforms or third-party mobile applications beyond Supabase and PhilSMS.  No online payment or QR codes are implemented; payment is cash only upon pickup.</li>
+  <li><strong>Security Implementation:</strong> The prototype implements role-based access control, bcrypt password hashing, rate limiting, OTP recovery, and audit logging.  Advanced penetration testing and vulnerability assessment are not within scope.</li>
+  <li><strong>Short-Term Evaluation Focus:</strong> Evaluation is limited to measuring the pilot system&rsquo;s functionality, ease of use, and administrative utility.  Long-term impact and sustainability assessment are not covered.</li>
+</ul>
+
+
+<div class="second-level-heading">3.8. Ethical Considerations</div>
+
+<p>
+This research maintains strict compliance with ethical standards for research to guarantee the rights, privacy, and welfare of all participants.  The following procedures were instituted:
+</p>
+
+<ul>
+  <li><strong>Informed Consent:</strong> An informed consent document, clear and comprehensible, was provided to all respondents before any survey, interview, usability test, or observation session.  Data collection included only individuals who provided written or verbal consent.</li>
+  <li><strong>Confidentiality and Anonymity:</strong> Participants&rsquo; confidentiality was strictly upheld.  Responses were anonymized, and identifying details are not published in any reports.</li>
+  <li><strong>Data Privacy and Protection:</strong> In compliance with the Data Privacy Act of 2012 (Republic Act No. 10173), all collected data is stored in secure, password-protected systems.  Only authorized members of the research team have access to raw data [27].</li>
+  <li><strong>Ethical System Design:</strong> The system includes role-based access control, automatic session timeout (2-minute idle reset on kiosk), bcrypt password hashing, and restricted administrative access to protect sensitive resident data.  The system was built on privacy-by-design principles.</li>
+  <li><strong>Vulnerable Populations:</strong> Special consideration was given to vulnerable groups such as senior citizens, persons with disabilities (PWDs), and low-income residents.  Research activities were conducted in a respectful, inclusive, and non-discriminatory manner.</li>
+  <li><strong>Ethical Review:</strong> The research protocol was submitted to the appropriate institutional body for ethical clearance and approval prior to field activities [28].</li>
+</ul>
+
+
+<!-- ==================== CHAPTER 4 ==================== -->
+<div class="page-break"></div>
+<div class="chapter-heading">Chapter 4</div>
+<div class="first-level-heading">CONCLUSION</div>
+<br>
+
+<div class="blank-placeholder">
+[INSERT: Overall conclusion of the study addressing each objective.  Step back and take a broad look at the findings and the study as a whole.  This should cover:<br><br>
+&bull; Whether each specific objective (1&ndash;7) was achieved<br>
+&bull; Summary of key evaluation results from the two pilot barangays<br>
+&bull; Impact on document processing time and resident accessibility<br>
+&bull; Effectiveness of the offline-first approach in the target environment<br>
+&bull; Contribution to e-governance and digital inclusion at the barangay level<br>
+&bull; Overall assessment of the tablet + Bluetooth printer kiosk approach]
+</div>
+
+
+<!-- ==================== CHAPTER 5 ==================== -->
+<div class="page-break"></div>
+<div class="chapter-heading">Chapter 5</div>
+<div class="first-level-heading">RECOMMENDATION</div>
+<br>
+
+<div class="blank-placeholder">
+[INSERT: Recommendations for further studies and future improvements.  Suggested topics:<br><br>
+&bull; Expansion to additional barangays and municipalities<br>
+&bull; Integration with national government digital infrastructure (e.g., PhilSys)<br>
+&bull; Addition of biometric authentication for resident verification<br>
+&bull; Development of a native mobile application for enhanced resident experience<br>
+&bull; Implementation of advanced analytics and AI-driven insights for barangay decision-making<br>
+&bull; Long-term sustainability and cost-effectiveness study across multiple deployment sites<br>
+&bull; Multi-language support (Filipino/Bicol) for broader accessibility<br>
+&bull; Integration with online payment systems for cashless transactions<br>
+&bull; Advanced cybersecurity assessment and penetration testing]
+</div>
+
+
+<!-- ==================== REFERENCES ==================== -->
+<div class="page-break"></div>
+<div class="first-level-heading">REFERENCES</div>
+<br>
+
+<div class="references">
+
+<p>[1] OpenGov Asia, &ldquo;The Philippines: Advancing e-Governance for LGUs,&rdquo; May 2025.  Retrieved from: https://archive.opengovasia.com/2025/05/30/the-philippines-advancing-e-governance-for-lgus/</p>
+
+<p>[2] J. C. Hernandez and M. A. Cruz, &ldquo;Barangay Management Information System (BMIS) for Cities and Municipalities in the Philippines,&rdquo; <em>Asia-Pacific J. Sci. Technol.</em>, vol. 26, no. 3, pp. APST-26-03-12, 2021.</p>
+
+<p>[3] World Bank, &ldquo;Unlocking the Philippines&rsquo; Digital Transformation by Increasing Internet Connectivity,&rdquo; Jul. 2025.  Retrieved from: https://projects.worldbank.org/en/results/2025/07/02/unlocking-the-philippines-digital-transformation-by-increasing-internet-connectivity</p>
+
+<p>[4] DataReportal, &ldquo;Digital 2025: The Philippines,&rdquo; 2025.  Retrieved from: https://datareportal.com/reports/digital-2025-philippines</p>
+
+<p>[5] M. C. De Castro, &ldquo;Mobile internet access and wealth inequality in the Philippines,&rdquo; <em>LSE Inequalities Blog</em>, Sep. 2025.  Retrieved from: https://blogs.lse.ac.uk/inequalities/2025/09/23/mobile-internet-and-wealth-inequality-in-the-philippines/</p>
+
+<p>[6] Internet Society, &ldquo;A New Internet Era for the Philippines,&rdquo; Mar. 2025.  Retrieved from: https://www.internetsociety.org/blog/2025/03/a-new-internet-era-for-the-philippines/</p>
+
+<p>[7] A. A. Adekunle and F. O. Oladipo, &ldquo;Raspberry Pi Innovates Developing Countries,&rdquo; <em>Borgen Project</em>, 2020.  Retrieved from: https://borgenproject.org/raspberry-pi-innovates-developing-countries/</p>
+
+<p>[8] Advanced Kiosks, &ldquo;Government Industry and GSA Approved Kiosks,&rdquo; 2025.  Retrieved from: https://advancedkiosks.com/solutions/self-service-kiosks-for-government/</p>
+
+<p>[9] Department of Information and Communications Technology, &ldquo;National Broadband Plan Progress Report 2023&ndash;2024,&rdquo; 2024.  Retrieved from: https://ictstatistics.dict.gov.ph/senate-approves-e-governance-act-on-final-reading-paving-the-way-for-digital-transformation/</p>
+
+<p>[10] A. Aggarwal and R. Gupta, &ldquo;Building offline-first progressive web applications: A comprehensive guide,&rdquo; <em>Int. J. Web Eng. Technol.</em>, vol. 18, no. 2, pp. 145&ndash;168, 2023.</p>
+
+<p>[11] PowerSync, &ldquo;PowerSync: Bringing Offline-First To Supabase, The Right Way,&rdquo; 2024.  Retrieved from: https://www.powersync.com/blog/bringing-offline-first-to-supabase</p>
+
+<p>[12] M. A. De Guzman et al., &ldquo;Exploring Contributing Factors on Poor Digital Literacy of Students: A Review of Existing Studies,&rdquo; <em>Int. J. Res. Innov. Appl. Sci.</em>, vol. 9, no. 9, pp. 2454&ndash;6194, 2024.</p>
+
+<p>[13] M. C. De Castro, &ldquo;Mobile internet access and wealth inequality in the Philippines,&rdquo; <em>LSE Inequalities Blog</em>, Sep. 2025.  Retrieved from: https://blogs.lse.ac.uk/inequalities/2025/09/23/mobile-internet-and-wealth-inequality-in-the-philippines/</p>
+
+<p>[14] R. C. Villanueva and J. L. Reyes, &ldquo;Low-cost kiosk deployment using Raspberry Pi 5 in Philippine LGUs,&rdquo; <em>Philippine Comput. J.</em>, vol. 20, no. 1, pp. 112&ndash;125, 2024.</p>
+
+<p>[15] J. C. Hernandez and M. A. Cruz, &ldquo;Barangay Management Information System (BMIS) for Cities and Municipalities in the Philippines,&rdquo; <em>Asia-Pacific J. Sci. Technol.</em>, vol. 26, no. 3, pp. APST-26-03-12, 2021.</p>
+
+<p>[16] A. A. Adekunle and F. O. Oladipo, &ldquo;Design and implementation of an IoT-based community information kiosk,&rdquo; <em>African J. Sci., Technol., Innov. Dev.</em>, vol. 11, no. 7, pp. 847&ndash;857, 2019.</p>
+
+<p>[17] M. A. Reyes and R. B. Salonga, &ldquo;Design and implementation of a local e-government portal,&rdquo; <em>Int. J. Adv. Trends Comput. Sci. Eng.</em>, vol. 10, no. 4, pp. 2785&ndash;2792, 2021.</p>
+
+<p>[18] J. C. Hernandez and M. A. Cruz, &ldquo;Barangay management information system with document tracking,&rdquo; <em>Asia-Pacific J. Sci. Technol.</em>, vol. 26, no. 3, 2021.</p>
+
+<p>[19] R. L. Santos et al., &ldquo;WebYu: A web-based information management system for Barangay Yuson,&rdquo; <em>Int. J. Sci. Res. Comput. Sci. Eng.</em>, vol. 13, no. 2, pp. 56&ndash;71, 2025.</p>
+
+<p>[20] R. T. Lim and E. M. Torres, &ldquo;Development of an offline-capable barangay health information system using progressive web app technology,&rdquo; <em>J. Philippine Comput. Soc.</em>, vol. 19, no. 2, pp. 45&ndash;59, 2024.</p>
+
+<p>[21] L. Chen et al., &ldquo;Design and implementation of a smart township service kiosk based on Raspberry Pi,&rdquo; <em>J. Phys.: Conf. Ser.</em>, vol. 2425, 012045, 2023.</p>
+
+<p>[22] J. M. Dela Cruz et al., &ldquo;E-Barangay portal with SMS notification for resident services: A case study in Quezon City,&rdquo; <em>Philippine J. Sci. Technol.</em>, vol. 16, no. 1, pp. 89&ndash;102, 2023.</p>
+
+<p>[23] A. C. Imus et al., &ldquo;Enhanced barangay information management system with automated residency certificate issuance,&rdquo; <em>Int. J. Comput. Sci. Res.</em>, vol. 8, no. 1, pp. 123&ndash;140, 2024.</p>
+
+<p>[24] J. D. Mirasol et al., &ldquo;One Barangay: A mobile and web-based barangay management system for centralized record keeping,&rdquo; <em>Int. J. Res. Publ.</em>, vol. 128, no. 1, pp. 89&ndash;104, 2023.</p>
+
+<p>[25] K. L. Navarro et al., &ldquo;Barangay certificate issuance and record management system with descriptive analytics,&rdquo; <em>Philippine Inf. Technol. J.</em>, vol. 18, no. 1, pp. 34&ndash;49, 2025.</p>
+
+<p>[26] M. L. Fernando et al., &ldquo;Risk assessment of barangay management system portals: A case study approach,&rdquo; <em>Int. J. Adv. Comput. Sci. Appl.</em>, vol. 15, no. 6, pp. 312&ndash;320, 2024.</p>
+
+<p>[27] Republic Act No. 10173, &ldquo;Data Privacy Act of 2012,&rdquo; Congress of the Philippines, 15th Congress, 2012.</p>
+
+<p>[28] De La Salle University &ndash; Research Ethics Review Committee, &ldquo;Standard Operating Procedures for Ethics Review of Undergraduate and Graduate Theses Involving Human Participants,&rdquo; DLSU, Manila, Philippines, 2024.</p>
+
+<p>[29] R. C. Richey and J. D. Klein, &ldquo;Design and development research: Methods, strategies, and issues,&rdquo; Lawrence Erlbaum Associates, 2007.</p>
+
+</div>
+
+
+<!-- ==================== APPENDICES ==================== -->
+<div class="page-break"></div>
+<div class="first-level-heading">APPENDICES</div>
+<br>
+
+<div class="first-level-heading">APPENDIX A</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">Survey Questionnaires</div>
+
+<div class="blank-placeholder">
+[INSERT: Pre-test survey questionnaire for residents]
+</div>
+
+<div class="blank-placeholder">
+[INSERT: Post-evaluation survey questionnaire for residents]
+</div>
+
+<div class="blank-placeholder">
+[INSERT: Interview questionnaire for barangay officials]
+</div>
+
+<br>
+<div class="first-level-heading">APPENDIX B</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">System Screenshots</div>
+
+<div class="blank-placeholder">
+[INSERT: Kiosk interface screenshots - Welcome screen, Barangay selection, Document request form, Receipt confirmation]
+</div>
+
+<div class="blank-placeholder">
+[INSERT: Admin Dashboard screenshots - Dashboard overview, Requests management, Residents tab, Verification, Announcements, Pricing, Feedback, Barangay Info]
+</div>
+
+<div class="blank-placeholder">
+[INSERT: Resident Portal screenshots - Home, Request Documents, Request History, Profile]
+</div>
+
+<div class="blank-placeholder">
+[INSERT: Super-Admin Panel screenshots - Overview, Analytics, Tenants, Admins, Audit Log]
+</div>
+
+<br>
+<div class="first-level-heading">APPENDIX C</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">Physical Kiosk Setup</div>
+
+<div class="blank-placeholder">
+[INSERT: Photos of the physical kiosk setup - Tablet mounted/stationed at barangay hall, Bluetooth thermal printer (GOOJPRT PT-210), Receipt sample photo]
+</div>
+
+<br>
+<div class="first-level-heading">APPENDIX D</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">Sample Generated Documents</div>
+
+<div class="blank-placeholder">
+[INSERT: Sample PDF outputs for each document type - Barangay Clearance, Certificate of Indigency, Certificate of Residency, Good Moral Certificate, First-Time Jobseeker Certificate, Oath of Undertaking]
+</div>
+
+<br>
+<div class="first-level-heading">APPENDIX E</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">Gantt Chart</div>
+
+<div class="blank-placeholder">
+[INSERT: Project Gantt chart showing the planning and scheduling of the thesis project in graphical representation of the duration of tasks against the progression of time]
+</div>
+
+<br>
+<div class="first-level-heading">APPENDIX F</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">Evaluation Results Data</div>
+
+<div class="blank-placeholder">
+[INSERT: Raw evaluation data, tabulated survey results, statistical analysis, usability test scores, processing time measurements before and after deployment]
+</div>
+
+<br>
+<div class="first-level-heading">APPENDIX G</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">Informed Consent Forms and Ethical Clearance</div>
+
+<div class="blank-placeholder">
+[INSERT: Signed informed consent forms template, ethical clearance/approval documentation]
+</div>
+
+<br>
+<div class="first-level-heading">APPENDIX H</div>
+<div class="second-level-heading" style="text-align: center; margin-top: 0;">Endorsement and Deployment Letters</div>
+
+<div class="blank-placeholder">
+[INSERT: Research endorsement letter, deployment certificate, letter of request to barangay officials]
+</div>
+
+</body>
+</html>

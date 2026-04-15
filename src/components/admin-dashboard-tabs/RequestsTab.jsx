@@ -196,7 +196,7 @@ function toRequestItem(record) {
   };
 }
 
-export default function RequestsTab({ barangayId }) {
+export default function RequestsTab({ barangayId, onRequestReleased }) {
   const supabase = useSupabase();
   const { addToast } = useToast();
   const [activeStatus, setActiveStatus] = useState('pending');
@@ -834,6 +834,7 @@ export default function RequestsTab({ barangayId }) {
     setRequests(prev => prev.filter(item => item.id !== request.id));
     setLoggingRequestId(null);
     addToast('Release logged successfully.', 'success');
+    onRequestReleased?.();
   }
 
   return (

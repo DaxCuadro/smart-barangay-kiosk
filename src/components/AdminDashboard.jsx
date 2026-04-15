@@ -1,7 +1,9 @@
-import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import logo from '../assets/logo.png';
 import { useSupabase } from '../contexts/SupabaseContext';
 import GuideModal from './ui/GuideModal';
+import SurveyModal from './ui/SurveyModal';
+import { ADMIN_PRE_SURVEY_QUESTIONS, ADMIN_POST_SURVEY_QUESTIONS } from '../data/surveyQuestions';
 
 const DashboardTab = React.lazy(() => import('./admin-dashboard-tabs/DashboardTab'));
 const ResidentsTab = React.lazy(() => import('./admin-dashboard-tabs/ResidentsTab'));
@@ -39,6 +41,65 @@ export default function AdminDashboard({ onLogout }) {
   const [barangayId, setBarangayId] = useState(null);
   const [barangayName, setBarangayName] = useState('');
   const activeTabMeta = useMemo(() => TABS.find(tab => tab.key === activeTab), [activeTab]);
+
+  // ── Admin Survey State ──
+  const [adminPreDone, setAdminPreDone] = useState(() => localStorage.getItem('sbk-admin-survey-pre-done') === 'true');
+  const [adminPostDone, setAdminPostDone] = useState(() => localStorage.getItem('sbk-admin-survey-post-done') === 'true');
+  const [showAdminPreSurvey, setShowAdminPreSurvey] = useState(false);
+  const [showAdminPostSurvey, setShowAdminPostSurvey] = useState(false);
+  // Manual re-answer: 'pre' | 'post' | null
+  const [manualSurveyType, setManualSurveyType] = useState(null);
+
+  // Show pre-usage survey once barangayId is loaded and pre not done
+  useEffect(() => {
+    if (barangayId && !adminPreDone) {
+      setShowAdminPreSurvey(true);
+    }
+  }, [barangayId, adminPreDone]);
+
+  const handleAdminPreSubmit = useCallback(async (responses) => {
+    if (!barangayId) return;
+    await supabase.from('survey_responses').insert({
+      barangay_id: barangayId,
+      survey_type: 'pre',
+      source: 'admin',
+      responses,
+    });
+    localStorage.setItem('sbk-admin-survey-pre-done', 'true');
+    setAdminPreDone(true);
+    setShowAdminPreSurvey(false);
+  }, [supabase, barangayId]);
+
+  const handleAdminPostSubmit = useCallback(async (responses) => {
+    if (!barangayId) return;
+    await supabase.from('survey_responses').insert({
+      barangay_id: barangayId,
+      survey_type: 'post',
+      source: 'admin',
+      responses,
+    });
+    localStorage.setItem('sbk-admin-survey-post-done', 'true');
+    setAdminPostDone(true);
+    setShowAdminPostSurvey(false);
+  }, [supabase, barangayId]);
+
+  const handleManualSurveySubmit = useCallback(async (responses) => {
+    if (!barangayId || !manualSurveyType) return;
+    await supabase.from('survey_responses').insert({
+      barangay_id: barangayId,
+      survey_type: manualSurveyType,
+      source: 'admin',
+      responses,
+    });
+    setManualSurveyType(null);
+  }, [supabase, barangayId, manualSurveyType]);
+
+  // Called by RequestsTab after a successful release log
+  const onRequestReleased = useCallback(() => {
+    if (!adminPostDone) {
+      setShowAdminPostSurvey(true);
+    }
+  }, [adminPostDone]);
 
   useEffect(() => {
     let isActive = true;
@@ -168,7 +229,7 @@ export default function AdminDashboard({ onLogout }) {
       case 'residents':
         return <ResidentsTab barangayId={barangayId} />;
       case 'requests':
-        return <RequestsTab barangayId={barangayId} />;
+        return <RequestsTab barangayId={barangayId} onRequestReleased={onRequestReleased} />;
       case 'verification':
         return <VerificationTab barangayId={barangayId} />;
       case 'calendar':
@@ -248,6 +309,13 @@ export default function AdminDashboard({ onLogout }) {
         </nav>
         <div className="mt-8 flex flex-col gap-3">
           <GuideModal guideSrc="/admin-guide.png" label="Admin Guide" />
+          <button
+            type="button"
+            className="w-full rounded-2xl border border-white/30 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+            onClick={() => setManualSurveyType('pre')}
+          >
+            📝 Answer Survey
+          </button>
           <button
             type="button"
             className="w-full rounded-2xl border border-white/30 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
@@ -367,6 +435,36 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         </div>
       </main>
+
+      {/* ── Admin Survey Modals ── */}
+      <SurveyModal
+        open={showAdminPreSurvey && !showAdminPostSurvey && !manualSurveyType}
+        title="Pre-Usage Survey (Admin)"
+        subtitle="Please rate the following statements about the current barangay document processing workflow before using the system."
+        questions={ADMIN_PRE_SURVEY_QUESTIONS}
+        onSubmit={handleAdminPreSubmit}
+        variant="remote"
+      />
+      <SurveyModal
+        open={showAdminPostSurvey && !manualSurveyType}
+        title="Post-Usage Survey (Admin)"
+        subtitle="You've completed your first document release! Please rate the following statements about your experience using the system."
+        questions={ADMIN_POST_SURVEY_QUESTIONS}
+        onSubmit={handleAdminPostSubmit}
+        variant="remote"
+      />
+      <SurveyModal
+        open={!!manualSurveyType}
+        title={manualSurveyType === 'pre' ? 'Pre-Usage Survey (Admin)' : 'Post-Usage Survey (Admin)'}
+        subtitle={manualSurveyType === 'pre'
+          ? 'Rate the following statements about the current barangay document processing workflow.'
+          : 'Rate the following statements about your experience using the Smart Barangay Kiosk System.'}
+        questions={manualSurveyType === 'pre' ? ADMIN_PRE_SURVEY_QUESTIONS : ADMIN_POST_SURVEY_QUESTIONS}
+        onSubmit={handleManualSurveySubmit}
+        onDismiss={() => setManualSurveyType(manualSurveyType === 'pre' ? 'post' : null)}
+        variant="remote"
+        optional
+      />
 
       {pricingCount > 0 && activeTab !== 'pricing' && barangayId ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">

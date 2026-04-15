@@ -10,7 +10,12 @@ import {
 } from '../../utils/barangayInfoStorage';
 import ResidentPortalTabs from './ResidentPortalTabs';
 import GuideModal from '../ui/GuideModal';
+import SurveyModal from '../ui/SurveyModal';
+import { PRE_SURVEY_QUESTIONS, POST_SURVEY_QUESTIONS } from '../../data/surveyQuestions';
 import './residentPortalShell.css';
+
+const SURVEY_PRE_DONE_KEY = 'survey_pre_done';
+const SURVEY_POST_DONE_KEY = 'survey_post_done';
 
 const DEFAULT_DOCUMENT_OPTIONS = [
   'Barangay Clearance',
@@ -189,6 +194,13 @@ function ResidentPortalShell() {
   const [pricingInfo, setPricingInfo] = useState({ prices: {}, serviceFee: 0, smsFee: 0 });
   const [systemBroadcast, setSystemBroadcast] = useState(null);
   // account status is inferred from Supabase session; no local state needed
+
+  // ── Survey state ──
+  const [preSurveyOpen, setPreSurveyOpen] = useState(false);
+  const [preSurveyDone, setPreSurveyDone] = useState(() => localStorage.getItem(SURVEY_PRE_DONE_KEY) === 'true');
+  const [postSurveyOpen, setPostSurveyOpen] = useState(false);
+  const [postSurveyDone, setPostSurveyDone] = useState(() => localStorage.getItem(SURVEY_POST_DONE_KEY) === 'true');
+  const [postSurveyPending, setPostSurveyPending] = useState(() => localStorage.getItem('survey_post_pending') === 'true');
 
   // Load system broadcast from app_settings
   useEffect(() => {
@@ -706,6 +718,68 @@ function ResidentPortalShell() {
       { pending: 0, current: 0, done: 0 },
     );
   }, [requests]);
+
+  // ── Pre-survey: show after login when verified and not yet completed ──
+  useEffect(() => {
+    if (canAccessTabs && !preSurveyDone && session) {
+      setPreSurveyOpen(true);
+    }
+  }, [canAccessTabs, preSurveyDone, session]);
+
+  // ── Post-survey: show when pending (after first request) and not yet completed ──
+  useEffect(() => {
+    if (postSurveyPending && !postSurveyDone && canAccessTabs) {
+      setPostSurveyOpen(true);
+    }
+  }, [postSurveyPending, postSurveyDone, canAccessTabs]);
+
+  async function handlePreSurveySubmit(responses) {
+    if (!responses) { // skipped
+      setPreSurveyOpen(false);
+      return;
+    }
+    try {
+      await supabase.from('survey_responses').insert({
+        barangay_id: selectedBarangayId || null,
+        survey_type: 'pre',
+        source: 'remote',
+        responses,
+      });
+    } catch { /* non-critical */ }
+    localStorage.setItem(SURVEY_PRE_DONE_KEY, 'true');
+    setPreSurveyDone(true);
+    setPreSurveyOpen(false);
+    addToast('Thank you for completing the survey!', 'success');
+  }
+
+  function handlePreSurveyDismiss() {
+    setPreSurveyOpen(false);
+  }
+
+  async function handlePostSurveySubmit(responses) {
+    if (!responses) { // skipped
+      setPostSurveyOpen(false);
+      return;
+    }
+    try {
+      await supabase.from('survey_responses').insert({
+        barangay_id: selectedBarangayId || null,
+        survey_type: 'post',
+        source: 'remote',
+        responses,
+      });
+    } catch { /* non-critical */ }
+    localStorage.setItem(SURVEY_POST_DONE_KEY, 'true');
+    localStorage.removeItem('survey_post_pending');
+    setPostSurveyDone(true);
+    setPostSurveyPending(false);
+    setPostSurveyOpen(false);
+    addToast('Thank you for your feedback!', 'success');
+  }
+
+  function handlePostSurveyDismiss() {
+    setPostSurveyOpen(false);
+  }
 
   async function handleSignIn(event) {
     event.preventDefault();
@@ -1365,6 +1439,12 @@ function ResidentPortalShell() {
       price: hasPrice ? totalPrice : null,
       document: selectedDocument,
     });
+
+    // Trigger post-usage survey after first request (if not yet completed)
+    if (!postSurveyDone) {
+      localStorage.setItem('survey_post_pending', 'true');
+      setPostSurveyPending(true);
+    }
   }
 
   function closeRequestSuccessModal() {
@@ -1886,6 +1966,28 @@ function ResidentPortalShell() {
           <p className="resident-note" style={{ textAlign: 'center' }}>Checking session...</p>
         </section>
       ) : null}
+
+      {/* Pre-usage survey — shown after login + verified, persists until completed */}
+      <SurveyModal
+        open={preSurveyOpen && !requestSuccessModal.open}
+        title="Pre-Usage Survey"
+        subtitle="Help us improve! Please rate these statements about your current experience with barangay document requests."
+        questions={PRE_SURVEY_QUESTIONS}
+        onSubmit={handlePreSurveySubmit}
+        onDismiss={handlePreSurveyDismiss}
+        variant="remote"
+      />
+
+      {/* Post-usage survey — shown after first request, persists until completed */}
+      <SurveyModal
+        open={postSurveyOpen && !requestSuccessModal.open && !preSurveyOpen}
+        title="Post-Usage Survey"
+        subtitle="Thank you for using the system! Please share your experience to help us improve."
+        questions={POST_SURVEY_QUESTIONS}
+        onSubmit={handlePostSurveySubmit}
+        onDismiss={handlePostSurveyDismiss}
+        variant="remote"
+      />
     </div>
   );
 }

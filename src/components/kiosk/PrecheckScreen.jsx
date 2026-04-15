@@ -9,6 +9,8 @@ import {
   getCachedSetting,
   queuePendingRequest,
 } from '../../utils/offlineStorage';
+import SurveyModal from '../ui/SurveyModal';
+import { PRE_SURVEY_QUESTIONS, POST_SURVEY_QUESTIONS } from '../../data/surveyQuestions';
 
 const INITIAL_FORM = {
   lastName: '',
@@ -187,6 +189,8 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
   const [feedbackComment, setFeedbackComment] = useState('');
   const [feedbackSaving, setFeedbackSaving] = useState(false);
   const [feedbackDone, setFeedbackDone] = useState(false);
+  const [kioskSurveyType, setKioskSurveyType] = useState(null); // 'pre' | 'post' | null
+  const [kioskSurveysDone, setKioskSurveysDone] = useState({ pre: false, post: false });
 
 
   const safeZoneValue = useMemo(
@@ -374,6 +378,8 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     setFeedbackComment('');
     setFeedbackSaving(false);
     setFeedbackDone(false);
+    setKioskSurveyType(null);
+    setKioskSurveysDone({ pre: false, post: false });
   }
 
   async function getNextQueueNumber() {
@@ -698,6 +704,23 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     setFeedbackDone(true);
   }
 
+  async function handleKioskSurveySubmit(responses) {
+    if (!responses) { // skipped
+      setKioskSurveyType(null);
+      return;
+    }
+    try {
+      await supabase.from('survey_responses').insert({
+        barangay_id: barangayId || null,
+        survey_type: kioskSurveyType,
+        source: 'kiosk',
+        responses,
+      });
+    } catch { /* non-critical */ }
+    setKioskSurveysDone(prev => ({ ...prev, [kioskSurveyType]: true }));
+    setKioskSurveyType(null);
+  }
+
   async function handleSearchSubmit(event) {
     event.preventDefault();
     const rawQuery = query.trim();
@@ -992,6 +1015,49 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
               <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
               <h3 className="kiosk-confirm-title" style={{ marginBottom: '0.5rem' }}>Thank you for your feedback!</h3>
               <p className="kiosk-confirm-subtitle">Your rating helps us improve our services.</p>
+            </div>
+            <div style={{ margin: '0.75rem 0', padding: '0.75rem', background: '#f0f4ff', borderRadius: '1rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Would you like to answer a short survey? <em style={{ fontWeight: 400, color: '#94a3b8' }}>(optional)</em>
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  disabled={kioskSurveysDone.pre}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: kioskSurveysDone.pre ? '#94a3b8' : '#6366f1',
+                    background: kioskSurveysDone.pre ? '#f1f5f9' : 'white',
+                    border: kioskSurveysDone.pre ? '1.5px solid #e2e8f0' : '1.5px solid #c7d2fe',
+                    borderRadius: '999px',
+                    cursor: kioskSurveysDone.pre ? 'not-allowed' : 'pointer',
+                    opacity: kioskSurveysDone.pre ? 0.7 : 1,
+                  }}
+                  onClick={() => !kioskSurveysDone.pre && setKioskSurveyType('pre')}
+                >
+                  {kioskSurveysDone.pre ? '✓ Pre-Usage Done' : '📋 Pre-Usage Survey'}
+                </button>
+                <button
+                  type="button"
+                  disabled={kioskSurveysDone.post}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: kioskSurveysDone.post ? '#94a3b8' : '#6366f1',
+                    background: kioskSurveysDone.post ? '#f1f5f9' : 'white',
+                    border: kioskSurveysDone.post ? '1.5px solid #e2e8f0' : '1.5px solid #c7d2fe',
+                    borderRadius: '999px',
+                    cursor: kioskSurveysDone.post ? 'not-allowed' : 'pointer',
+                    opacity: kioskSurveysDone.post ? 0.7 : 1,
+                  }}
+                  onClick={() => !kioskSurveysDone.post && setKioskSurveyType('post')}
+                >
+                  {kioskSurveysDone.post ? '✓ Post-Usage Done' : '📝 Post-Usage Survey'}
+                </button>
+              </div>
             </div>
             <div className="kiosk-confirm-actions" style={{ justifyContent: 'center' }}>
               <button type="button" className="kiosk-intake-submit" onClick={() => { closeSuccessNotice(); handleCloseIntake(); }}>Done</button>
@@ -1358,6 +1424,18 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
 
         {successNoticeModal}
         {moreDocsModal}
+        {/* Kiosk survey modal (intake flow) */}
+        <SurveyModal
+          open={kioskSurveyType !== null}
+          title={kioskSurveyType === 'pre' ? 'Pre-Usage Survey' : 'Post-Usage Survey'}
+          subtitle={kioskSurveyType === 'pre'
+            ? 'Please rate these statements about your current experience with barangay document requests.'
+            : 'Please share your experience after using the Smart Barangay Kiosk System.'}
+          questions={kioskSurveyType === 'pre' ? PRE_SURVEY_QUESTIONS : POST_SURVEY_QUESTIONS}
+          onSubmit={handleKioskSurveySubmit}
+          variant="kiosk"
+          optional
+        />
       </div>
     );
   }
@@ -1611,6 +1689,18 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       </div>
       {successNoticeModal}
       {moreDocsModal}
+      {/* Kiosk survey modal */}
+      <SurveyModal
+        open={kioskSurveyType !== null}
+        title={kioskSurveyType === 'pre' ? 'Pre-Usage Survey' : 'Post-Usage Survey'}
+        subtitle={kioskSurveyType === 'pre'
+          ? 'Please rate these statements about your current experience with barangay document requests.'
+          : 'Please share your experience after using the Smart Barangay Kiosk System.'}
+        questions={kioskSurveyType === 'pre' ? PRE_SURVEY_QUESTIONS : POST_SURVEY_QUESTIONS}
+        onSubmit={handleKioskSurveySubmit}
+        variant="kiosk"
+        optional
+      />
     </div>
   );
 }
