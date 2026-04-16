@@ -578,6 +578,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
 
     const resolvedDocuments = intakeReviewData?.documents || [];
     const referenceNumbers = [];
+    const requestIds = [];
     let queueNumber = null;
 
     if (isOnline) {
@@ -604,6 +605,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
           setIntakeReviewOpen(false);
           return;
         }
+        if (insertedRow?.id) requestIds.push(insertedRow.id);
 
         // Send system chat message for request received
         if (insertedRow?.id) {
@@ -684,6 +686,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       documents: resolvedDocuments,
       residentName,
       printStatus,
+      requestIds,
     });
     setIntakeForm(INITIAL_FORM);
   }
@@ -692,13 +695,29 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
     if (!feedbackRating) return;
     setFeedbackSaving(true);
     try {
-      await supabase.from('kiosk_feedback').insert({
-        barangay_id: barangayId || null,
-        resident_name: successNotice.residentName || '',
-        document: (successNotice.documents || []).join(', '),
-        rating: feedbackRating,
-        comment: feedbackComment.trim(),
-      });
+      const ids = successNotice.requestIds || [];
+      if (ids.length) {
+        // Insert one feedback per request so each is tied
+        await supabase.from('kiosk_feedback').insert(
+          ids.map(reqId => ({
+            barangay_id: barangayId || null,
+            request_id: reqId,
+            resident_name: successNotice.residentName || '',
+            document: (successNotice.documents || []).join(', '),
+            rating: feedbackRating,
+            comment: feedbackComment.trim(),
+          }))
+        );
+      } else {
+        // Offline or no IDs — insert without request_id
+        await supabase.from('kiosk_feedback').insert({
+          barangay_id: barangayId || null,
+          resident_name: successNotice.residentName || '',
+          document: (successNotice.documents || []).join(', '),
+          rating: feedbackRating,
+          comment: feedbackComment.trim(),
+        });
+      }
     } catch { /* non-critical */ }
     setFeedbackSaving(false);
     setFeedbackDone(true);
@@ -808,6 +827,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
 
     setRequestSaving(true);
     const referenceNumbers = [];
+    const requestIds = [];
     let queueNumber = null;
 
     // Look up resident auth UID once (used for conversation creation)
@@ -866,6 +886,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
           setRequestSaving(false);
           return;
         }
+        if (insertedRow?.id) requestIds.push(insertedRow.id);
 
         // Send system chat message for request received
         if (insertedRow?.id) {
@@ -965,6 +986,7 @@ export default function PrecheckScreen({ onClose, barangayId, isOnline = true })
       documents: resolvedDocuments,
       residentName,
       printStatus,
+      requestIds,
     });
     setRequestForm({ documents: [], customDocument: '', purpose: '', ctcNumber: '', ctcDate: '' });
   }
