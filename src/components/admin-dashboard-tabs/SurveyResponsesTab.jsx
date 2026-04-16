@@ -176,38 +176,70 @@ export default function SurveyResponsesTab({ supabase, barangays, addToast }) {
     };
   }, [filteredResponses]);
 
-  // Compute average per question for filtered responses
-  const questionAverages = useMemo(() => {
+  // Compute average per question — RESIDENT surveys (kiosk + remote)
+  const residentQuestionAverages = useMemo(() => {
     if (typeFilter === 'all' || !filteredResponses.length) return null;
+    if (sourceFilter === 'admin') return null;
 
-    // Determine which question set to use based on source filter
-    const isAdmin = sourceFilter === 'admin';
-    const questions = typeFilter === 'post'
-      ? (isAdmin ? ADMIN_POST_SURVEY_QUESTIONS : POST_SURVEY_QUESTIONS)
-      : (isAdmin ? ADMIN_PRE_SURVEY_QUESTIONS : PRE_SURVEY_QUESTIONS);
+    const questions = typeFilter === 'post' ? POST_SURVEY_QUESTIONS : PRE_SURVEY_QUESTIONS;
+    const relevant = filteredResponses.filter(r => r.survey_type === typeFilter && r.source !== 'admin');
+    if (!relevant.length) return null;
 
     const sums = {};
     const counts = {};
     questions.forEach(q => { sums[q.id] = 0; counts[q.id] = 0; });
 
-    filteredResponses
-      .filter(r => r.survey_type === typeFilter)
-      .filter(r => isAdmin ? r.source === 'admin' : r.source !== 'admin')
-      .forEach(r => {
-        const resp = r.responses || {};
-        questions.forEach(q => {
-          if (resp[q.id] !== undefined) {
-            sums[q.id] += Number(resp[q.id]);
-            counts[q.id] += 1;
-          }
-        });
+    relevant.forEach(r => {
+      const resp = r.responses || {};
+      questions.forEach(q => {
+        if (resp[q.id] !== undefined) {
+          sums[q.id] += Number(resp[q.id]);
+          counts[q.id] += 1;
+        }
       });
+    });
 
-    return questions.map(q => ({
-      ...q,
-      avg: counts[q.id] ? (sums[q.id] / counts[q.id]).toFixed(2) : 'N/A',
-      count: counts[q.id],
-    }));
+    return {
+      rows: questions.map(q => ({
+        ...q,
+        avg: counts[q.id] ? (sums[q.id] / counts[q.id]).toFixed(2) : 'N/A',
+        count: counts[q.id],
+      })),
+      responseCount: relevant.length,
+    };
+  }, [filteredResponses, typeFilter, sourceFilter]);
+
+  // Compute average per question — ADMIN surveys (officials/staff)
+  const adminQuestionAverages = useMemo(() => {
+    if (typeFilter === 'all' || !filteredResponses.length) return null;
+    if (sourceFilter !== 'all' && sourceFilter !== 'admin') return null;
+
+    const questions = typeFilter === 'post' ? ADMIN_POST_SURVEY_QUESTIONS : ADMIN_PRE_SURVEY_QUESTIONS;
+    const relevant = filteredResponses.filter(r => r.survey_type === typeFilter && r.source === 'admin');
+    if (!relevant.length) return null;
+
+    const sums = {};
+    const counts = {};
+    questions.forEach(q => { sums[q.id] = 0; counts[q.id] = 0; });
+
+    relevant.forEach(r => {
+      const resp = r.responses || {};
+      questions.forEach(q => {
+        if (resp[q.id] !== undefined) {
+          sums[q.id] += Number(resp[q.id]);
+          counts[q.id] += 1;
+        }
+      });
+    });
+
+    return {
+      rows: questions.map(q => ({
+        ...q,
+        avg: counts[q.id] ? (sums[q.id] / counts[q.id]).toFixed(2) : 'N/A',
+        count: counts[q.id],
+      })),
+      responseCount: relevant.length,
+    };
   }, [filteredResponses, typeFilter, sourceFilter]);
 
   function handleExport() {
@@ -247,10 +279,10 @@ export default function SurveyResponsesTab({ supabase, barangays, addToast }) {
     addToast?.('Survey responses exported (anonymous).', 'success');
   }
 
-  function handleExportSummary() {
-    if (!questionAverages) return;
+  function handleExportSummary(avgData, label) {
+    if (!avgData) return;
     const surveyLabel = typeFilter === 'pre' ? 'Pre-Usage' : 'Post-Usage';
-    const rows = questionAverages.map(q => ({
+    const rows = avgData.rows.map(q => ({
       question_id: q.id,
       part: q.part,
       question: q.text,
@@ -258,8 +290,8 @@ export default function SurveyResponsesTab({ supabase, barangays, addToast }) {
       average_rating: q.avg,
       response_count: q.count,
     }));
-    downloadCSV(rows, ['question_id', 'part', 'question', 'question_filipino', 'average_rating', 'response_count'], `survey_summary_${surveyLabel.toLowerCase().replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
-    addToast?.(`${surveyLabel} summary exported.`, 'success');
+    downloadCSV(rows, ['question_id', 'part', 'question', 'question_filipino', 'average_rating', 'response_count'], `survey_summary_${label.toLowerCase().replace(/[\s/]+/g, '_')}_${surveyLabel.toLowerCase().replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+    addToast?.(`${label} ${surveyLabel} summary exported.`, 'success');
   }
 
   return (
@@ -294,15 +326,6 @@ export default function SurveyResponsesTab({ supabase, barangays, addToast }) {
               onClick={handleExport}
             >
               Export Raw CSV
-            </button>
-          ) : null}
-          {questionAverages ? (
-            <button
-              type="button"
-              className="rounded-full border border-violet-200 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"
-              onClick={handleExportSummary}
-            >
-              Export Summary CSV
             </button>
           ) : null}
         </div>
@@ -589,15 +612,24 @@ export default function SurveyResponsesTab({ supabase, barangays, addToast }) {
         </select>
       </div>
 
-      {/* Question averages table (when a specific type is filtered) */}
-      {questionAverages ? (
+      {/* Question averages tables — Resident and Admin shown separately */}
+      {residentQuestionAverages ? (
         <div className="mt-4">
-          <p className="text-xs uppercase tracking-widest text-indigo-500 font-semibold mb-2">
-            {sourceFilter === 'admin' ? 'Admin ' : ''}{typeFilter === 'pre' ? 'Pre-Usage' : 'Post-Usage'} Question Averages
-            <span className="ml-2 text-gray-400 normal-case">
-              ({filteredResponses.filter(r => r.survey_type === typeFilter && (sourceFilter === 'admin' ? r.source === 'admin' : r.source !== 'admin')).length} responses)
-            </span>
-          </p>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <p className="text-xs uppercase tracking-widest text-emerald-600 font-semibold">
+              🏘️ Resident {typeFilter === 'pre' ? 'Pre-Usage' : 'Post-Usage'} Question Averages
+              <span className="ml-2 text-gray-400 normal-case">
+                ({residentQuestionAverages.responseCount} responses)
+              </span>
+            </p>
+            <button
+              type="button"
+              className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+              onClick={() => handleExportSummary(residentQuestionAverages, 'Resident')}
+            >
+              Export Summary CSV
+            </button>
+          </div>
           <div className="overflow-x-auto rounded-2xl border border-gray-100">
             <table className="w-full text-sm">
               <thead>
@@ -610,8 +642,64 @@ export default function SurveyResponsesTab({ supabase, barangays, addToast }) {
                 </tr>
               </thead>
               <tbody>
-                {questionAverages.map((q, idx) => (
+                {residentQuestionAverages.rows.map((q, idx) => (
                   <tr key={q.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                    <td className="px-3 py-2 text-gray-400 font-mono text-xs">{idx + 1}</td>
+                    <td className="px-3 py-2 text-xs text-emerald-600 font-medium whitespace-nowrap">{q.part}</td>
+                    <td className="px-3 py-2 text-gray-700">
+                      <p className="text-sm">{q.text}</p>
+                      <p className="text-xs text-gray-400 italic">{q.textFil}</p>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-sm font-bold ${
+                        q.avg === 'N/A' ? 'bg-gray-100 text-gray-400'
+                        : Number(q.avg) >= 4 ? 'bg-emerald-100 text-emerald-700'
+                        : Number(q.avg) >= 3 ? 'bg-amber-100 text-amber-700'
+                        : 'bg-red-100 text-red-700'
+                      }`}>
+                        {q.avg}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center text-gray-400 text-xs">{q.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      {adminQuestionAverages ? (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <p className="text-xs uppercase tracking-widest text-indigo-600 font-semibold">
+              👔 Admin / Official {typeFilter === 'pre' ? 'Pre-Usage' : 'Post-Usage'} Question Averages
+              <span className="ml-2 text-gray-400 normal-case">
+                ({adminQuestionAverages.responseCount} responses)
+              </span>
+            </p>
+            <button
+              type="button"
+              className="rounded-full border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+              onClick={() => handleExportSummary(adminQuestionAverages, 'Admin')}
+            >
+              Export Summary CSV
+            </button>
+          </div>
+          <div className="overflow-x-auto rounded-2xl border border-indigo-100">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-indigo-50/50">
+                  <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">#</th>
+                  <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Part</th>
+                  <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Statement</th>
+                  <th className="px-3 py-2 text-center text-xs text-gray-500 font-semibold">Avg</th>
+                  <th className="px-3 py-2 text-center text-xs text-gray-500 font-semibold">n</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminQuestionAverages.rows.map((q, idx) => (
+                  <tr key={q.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-indigo-50/30'}>
                     <td className="px-3 py-2 text-gray-400 font-mono text-xs">{idx + 1}</td>
                     <td className="px-3 py-2 text-xs text-indigo-600 font-medium whitespace-nowrap">{q.part}</td>
                     <td className="px-3 py-2 text-gray-700">

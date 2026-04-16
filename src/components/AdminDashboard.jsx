@@ -43,8 +43,9 @@ export default function AdminDashboard({ onLogout }) {
   const activeTabMeta = useMemo(() => TABS.find(tab => tab.key === activeTab), [activeTab]);
 
   // ── Admin Survey State ──
-  const [adminPreDone, setAdminPreDone] = useState(() => localStorage.getItem('sbk-admin-survey-pre-done') === 'true');
-  const [adminPostDone, setAdminPostDone] = useState(() => localStorage.getItem('sbk-admin-survey-post-done') === 'true');
+  // Use sessionStorage so surveys reset each browser session (allows re-answering on next login)
+  const [adminPreDone, setAdminPreDone] = useState(() => sessionStorage.getItem('sbk-admin-survey-pre-done') === 'true');
+  const [adminPostDone, setAdminPostDone] = useState(() => sessionStorage.getItem('sbk-admin-survey-post-done') === 'true');
   const [showAdminPreSurvey, setShowAdminPreSurvey] = useState(false);
   const [showAdminPostSurvey, setShowAdminPostSurvey] = useState(false);
   // Manual re-answer: 'pre' | 'post' | null
@@ -66,7 +67,7 @@ export default function AdminDashboard({ onLogout }) {
       responses,
     });
     if (error) { console.error('Admin pre-survey insert failed:', error.message); return; }
-    localStorage.setItem('sbk-admin-survey-pre-done', 'true');
+    sessionStorage.setItem('sbk-admin-survey-pre-done', 'true');
     setAdminPreDone(true);
     setShowAdminPreSurvey(false);
   }, [supabase, barangayId]);
@@ -80,7 +81,7 @@ export default function AdminDashboard({ onLogout }) {
       responses,
     });
     if (error) { console.error('Admin post-survey insert failed:', error.message); return; }
-    localStorage.setItem('sbk-admin-survey-post-done', 'true');
+    sessionStorage.setItem('sbk-admin-survey-post-done', 'true');
     setAdminPostDone(true);
     setShowAdminPostSurvey(false);
   }, [supabase, barangayId]);
@@ -104,6 +105,13 @@ export default function AdminDashboard({ onLogout }) {
       setShowAdminPostSurvey(true);
     }
   }, [adminPostDone]);
+
+  // Wrap logout to clear survey session flags so admin can re-answer next login
+  const handleLogout = useCallback(() => {
+    sessionStorage.removeItem('sbk-admin-survey-pre-done');
+    sessionStorage.removeItem('sbk-admin-survey-post-done');
+    onLogout();
+  }, [onLogout]);
 
   useEffect(() => {
     let isActive = true;
@@ -323,7 +331,7 @@ export default function AdminDashboard({ onLogout }) {
           <button
             type="button"
             className="w-full rounded-2xl border border-white/30 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
-            onClick={onLogout}
+            onClick={handleLogout}
           >
             Logout
           </button>
@@ -430,7 +438,7 @@ export default function AdminDashboard({ onLogout }) {
                 <button
                   type="button"
                   className="mt-2 w-full rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700"
-                  onClick={onLogout}
+                  onClick={handleLogout}
                 >
                   Logout
                 </button>
