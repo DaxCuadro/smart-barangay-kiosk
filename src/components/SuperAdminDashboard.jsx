@@ -586,13 +586,14 @@ export default function SuperAdminDashboard({ onLogout }) {
           barangay_id,
           release_log_id,
           resident_id,
+          source,
           release_logs!inner ( document, resident_name, released_at )
         `)
         .order('created_at', { ascending: false })
         .limit(500),
       supabase
         .from('kiosk_feedback')
-        .select('id, rating, comment, created_at, barangay_id, resident_name, document')
+        .select('id, rating, comment, created_at, barangay_id, resident_name, document, source')
         .order('created_at', { ascending: false })
         .limit(500),
     ]);
@@ -600,12 +601,14 @@ export default function SuperAdminDashboard({ onLogout }) {
     const residentRows = (residentResult.data || []).map(item => ({
       ...item,
       _source: 'release',
+      _manual: item.source === 'manual',
       _name: item.release_logs?.resident_name || 'Resident',
       _document: item.release_logs?.document || 'Document',
     }));
     const kioskRows = (kioskResult.data || []).map(item => ({
       ...item,
       _source: 'kiosk',
+      _manual: item.source === 'manual',
       _name: item.resident_name || 'Walk-in',
       _document: item.document || 'N/A',
     }));
@@ -625,18 +628,24 @@ export default function SuperAdminDashboard({ onLogout }) {
     return allFeedback.filter(item => {
       if (feedbackRatingFilter !== 'all' && String(item.rating) !== feedbackRatingFilter) return false;
       if (feedbackBarangayFilter !== 'all' && item.barangay_id !== feedbackBarangayFilter) return false;
-      if (feedbackSourceFilter !== 'all' && item._source !== feedbackSourceFilter) return false;
+      if (feedbackSourceFilter === 'release') { if (item._source !== 'release' || item._manual) return false; }
+      else if (feedbackSourceFilter === 'kiosk') { if (item._source !== 'kiosk' || item._manual) return false; }
+      else if (feedbackSourceFilter === 'manual') { if (!item._manual) return false; }
+      else if (feedbackSourceFilter !== 'all') { if (item._source !== feedbackSourceFilter) return false; }
       if (!q) return true;
       return [item._document, item._name, item.comment].join(' ').toLowerCase().includes(q);
     });
   }, [allFeedback, feedbackSearch, feedbackRatingFilter, feedbackBarangayFilter, feedbackSourceFilter]);
 
   const feedbackStats = useMemo(() => {
-    if (!filteredFeedback.length) return { avg: 0, total: 0, distribution: [0, 0, 0, 0, 0] };
+    // Only count organic feedback (exclude manual) for the main stats
+    const organic = filteredFeedback.filter(i => !i._manual);
+    const manual = filteredFeedback.filter(i => i._manual);
+    if (!filteredFeedback.length) return { avg: 0, total: 0, organic: 0, manual: 0, distribution: [0, 0, 0, 0, 0] };
     const dist = [0, 0, 0, 0, 0];
     let sum = 0;
     filteredFeedback.forEach(item => { sum += item.rating; dist[item.rating - 1] += 1; });
-    return { avg: sum / filteredFeedback.length, total: filteredFeedback.length, distribution: dist };
+    return { avg: sum / filteredFeedback.length, total: filteredFeedback.length, organic: organic.length, manual: manual.length, distribution: dist };
   }, [filteredFeedback]);
 
   /* ── Manual Rating: load unrated items ───────────────────────── */
@@ -718,6 +727,7 @@ export default function SuperAdminDashboard({ onLogout }) {
           barangay_id: item.barangay_id,
           rating,
           comment: (comment || '').trim(),
+          source: 'manual',
         }));
       } else {
         // Kiosk intake or release without resident_id — use kiosk_feedback
@@ -728,6 +738,7 @@ export default function SuperAdminDashboard({ onLogout }) {
           document: item.document,
           rating,
           comment: (comment || '').trim(),
+          source: 'manual',
         }));
       }
       if (error) { fail++; } else { ok++; }
@@ -3373,7 +3384,7 @@ export default function SuperAdminDashboard({ onLogout }) {
                     const rows = allFeedback.map(item => ({
                       date: formatTimestamp(item.created_at),
                       barangay: barangayMap[item.barangay_id] || item.barangay_id,
-                      source: item._source === 'kiosk' ? 'Kiosk' : 'Release',
+                      source: item._manual ? 'Manual' : item._source === 'kiosk' ? 'Kiosk' : 'Release',
                       resident: item._name,
                       document: item._document,
                       rating: item.rating,
@@ -3401,6 +3412,11 @@ export default function SuperAdminDashboard({ onLogout }) {
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
                   <p className="text-2xl font-bold text-gray-900">{feedbackStats.total}</p>
                   <p className="text-xs text-gray-500">Total Reviews</p>
+                  {feedbackStats.manual > 0 ? (
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      {feedbackStats.organic} organic · {feedbackStats.manual} manual
+                    </p>
+                  ) : null}
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center col-span-2">
                   <p className="text-xs text-gray-500 mb-2">Rating Distribution</p>
@@ -3439,8 +3455,9 @@ export default function SuperAdminDashboard({ onLogout }) {
               </select>
               <select value={feedbackSourceFilter} onChange={e => setFeedbackSourceFilter(e.target.value)} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900">
                 <option value="all">All sources</option>
-                <option value="release">Remote</option>
-                <option value="kiosk">Kiosk</option>
+                <option value="release">Remote (organic)</option>
+                <option value="kiosk">Kiosk (organic)</option>
+                <option value="manual">Manual (by admin)</option>
               </select>
               <select value={feedbackBarangayFilter} onChange={e => setFeedbackBarangayFilter(e.target.value)} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900">
                 <option value="all">All barangays</option>
@@ -3545,6 +3562,9 @@ export default function SuperAdminDashboard({ onLogout }) {
                             </span>
                             {item._source === 'kiosk' ? (
                               <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">Kiosk</span>
+                            ) : null}
+                            {item._manual ? (
+                              <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-bold text-gray-600">Manual</span>
                             ) : null}
                           </div>
                           <p className="text-sm font-semibold text-gray-900">

@@ -39,6 +39,7 @@ export default function FeedbackTab({ barangayId }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [ratingFilter, setRatingFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
 
   useEffect(() => {
     let isActive = true;
@@ -57,6 +58,7 @@ export default function FeedbackTab({ barangayId }) {
             created_at,
             release_log_id,
             resident_id,
+            source,
             release_logs!inner ( document, resident_name, released_at )
           `)
           .eq('barangay_id', barangayId)
@@ -64,7 +66,7 @@ export default function FeedbackTab({ barangayId }) {
           .limit(200),
         supabase
           .from('kiosk_feedback')
-          .select('id, rating, comment, created_at, resident_name, document')
+          .select('id, rating, comment, created_at, resident_name, document, source')
           .eq('barangay_id', barangayId)
           .order('created_at', { ascending: false })
           .limit(200),
@@ -74,12 +76,14 @@ export default function FeedbackTab({ barangayId }) {
       const residentRows = (residentResult.data || []).map(item => ({
         ...item,
         _source: 'release',
+        _manual: item.source === 'manual',
         _name: item.release_logs?.resident_name || 'Resident',
         _document: item.release_logs?.document || 'Document',
       }));
       const kioskRows = (kioskResult.data || []).map(item => ({
         ...item,
         _source: 'kiosk',
+        _manual: item.source === 'manual',
         _name: item.resident_name || 'Walk-in',
         _document: item.document || 'N/A',
       }));
@@ -122,27 +126,32 @@ export default function FeedbackTab({ barangayId }) {
     const q = search.trim().toLowerCase();
     return feedback.filter(item => {
       if (ratingFilter !== 'all' && String(item.rating) !== ratingFilter) return false;
+      if (sourceFilter === 'release') { if (item._source !== 'release' || item._manual) return false; }
+      else if (sourceFilter === 'kiosk') { if (item._source !== 'kiosk' || item._manual) return false; }
+      else if (sourceFilter === 'manual') { if (!item._manual) return false; }
       if (!q) return true;
       const haystack = [item._document, item._name, item.comment].join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [feedback, search, ratingFilter]);
+  }, [feedback, search, ratingFilter, sourceFilter]);
 
   const stats = useMemo(() => {
-    if (!feedback.length) return { avg: 0, total: 0, distribution: [0, 0, 0, 0, 0] };
+    if (!feedback.length) return { avg: 0, total: 0, organic: 0, manual: 0, distribution: [0, 0, 0, 0, 0] };
     const dist = [0, 0, 0, 0, 0];
     let sum = 0;
     feedback.forEach(item => {
       sum += item.rating;
       dist[item.rating - 1] += 1;
     });
-    return { avg: sum / feedback.length, total: feedback.length, distribution: dist };
+    const organic = feedback.filter(i => !i._manual).length;
+    const manual = feedback.filter(i => i._manual).length;
+    return { avg: sum / feedback.length, total: feedback.length, organic, manual, distribution: dist };
   }, [feedback]);
 
   const handleExport = () => {
     const rows = feedback.map(item => ({
       date: formatDate(item.created_at),
-      source: item._source === 'kiosk' ? 'Kiosk' : 'Release',
+      source: item._manual ? 'Manual' : item._source === 'kiosk' ? 'Kiosk' : 'Release',
       resident: item._name,
       document: item._document,
       rating: item.rating,
@@ -183,6 +192,11 @@ export default function FeedbackTab({ barangayId }) {
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               <p className="text-xs text-gray-500">Total Reviews</p>
+              {stats.manual > 0 ? (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {stats.organic} organic · {stats.manual} manual
+                </p>
+              ) : null}
             </div>
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center col-span-2">
               <p className="text-xs text-gray-500 mb-2">Rating Distribution</p>
@@ -228,6 +242,16 @@ export default function FeedbackTab({ barangayId }) {
               <option key={r} value={String(r)}>{r} star{r > 1 ? 's' : ''}</option>
             ))}
           </select>
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-900"
+          >
+            <option value="all">All sources</option>
+            <option value="release">Remote (organic)</option>
+            <option value="kiosk">Kiosk (organic)</option>
+            <option value="manual">Manual (by admin)</option>
+          </select>
         </div>
 
         {/* Feedback list */}
@@ -247,6 +271,9 @@ export default function FeedbackTab({ barangayId }) {
                         </span>
                         {item._source === 'kiosk' ? (
                           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">Kiosk</span>
+                        ) : null}
+                        {item._manual ? (
+                          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-bold text-gray-600">Manual</span>
                         ) : null}
                       </div>
                       <p className="text-sm font-semibold text-gray-900">
