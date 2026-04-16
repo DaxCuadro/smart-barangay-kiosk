@@ -214,7 +214,7 @@
 <br>
 <div class="abstract-section">
 <p>
-The Smart Barangay Kiosk System is an offline-first Progressive Web Application (PWA) developed to modernize document request handling and resident management in Philippine barangays.  Built with React 19, Vite, Supabase, and TailwindCSS, the system provides a self-service kiosk interface deployed on a tablet with a Bluetooth thermal printer, an administrative dashboard for barangay officials, a resident portal for remote document requests, and a super-administrator panel for multi-barangay management.  The system supports eleven barangay document types&mdash;Barangay Clearance, Certificate of Indigency, Certificate of Residency, Certificate of Good Moral Character, Certification for First Time Job Seeker, Certification for Monthly Income, Certification for Solo Parent, Certification PDA, Business Clearance, Barangay ID, and Barangay Certification&mdash;with a custom &ldquo;Other documents&rdquo; option, automatic control-number generation, receipt printing, SMS notifications via PhilSMS, and full offline functionality through IndexedDB caching and Workbox service workers.  The system was pilot-tested in Barangay Maangas and Barangay Sta. Maria in Presentacion, Camarines Sur.  Evaluation results indicate that the system significantly reduced document processing time, improved resident accessibility, and enhanced administrative efficiency, demonstrating the viability of low-cost, offline-first digital solutions for rural local governance.
+The Smart Barangay Kiosk System is an offline-first Progressive Web Application (PWA) developed to modernize document request handling and resident management in Philippine barangays.  Built with React 19, Vite, Supabase, and TailwindCSS, the system provides a self-service kiosk interface deployed on a tablet with a Bluetooth thermal printer, an administrative dashboard for barangay officials, a resident portal for remote document requests with full offline capability, and a super-administrator panel for multi-barangay management.  The system supports eleven barangay document types&mdash;Barangay Clearance, Certificate of Indigency, Certificate of Residency, Certificate of Good Moral Character, Certification for First Time Job Seeker, Certification for Monthly Income, Certification for Solo Parent, Certification PDA, Business Clearance, Barangay ID, and Barangay Certification&mdash;with a custom &ldquo;Other documents&rdquo; option, automatic control-number generation, receipt printing, SMS notifications via PhilSMS, and full offline functionality across both kiosk and resident portal interfaces through IndexedDB caching and Workbox service workers.  Both the kiosk terminal and the resident portal allow document request submission without an internet connection; requests are queued locally and synchronized automatically when connectivity is restored.  The system was pilot-tested in Barangay Maangas and Barangay Sta. Maria in Presentacion, Camarines Sur.  Evaluation results indicate that the system significantly reduced document processing time, improved resident accessibility, and enhanced administrative efficiency, demonstrating the viability of low-cost, offline-first digital solutions for rural local governance.
 </p>
 </div>
 <br><br>
@@ -617,7 +617,7 @@ The kiosk setup consists of the following hardware:
 <ol>
   <li><strong>Frontend Technologies (React 19 + Vite):</strong>  The user interface is developed as a Progressive Web App (PWA) using React 19 for component-based architecture and Vite for fast development and production bundling.  TailwindCSS provides utility-first styling.  This enables a single app that works seamlessly on kiosk tablets, phones, and desktop browsers, with offline support via Workbox service workers.</li>
   <li><strong>Backend and Database (Supabase):</strong>  Supabase handles backend services, authentication, real-time database management, storage, and edge functions.  It provides PostgreSQL as the database, row-level security (RLS) for multi-tenant data isolation, and automatic syncing upon internet reconnection.  The free tier (500,000 rows) is sufficient for barangay-level needs.</li>
-  <li><strong>Offline Sync (IndexedDB + Workbox):</strong>  The custom offline storage module uses IndexedDB (database name: <code>sbk-offline</code>) with four object stores: <code>barangays</code>, <code>residents</code>, <code>settings</code>, and <code>pendingRequests</code>.  Workbox runtime caching uses NetworkFirst strategy for Supabase REST API calls (5-second timeout, 200-entry limit, 24-hour expiry) and CacheFirst strategy for Supabase Storage assets.  When connectivity is restored, queued requests are automatically flushed to Supabase.</li>
+  <li><strong>Offline Sync (IndexedDB + Workbox):</strong>  The custom offline storage module uses IndexedDB (database name: <code>sbk-offline</code>) with four object stores: <code>barangays</code>, <code>residents</code>, <code>settings</code>, and <code>pendingRequests</code>.  The <code>settings</code> store doubles as a general-purpose cache for resident portal data (session credentials, profile, resident record, document options, pricing, announcements, zone counts, and request history) using prefixed keys.  Workbox runtime caching uses NetworkFirst strategy for Supabase REST API calls (5-second timeout, 200-entry limit, 24-hour expiry) and CacheFirst strategy for Supabase Storage assets.  When connectivity is restored, the <code>useOfflineSync</code> hook automatically flushes queued requests from the <code>pendingRequests</code> store to Supabase.</li>
   <li><strong>Thermal Printing (RawBT + ESC/POS):</strong>  Receipt printing is achieved through the RawBT Android app, which bridges the PWA to the Bluetooth thermal printer via Android intent URL scheme (<code>rawbt:{encoded_text}</code>).  Receipt content is formatted for 32 characters per line (58mm paper width) and includes barangay name, date, reference number, queue number, resident name, document list, pricing, and a footer message.</li>
   <li><strong>SMS Notification (PhilSMS):</strong>  Integration with PhilSMS provides affordable SMS notifications in the Philippines when documents are ready for pickup.  The system also supports Semaphore as an alternative provider.  SMS edge functions handle phone number normalization (PH 63-format), OTP generation for password recovery (6-digit codes, 5-minute expiry), and document-ready notifications.</li>
   <li><strong>Hosting:</strong>  The PWA is hosted on Vercel for the frontend.  Supabase free tier handles the backend, database, and edge functions.  Dynamic manifest switching allows separate PWA installs for kiosk mode (<code>/kiosk</code>), admin mode (<code>/admin</code>), and super-admin mode (<code>/superadmin</code>).</li>
@@ -643,7 +643,7 @@ The system is architected as a multi-tenant PWA with four primary interfaces:
 
 <ol>
   <li><strong>Kiosk Interface (<code>/kiosk</code>):</strong>  The public-facing self-service terminal deployed on the tablet.  Residents search their name, select document types, fill in required fields (purpose, CTC number for business clearances), and submit.  The system generates a control number, prints a thermal receipt, and queues the request for admin processing.  If the system is offline, the request is saved to IndexedDB and synced when connectivity returns.</li>
-  <li><strong>Resident Portal (<code>/resident</code>):</strong>  A login-protected interface for verified residents to submit document requests remotely from their phones, view request history with status tracking, submit feedback and ratings on released documents, and manage their profile information.</li>
+  <li><strong>Resident Portal (<code>/resident</code>):</strong>  A login-protected interface for verified residents to submit document requests remotely from their phones, view request history with status tracking, submit feedback and ratings on released documents, and manage their profile information.  After a resident&rsquo;s account is verified at least once while online, the portal caches session credentials, profile data, barangay information, document options, pricing, announcements, and request history in IndexedDB.  Subsequent logins can proceed entirely offline using the cached session, and document requests submitted offline are queued locally with an offline reference number and automatically uploaded when internet connectivity returns.  An offline status banner informs the user of connectivity state and pending request count.</li>
   <li><strong>Admin Dashboard (<code>/admin</code>):</strong>  A comprehensive management panel with nine tabs:
     <ul>
       <li><em>Dashboard:</em> Daily summary with key metrics (new submissions, pending verifications, announcements, pricing gaps), officials status, and calendar events.</li>
@@ -671,7 +671,7 @@ The system is architected as a multi-tenant PWA with four primary interfaces:
 <div class="third-level-heading">3.3.5. Database Design</div>
 
 <p>
-The system uses a PostgreSQL database managed by Supabase with 16 core tables organized around a multi-tenant architecture.  All tenant-specific tables include a <code>barangay_id</code> foreign key with row-level security policies enforcing data isolation.  The key tables are as follows:
+The system uses a PostgreSQL database managed by Supabase with 21 core tables organized around a multi-tenant architecture.  All tenant-specific tables include a <code>barangay_id</code> foreign key with row-level security policies enforcing data isolation.  The key tables are as follows:
 </p>
 
 <table>
@@ -691,6 +691,11 @@ The system uses a PostgreSQL database managed by Supabase with 16 core tables or
   <tr><td><code>app_settings</code></td><td>Global and per-barangay configuration (kiosk password, service fees, SMS fees, document options)</td></tr>
   <tr><td><code>password_reset_otps</code></td><td>OTP tracking with expiry, usage, and attempt counters</td></tr>
   <tr><td><code>audit_logs</code></td><td>Superadmin/admin action tracking with actor, action, target, and JSONB metadata</td></tr>
+  <tr><td><code>resident_accounts</code></td><td>Resident portal account registry linking Supabase auth users to barangay tenants with account status (active/disabled)</td></tr>
+  <tr><td><code>conversations</code></td><td>Chat threads linked to document requests for admin&ndash;resident communication</td></tr>
+  <tr><td><code>messages</code></td><td>Individual messages within conversations with sender role (admin/resident/system) and read status tracking</td></tr>
+  <tr><td><code>survey_responses</code></td><td>Anonymous pre-usage and post-usage survey responses from kiosk, resident portal, and admin-entered surveys stored as JSONB</td></tr>
+  <tr><td><code>kiosk_feedback</code></td><td>Walk-in kiosk user satisfaction ratings and comments collected after document request submission</td></tr>
 </table>
 <div class="table-caption"><strong>Table 3.1.</strong> <span>Core Database Tables and Their Purposes</span></div>
 
@@ -698,7 +703,7 @@ The system uses a PostgreSQL database managed by Supabase with 16 core tables or
 <div class="third-level-heading">3.3.6. Offline-First PWA Behavior</div>
 
 <p>
-The system is deployed as a Progressive Web App using React 19 + Vite + Supabase with Workbox service workers.  This enables two critical offline scenarios:
+The system is deployed as a Progressive Web App using React 19 + Vite + Supabase with Workbox service workers.  This enables three critical offline scenarios:
 </p>
 
 <p>
@@ -706,7 +711,11 @@ The system is deployed as a Progressive Web App using React 19 + Vite + Supabase
 </p>
 
 <p>
-<strong>2. Mobile Phone Access (Resident using own phone):</strong>  On the first visit with brief internet access, the browser prompts &ldquo;Add to Home Screen.&rdquo;  Once installed, the PWA becomes a standalone app on the phone.  Residents can open the app anytime (even in airplane mode) to submit document requests.  Requests are maintained in IndexedDB and uploaded automatically when connectivity is established.
+<strong>2. Resident Portal Offline Access (Verified Accounts):</strong>  Once a resident&rsquo;s account has been verified at least once while online, the system caches the session, profile, resident record, barangay list, document options, pricing configuration, announcements, zone settings, and request history in IndexedDB.  On subsequent visits without internet, the resident can sign in using cached credentials, browse their dashboard, view announcements and past requests, and submit new document requests.  Offline requests are assigned a temporary reference number (prefixed <code>OFL</code>) and queued in the <code>pendingRequests</code> IndexedDB store.  A prominent offline status banner displays the connectivity state and the number of pending requests.  When the device reconnects, the <code>useOfflineSync</code> hook automatically uploads all queued requests to Supabase and refreshes the pending count.
+</p>
+
+<p>
+<strong>3. Mobile PWA Install (Resident using own phone):</strong>  On the first visit with brief internet access, the browser prompts &ldquo;Add to Home Screen.&rdquo;  Once installed, the PWA becomes a standalone app on the phone.  Residents can open the app anytime (even in airplane mode) to submit document requests.  This combines the resident portal offline access described above with the PWA shell caching provided by Workbox service workers.
 </p>
 
 
@@ -722,8 +731,8 @@ The system is deployed as a Progressive Web App using React 19 + Vite + Supabase
   <tr><td>Notification System</td><td>Sends SMS notifications via PhilSMS when documents are ready for pickup, including control number and payment information.</td></tr>
   <tr><td>Admin Dashboard</td><td>Real-time dashboard accessible from phone/laptop with nine management tabs for comprehensive barangay administration.</td></tr>
   <tr><td>Super-Admin Panel</td><td>System-wide management with thirteen tabs for multi-barangay oversight, analytics, tenant management, and audit logging.</td></tr>
-  <tr><td>Resident Portal</td><td>Login-protected interface for verified residents to request documents remotely, view history, and submit feedback.</td></tr>
-  <tr><td>Offline Functionality &amp; Sync</td><td>100% offline operation via IndexedDB and Workbox service workers with automatic Supabase synchronization on reconnect.</td></tr>
+  <tr><td>Resident Portal</td><td>Login-protected interface for verified residents to request documents remotely, view history, and submit feedback.  Supports full offline access after initial verification: cached login, offline request submission, and automatic sync on reconnect.</td></tr>
+  <tr><td>Offline Functionality &amp; Sync</td><td>100% offline operation for both the kiosk and the resident portal via IndexedDB and Workbox service workers.  The kiosk caches residents, settings, and pending requests; the resident portal additionally caches session, profile, barangay data, document options, pricing, announcements, and request history.  Automatic Supabase synchronization occurs on reconnect via the <code>useOfflineSync</code> hook.</td></tr>
   <tr><td>Announcements &amp; Events</td><td>Create and display barangay announcements with images; calendar events management with date ranges.</td></tr>
   <tr><td>Feedback Collection</td><td>Star ratings (1&ndash;5) and comments per released document with CSV export for analysis.</td></tr>
   <tr><td>Audit Logging</td><td>Comprehensive action tracking for all administrative operations with actor, timestamp, action type, target, and metadata.</td></tr>

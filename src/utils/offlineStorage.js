@@ -168,3 +168,53 @@ export async function cacheAnnouncements(barangayId, list) {
 export async function getCachedAnnouncements(barangayId) {
   return getCachedSetting(`announcements_${barangayId}`);
 }
+
+// ═══════════════════════════════════════════════
+// Resident portal offline session & profile cache
+// ═══════════════════════════════════════════════
+
+const RESIDENT_SESSION_KEY = 'resident_session';
+const RESIDENT_PROFILE_KEY = 'resident_profile';
+const RESIDENT_DATA_KEY = 'resident_data';
+const RESIDENT_REQUESTS_KEY = 'resident_requests';
+
+export async function cacheResidentSession(sessionData) {
+  return cacheSetting(RESIDENT_SESSION_KEY, sessionData);
+}
+
+export async function getCachedResidentSession() {
+  return getCachedSetting(RESIDENT_SESSION_KEY);
+}
+
+export async function clearCachedResidentSession() {
+  const db = await openDb();
+  const store = tx(db, STORES.settings, 'readwrite');
+  await promisify(store.delete(RESIDENT_SESSION_KEY));
+  await promisify(store.delete(RESIDENT_PROFILE_KEY));
+  await promisify(store.delete(RESIDENT_DATA_KEY));
+  await promisify(store.delete(RESIDENT_REQUESTS_KEY));
+}
+
+export async function cacheResidentProfile(profile) {
+  return cacheSetting(RESIDENT_PROFILE_KEY, profile);
+}
+
+export async function getCachedResidentProfile() {
+  return getCachedSetting(RESIDENT_PROFILE_KEY);
+}
+
+export async function cacheResidentData(resident) {
+  return cacheSetting(RESIDENT_DATA_KEY, resident);
+}
+
+export async function getCachedResidentData() {
+  return getCachedSetting(RESIDENT_DATA_KEY);
+}
+
+export async function cacheResidentRequests(requests) {
+  return cacheSetting(RESIDENT_REQUESTS_KEY, requests);
+}
+
+export async function getCachedResidentRequests() {
+  return getCachedSetting(RESIDENT_REQUESTS_KEY);
+}
