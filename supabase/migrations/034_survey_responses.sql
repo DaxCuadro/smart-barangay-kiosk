@@ -42,3 +42,7 @@ CREATE POLICY survey_responses_delete ON public.survey_responses
     public.is_superadmin()
     OR barangay_id = public.current_admin_barangay()
   );
+
+
+  ALTER TABLE public.survey_responses DROP CONSTRAINT IF EXISTS survey_responses_source_check;
+ALTER TABLE public.survey_responses ADD CONSTRAINT survey_responses_source_check CHECK (source IN ('kiosk', 'remote', 'admin'));

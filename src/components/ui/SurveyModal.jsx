@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { LIKERT_LABELS, getSurveyParts } from '../../data/surveyQuestions';
 
 /**
@@ -28,8 +28,17 @@ export default function SurveyModal({
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
   const [currentPart, setCurrentPart] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const prevOpenRef = useRef(false);
   const scrollRef = useRef(null);
+
+  // Detect mobile
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 640); }
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Reset all internal state when the modal opens (or questions change while open)
   useEffect(() => {
@@ -65,32 +74,31 @@ export default function SurveyModal({
   const totalAnswered = useMemo(() => Object.keys(answers).length, [answers]);
   const progress = questions.length ? Math.round((totalAnswered / questions.length) * 100) : 0;
 
-  if (!open) return null;
-
-  function handleSelect(questionId, value) {
+  const handleSelect = useCallback((questionId, value) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
-  }
+  }, []);
 
-  async function handleNext() {
+  const handleNext = useCallback(async () => {
     if (currentPart < parts.length - 1) {
       setCurrentPart(prev => prev + 1);
       scrollRef.current?.scrollTo({ top: 0 });
     } else {
-      // Submit
       setSaving(true);
       try {
         await onSubmit(answers);
       } catch { /* non-critical */ }
       setSaving(false);
     }
-  }
+  }, [currentPart, parts.length, answers, onSubmit]);
 
-  function handlePrev() {
+  const handlePrev = useCallback(() => {
     if (currentPart > 0) {
       setCurrentPart(prev => prev - 1);
       scrollRef.current?.scrollTo({ top: 0 });
     }
-  }
+  }, [currentPart]);
+
+  if (!open) return null;
 
   const isKiosk = variant === 'kiosk';
   const isLastPart = currentPart === parts.length - 1;
@@ -107,7 +115,7 @@ export default function SurveyModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: isMobile ? '0' : '1.5rem',
         zIndex: 9999,
       }}
     >
@@ -116,24 +124,25 @@ export default function SurveyModal({
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: isKiosk ? '720px' : '600px',
-          width: '95%',
-          maxHeight: '90vh',
+          width: isMobile ? '100%' : '95%',
+          height: isMobile && !isKiosk ? '100%' : 'auto',
+          maxHeight: isMobile ? '100%' : '90vh',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           ...(!isKiosk ? {
             background: '#fff',
-            borderRadius: '24px',
-            border: '1px solid rgba(226, 232, 240, 0.9)',
-            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.25)',
+            borderRadius: isMobile ? '0' : '24px',
+            border: isMobile ? 'none' : '1px solid rgba(226, 232, 240, 0.9)',
+            boxShadow: isMobile ? 'none' : '0 30px 80px rgba(15, 23, 42, 0.25)',
           } : {}),
         }}
       >
         {/* Header */}
-        <div style={{ padding: isKiosk ? '1.25rem 1.25rem 0.5rem' : '1.25rem 1.5rem 0.5rem', flexShrink: 0 }}>
+        <div style={{ padding: isMobile ? '1rem 1rem 0.5rem' : isKiosk ? '1.25rem 1.25rem 0.5rem' : '1.25rem 1.5rem 0.5rem', flexShrink: 0 }}>
           <h3
             style={{
-              fontSize: isKiosk ? '1.3rem' : '1.1rem',
+              fontSize: isMobile ? '1rem' : isKiosk ? '1.3rem' : '1.1rem',
               fontWeight: 700,
               color: '#1e293b',
               marginBottom: '0.25rem',
@@ -143,7 +152,7 @@ export default function SurveyModal({
             {title}
           </h3>
           {subtitle ? (
-            <p style={{ fontSize: '0.85rem', color: '#64748b', textAlign: 'center', marginBottom: '0.5rem' }}>{subtitle}</p>
+            <p style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: '#64748b', textAlign: 'center', marginBottom: '0.5rem' }}>{subtitle}</p>
           ) : null}
 
           {/* Progress */}
@@ -165,20 +174,20 @@ export default function SurveyModal({
           </div>
 
           {/* Part indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
             {parts.map((p, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => { setCurrentPart(i); scrollRef.current?.scrollTo({ top: 0 }); }}
                 style={{
-                  fontSize: '0.7rem',
+                  fontSize: isMobile ? '0.65rem' : '0.7rem',
                   fontWeight: i === currentPart ? 700 : 500,
                   color: i === currentPart ? '#6366f1' : '#94a3b8',
                   background: i === currentPart ? '#eef2ff' : 'transparent',
                   border: i === currentPart ? '1px solid #c7d2fe' : '1px solid transparent',
                   borderRadius: '999px',
-                  padding: '0.2rem 0.6rem',
+                  padding: '0.2rem 0.5rem',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
@@ -190,98 +199,158 @@ export default function SurveyModal({
         </div>
 
         {/* Part title */}
-        <div style={{ padding: '0.5rem 1.5rem 0', flexShrink: 0 }}>
-          <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ padding: isMobile ? '0.4rem 1rem 0' : '0.5rem 1.5rem 0', flexShrink: 0 }}>
+          <p style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Part {currentPart + 1}: {parts[currentPart]?.part}
           </p>
-          <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+          <p style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
             {parts[currentPart]?.partFil}
           </p>
         </div>
 
         {/* Questions */}
-        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: isKiosk ? '0 1.25rem' : '0 1.5rem' }}>
-          {/* Likert scale legend — sticky with shadow to clip scrolled content */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr repeat(5, 48px)',
-            gap: '0.25rem',
-            fontSize: '0.65rem',
-            color: '#94a3b8',
-            fontWeight: 600,
-            textAlign: 'center',
-            position: 'sticky',
-            top: 0,
-            background: 'white',
-            padding: '0.5rem 0 0.35rem',
-            zIndex: 2,
-            boxShadow: '0 2px 4px rgba(255,255,255,0.95), 0 4px 0 -1px white',
-            borderBottom: '1px solid #f1f5f9',
-          }}>
-            <span />
-            {[1, 2, 3, 4, 5].map(v => (
-              <span key={v} style={{ lineHeight: 1.2 }}>
-                {v}<br />{LIKERT_LABELS[v].split(' ').pop()}
-              </span>
-            ))}
-          </div>
-
-          {partQuestions.map((q, idx) => {
-            const globalIdx = questions.findIndex(qi => qi.id === q.id) + 1;
-            return (
-              <div
-                key={q.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr repeat(5, 48px)',
-                  gap: '0.25rem',
-                  alignItems: 'center',
-                  padding: '0.6rem 0',
-                  borderBottom: idx < partQuestions.length - 1 ? '1px solid #f1f5f9' : 'none',
-                }}
-              >
-                <div style={{ paddingRight: '0.5rem' }}>
-                  <p style={{ fontSize: isKiosk ? '0.85rem' : '0.8rem', color: '#334155', margin: 0, lineHeight: 1.4 }}>
-                    <strong style={{ color: '#6366f1' }}>{globalIdx}.</strong> {q.text}
-                  </p>
-                  <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic', margin: '0.15rem 0 0' }}>
-                    {q.textFil}
-                  </p>
-                </div>
-                {[1, 2, 3, 4, 5].map(value => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => handleSelect(q.id, value)}
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      border: answers[q.id] === value ? '2px solid #6366f1' : '2px solid #e2e8f0',
-                      background: answers[q.id] === value ? '#6366f1' : 'white',
-                      color: answers[q.id] === value ? 'white' : '#64748b',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto',
-                      transition: 'all 0.15s',
-                    }}
-                    aria-label={`${LIKERT_LABELS[value]} for question ${globalIdx}`}
-                  >
-                    {value}
-                  </button>
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 0.75rem' : isKiosk ? '0 1.25rem' : '0 1.5rem' }}>
+          {/* Desktop: grid layout with sticky legend */}
+          {!isMobile ? (
+            <>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr repeat(5, 48px)',
+                gap: '0.25rem',
+                fontSize: '0.65rem',
+                color: '#94a3b8',
+                fontWeight: 600,
+                textAlign: 'center',
+                position: 'sticky',
+                top: 0,
+                background: 'white',
+                padding: '0.5rem 0 0.35rem',
+                zIndex: 2,
+                boxShadow: '0 2px 4px rgba(255,255,255,0.95), 0 4px 0 -1px white',
+                borderBottom: '1px solid #f1f5f9',
+              }}>
+                <span />
+                {[1, 2, 3, 4, 5].map(v => (
+                  <span key={v} style={{ lineHeight: 1.2 }}>
+                    {v}<br />{LIKERT_LABELS[v].split(' ').pop()}
+                  </span>
                 ))}
               </div>
-            );
-          })}
+
+              {partQuestions.map((q, idx) => {
+                const globalIdx = questions.findIndex(qi => qi.id === q.id) + 1;
+                return (
+                  <div
+                    key={q.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr repeat(5, 48px)',
+                      gap: '0.25rem',
+                      alignItems: 'center',
+                      padding: '0.6rem 0',
+                      borderBottom: idx < partQuestions.length - 1 ? '1px solid #f1f5f9' : 'none',
+                    }}
+                  >
+                    <div style={{ paddingRight: '0.5rem' }}>
+                      <p style={{ fontSize: isKiosk ? '0.85rem' : '0.8rem', color: '#334155', margin: 0, lineHeight: 1.4 }}>
+                        <strong style={{ color: '#6366f1' }}>{globalIdx}.</strong> {q.text}
+                      </p>
+                      <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic', margin: '0.15rem 0 0' }}>
+                        {q.textFil}
+                      </p>
+                    </div>
+                    {[1, 2, 3, 4, 5].map(value => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => handleSelect(q.id, value)}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          border: answers[q.id] === value ? '2px solid #6366f1' : '2px solid #e2e8f0',
+                          background: answers[q.id] === value ? '#6366f1' : 'white',
+                          color: answers[q.id] === value ? 'white' : '#64748b',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto',
+                          transition: 'all 0.15s',
+                        }}
+                        aria-label={`${LIKERT_LABELS[value]} for question ${globalIdx}`}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            /* Mobile: stacked card layout */
+            <div style={{ paddingTop: '0.5rem' }}>
+              {partQuestions.map((q, idx) => {
+                const globalIdx = questions.findIndex(qi => qi.id === q.id) + 1;
+                return (
+                  <div
+                    key={q.id}
+                    style={{
+                      padding: '0.75rem 0',
+                      borderBottom: idx < partQuestions.length - 1 ? '1px solid #f1f5f9' : 'none',
+                    }}
+                  >
+                    <p style={{ fontSize: '0.8rem', color: '#334155', margin: 0, lineHeight: 1.4 }}>
+                      <strong style={{ color: '#6366f1' }}>{globalIdx}.</strong> {q.text}
+                    </p>
+                    <p style={{ fontSize: '0.68rem', color: '#94a3b8', fontStyle: 'italic', margin: '0.1rem 0 0.5rem' }}>
+                      {q.textFil}
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                      {[1, 2, 3, 4, 5].map(value => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => handleSelect(q.id, value)}
+                          style={{
+                            flex: 1,
+                            maxWidth: '60px',
+                            padding: '0.4rem 0',
+                            borderRadius: '10px',
+                            border: answers[q.id] === value ? '2px solid #6366f1' : '1.5px solid #e2e8f0',
+                            background: answers[q.id] === value ? '#6366f1' : '#f8fafc',
+                            color: answers[q.id] === value ? 'white' : '#64748b',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.1rem',
+                            transition: 'all 0.15s',
+                            lineHeight: 1.2,
+                          }}
+                          aria-label={`${LIKERT_LABELS[value]} for question ${globalIdx}`}
+                        >
+                          <span>{value}</span>
+                          <span style={{ fontSize: '0.55rem', opacity: 0.8 }}>
+                            {['SD', 'D', 'N', 'A', 'SA'][value - 1]}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div style={{
-          padding: isKiosk ? '0.75rem 1.25rem' : '0.75rem 1.5rem',
+          padding: isMobile ? '0.6rem 0.75rem' : isKiosk ? '0.75rem 1.25rem' : '0.75rem 1.5rem',
           borderTop: '1px solid #f1f5f9',
           display: 'flex',
           justifyContent: 'space-between',
@@ -289,6 +358,7 @@ export default function SurveyModal({
           gap: '0.5rem',
           flexShrink: 0,
           flexWrap: 'wrap',
+          background: '#fff',
         }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {onDismiss ? (

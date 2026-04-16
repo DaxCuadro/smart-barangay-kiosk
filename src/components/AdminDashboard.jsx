@@ -59,12 +59,13 @@ export default function AdminDashboard({ onLogout }) {
 
   const handleAdminPreSubmit = useCallback(async (responses) => {
     if (!barangayId) return;
-    await supabase.from('survey_responses').insert({
+    const { error } = await supabase.from('survey_responses').insert({
       barangay_id: barangayId,
       survey_type: 'pre',
       source: 'admin',
       responses,
     });
+    if (error) { console.error('Admin pre-survey insert failed:', error.message); return; }
     localStorage.setItem('sbk-admin-survey-pre-done', 'true');
     setAdminPreDone(true);
     setShowAdminPreSurvey(false);
@@ -72,12 +73,13 @@ export default function AdminDashboard({ onLogout }) {
 
   const handleAdminPostSubmit = useCallback(async (responses) => {
     if (!barangayId) return;
-    await supabase.from('survey_responses').insert({
+    const { error } = await supabase.from('survey_responses').insert({
       barangay_id: barangayId,
       survey_type: 'post',
       source: 'admin',
       responses,
     });
+    if (error) { console.error('Admin post-survey insert failed:', error.message); return; }
     localStorage.setItem('sbk-admin-survey-post-done', 'true');
     setAdminPostDone(true);
     setShowAdminPostSurvey(false);
@@ -85,12 +87,14 @@ export default function AdminDashboard({ onLogout }) {
 
   const handleManualSurveySubmit = useCallback(async (responses) => {
     if (!barangayId || !manualSurveyType) return;
-    await supabase.from('survey_responses').insert({
+    if (!responses) { setManualSurveyType(null); return; }
+    const { error } = await supabase.from('survey_responses').insert({
       barangay_id: barangayId,
       survey_type: manualSurveyType,
       source: 'admin',
       responses,
     });
+    if (error) { console.error('Admin manual survey insert failed:', error.message); return; }
     setManualSurveyType(null);
   }, [supabase, barangayId, manualSurveyType]);
 
@@ -418,7 +422,14 @@ export default function AdminDashboard({ onLogout }) {
                 </nav>
                 <button
                   type="button"
-                  className="mt-4 w-full rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700"
+                  className="mt-4 w-full rounded-full border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-sm font-semibold text-indigo-700"
+                  onClick={() => { setDrawerOpen(false); setManualSurveyType('pre'); }}
+                >
+                  📝 Answer Survey
+                </button>
+                <button
+                  type="button"
+                  className="mt-2 w-full rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700"
                   onClick={onLogout}
                 >
                   Logout
