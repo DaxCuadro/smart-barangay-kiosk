@@ -2019,6 +2019,12 @@ export default function SuperAdminDashboard({ onLogout }) {
                         logAudit(supabase, { action: 'export_csv', targetType: 'requests', metadata: { count: rows.length } });
                       }}>Export Requests CSV</button>
                       <button type="button" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={() => {
+                        const rows = analyticsData.releases.map(r => ({ id: r.id, barangay_id: r.barangay_id, document: r.document, released_at: r.released_at }));
+                        downloadCSV(rows, ['id', 'barangay_id', 'document', 'released_at'], 'releases_export.csv');
+                        addToast('Releases exported to CSV.', 'success');
+                        logAudit(supabase, { action: 'export_csv', targetType: 'releases', metadata: { count: rows.length } });
+                      }}>Export Releases CSV</button>
+                      <button type="button" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={() => {
                         const rows = analyticsData.residents.map(r => ({ id: r.id, barangay_id: r.barangay_id, sex: r.sex, birthday: r.birthday, created_at: r.created_at }));
                         downloadCSV(rows, ['id', 'barangay_id', 'sex', 'birthday', 'created_at'], 'residents_export.csv');
                         addToast('Residents exported to CSV.', 'success');

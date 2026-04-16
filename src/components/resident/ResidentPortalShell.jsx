@@ -10,13 +10,6 @@ import {
   setBarangayInfo,
 } from '../../utils/barangayInfoStorage';
 import {
-  cacheBarangays,
-  getCachedBarangays,
-  cacheAnnouncements,
-  getCachedAnnouncements,
-  cacheSetting,
-  getCachedSetting,
-  queuePendingRequest,
   cacheResidentSession,
   getCachedResidentSession,
   clearCachedResidentSession,
@@ -24,8 +17,6 @@ import {
   getCachedResidentProfile,
   cacheResidentData,
   getCachedResidentData,
-  cacheResidentRequests,
-  getCachedResidentRequests,
 } from '../../utils/offlineStorage';
 import ResidentPortalTabs from './ResidentPortalTabs';
 import GuideModal from '../ui/GuideModal';
@@ -140,14 +131,8 @@ const EMPTY_NEW_APPLICANT = {
 function ResidentPortalShell() {
   const supabase = useSupabase();
   const { addToast } = useToast();
-  const { isOnline, pendingCount, syncing, refreshPendingCount } = useOfflineSync(supabase);
+  useOfflineSync(supabase);
   const [offlineMode, setOfflineMode] = useState(false);
-  // When connectivity returns, exit offline mode so data effects re-fetch
-  const prevOnlineRef = useRef(isOnline);
-  if (isOnline && !prevOnlineRef.current && offlineMode) {
-    setOfflineMode(false);
-  }
-  prevOnlineRef.current = isOnline;
   const [session, setSession] = useState(null);
   const [sessionUserId, setSessionUserId] = useState(null);
   const sessionUserIdRef = useRef(null);
@@ -168,13 +153,16 @@ function ResidentPortalShell() {
   const [otpMode, setOtpMode] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpMaskedPhone, setOtpMaskedPhone] = useState('');
-  // otpLoading reserved for future use
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [emailResetSending, setEmailResetSending] = useState(false);
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [activeTab, setActiveTab] = useState('home');
+  const [linkForm] = useState({ firstName: '', lastName: '', birthday: '', zone: '', telephone: '' });
+  const [_linkResults, setLinkResults] = useState([]);
+  const [_linkLoading, setLinkLoading] = useState(false);
+  const [_linkError, setLinkError] = useState('');
   const [barangays, setBarangays] = useState([]);
   const [selectedBarangayId, setSelectedBarangayId] = useState(() => getSelectedBarangayId());
   const [selectedBarangayName, setSelectedBarangayName] = useState(() => getSelectedBarangayName());
@@ -195,7 +183,6 @@ function ResidentPortalShell() {
     price: null,
     document: '',
   });
-  // onboardingTab reserved for future use
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [profileForm, setProfileForm] = useState(EMPTY_NEW_APPLICANT);
   const [profileSaveError, setProfileSaveError] = useState('');
@@ -219,10 +206,10 @@ function ResidentPortalShell() {
   // account status is inferred from Supabase session; no local state needed
 
   // ── Survey state ──
+  const [preSurveyOpen, setPreSurveyOpen] = useState(false);
   const [preSurveyDone, setPreSurveyDone] = useState(() => localStorage.getItem(SURVEY_PRE_DONE_KEY) === 'true');
-  const [preSurveyDismissed, setPreSurveyDismissed] = useState(false);
+  const [postSurveyOpen, setPostSurveyOpen] = useState(false);
   const [postSurveyDone, setPostSurveyDone] = useState(() => localStorage.getItem(SURVEY_POST_DONE_KEY) === 'true');
-  const [postSurveyDismissed, setPostSurveyDismissed] = useState(false);
   const [postSurveyPending, setPostSurveyPending] = useState(() => localStorage.getItem('survey_post_pending') === 'true');
 
   // Load system broadcast from app_settings
@@ -261,7 +248,6 @@ function ResidentPortalShell() {
 
       if (_event === 'INITIAL_SESSION') {
         let nextSession = newSession ?? null;
-
         // If offline and no session from Supabase, try cached session
         if (!nextSession && !navigator.onLine) {
           try {
@@ -319,13 +305,6 @@ function ResidentPortalShell() {
   useEffect(() => {
     let isActive = true;
     async function loadDocumentOptions() {
-      if (!navigator.onLine) {
-        try {
-          const cached = await getCachedSetting('document_options');
-          if (isActive && cached) setDocumentOptions(normalizeDocumentOptions(cached));
-        } catch { /* ignore */ }
-        return;
-      }
       const { data, error } = await supabase
         .from('app_settings')
         .select('value')
@@ -335,7 +314,6 @@ function ResidentPortalShell() {
       if (!isActive) return;
       if (!error && data?.value) {
         setDocumentOptions(normalizeDocumentOptions(data.value));
-        cacheSetting('document_options', data.value).catch(() => {});
       } else {
         setDocumentOptions(DEFAULT_DOCUMENT_OPTIONS);
       }
@@ -351,16 +329,6 @@ function ResidentPortalShell() {
     async function loadPricing() {
       if (!selectedBarangayId) {
         setPricingInfo({ prices: {}, serviceFee: 0, smsFee: 0 });
-        return;
-      }
-
-      const pricingCacheKey = `pricing_full_${selectedBarangayId}`;
-
-      if (!navigator.onLine) {
-        try {
-          const cached = await getCachedSetting(pricingCacheKey);
-          if (isActive && cached) setPricingInfo(cached);
-        } catch { /* ignore */ }
         return;
       }
 
@@ -386,13 +354,11 @@ function ResidentPortalShell() {
         }
       });
 
-      const pricingResult = {
+      setPricingInfo({
         prices,
         serviceFee: toNumber(map.get(SERVICE_FEE_KEY), 0),
         smsFee: toNumber(map.get(SMS_FEE_KEY), 0),
-      };
-      setPricingInfo(pricingResult);
-      cacheSetting(pricingCacheKey, pricingResult).catch(() => {});
+      });
     }
 
     loadPricing();
@@ -406,27 +372,6 @@ function ResidentPortalShell() {
     async function loadBarangays() {
       setBarangayLoading(true);
       setBarangayError('');
-
-      if (!navigator.onLine) {
-        try {
-          const cached = await getCachedBarangays();
-          if (isActive && cached?.length) {
-            const activeBarangays = cached.filter(item => item.status !== 'inactive' && item.enable_portal !== false);
-            setBarangays(activeBarangays);
-            const storedId = getSelectedBarangayId();
-            const hasActive = activeBarangays.some(item => item.id === storedId);
-            if ((!storedId || !hasActive) && activeBarangays.length > 0) {
-              const fallback = activeBarangays[0];
-              setSelectedBarangayId(fallback.id);
-              setSelectedBarangayName(fallback.name || '');
-              setBarangayInfo({ barangayId: fallback.id, barangayName: fallback.name || '' });
-            }
-          }
-        } catch { /* ignore */ }
-        if (isActive) setBarangayLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('barangays')
         .select('id, name, code, status, enable_portal, enable_announcements')
@@ -440,7 +385,6 @@ function ResidentPortalShell() {
       }
       const activeBarangays = (data || []).filter(item => item.status !== 'inactive' && item.enable_portal !== false);
       setBarangays(activeBarangays);
-      cacheBarangays(data || []).catch(() => {});
       const storedId = getSelectedBarangayId();
       const hasActive = activeBarangays.some(item => item.id === storedId);
       if ((!storedId || !hasActive) && activeBarangays.length > 0) {
@@ -665,7 +609,7 @@ function ResidentPortalShell() {
     return () => {
       isActive = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- sessionUserId already tracks session.user.id; email only changes with user
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on sessionUserId instead of session object
   }, [sessionUserId, barangays, selectedBarangayId, selectedBarangayName, supabase, offlineMode]);
 
   useEffect(() => {
@@ -680,15 +624,6 @@ function ResidentPortalShell() {
         setAnnouncements([]);
         return;
       }
-
-      if (!navigator.onLine) {
-        try {
-          const cached = await getCachedAnnouncements(selectedBarangayId);
-          if (isActive && cached) setAnnouncements(cached);
-        } catch { /* ignore */ }
-        return;
-      }
-
       const { data } = await supabase
         .from('announcements')
         .select('id, title, description, start_date, end_date, image_data')
@@ -697,7 +632,6 @@ function ResidentPortalShell() {
         .limit(3);
       if (!isActive) return;
       setAnnouncements(data || []);
-      cacheAnnouncements(selectedBarangayId, data || []).catch(() => {});
     }
     loadAnnouncements();
     return () => {
@@ -709,18 +643,6 @@ function ResidentPortalShell() {
     let isActive = true;
     async function loadZoneCount() {
       if (!selectedBarangayId) return;
-
-      if (!navigator.onLine) {
-        try {
-          const cached = await getCachedSetting(`zone_count_${selectedBarangayId}`);
-          if (isActive && cached) {
-            setZoneCount(cached);
-            setBarangayInfo({ zonesCount: cached });
-          }
-        } catch { /* ignore */ }
-        return;
-      }
-
       const { data, error } = await supabase
         .from(ZONE_SETTINGS_TABLE)
         .select('zones_count')
@@ -734,7 +656,6 @@ function ResidentPortalShell() {
       if (Number.isFinite(numeric) && numeric > 0) {
         setZoneCount(numeric);
         setBarangayInfo({ zonesCount: numeric });
-        cacheSetting(`zone_count_${selectedBarangayId}`, numeric).catch(() => {});
       }
     }
     loadZoneCount();
@@ -762,16 +683,6 @@ function ResidentPortalShell() {
         return;
       }
       setRequestsLoading(true);
-
-      if (!navigator.onLine) {
-        try {
-          const cached = await getCachedResidentRequests();
-          if (isActive && cached) setRequests(cached);
-        } catch { /* ignore */ }
-        if (isActive) setRequestsLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase
         .from(REQUESTS_TABLE)
         .select('id, document, status, created_at')
@@ -787,7 +698,6 @@ function ResidentPortalShell() {
         return;
       }
       setRequests(data || []);
-      cacheResidentRequests(data || []).catch(() => {});
       setRequestsLoading(false);
     }
     loadRequests();
@@ -878,13 +788,23 @@ function ResidentPortalShell() {
     );
   }, [requests]);
 
-  // ── Survey derived state (no effect needed) ──
-  const shouldShowPreSurvey = canAccessTabs && !preSurveyDone && !!session;
-  const shouldShowPostSurvey = postSurveyPending && !postSurveyDone && canAccessTabs;
+  // ── Pre-survey: show after login when verified and not yet completed ──
+  useEffect(() => {
+    if (canAccessTabs && !preSurveyDone && session) {
+      setPreSurveyOpen(true);
+    }
+  }, [canAccessTabs, preSurveyDone, session]);
+
+  // ── Post-survey: show when pending (after first request) and not yet completed ──
+  useEffect(() => {
+    if (postSurveyPending && !postSurveyDone && canAccessTabs) {
+      setPostSurveyOpen(true);
+    }
+  }, [postSurveyPending, postSurveyDone, canAccessTabs]);
 
   async function handlePreSurveySubmit(responses) {
     if (!responses) { // skipped
-      setPreSurveyDismissed(true);
+      setPreSurveyOpen(false);
       return;
     }
     try {
@@ -897,16 +817,17 @@ function ResidentPortalShell() {
     } catch { /* non-critical */ }
     localStorage.setItem(SURVEY_PRE_DONE_KEY, 'true');
     setPreSurveyDone(true);
+    setPreSurveyOpen(false);
     addToast('Thank you for completing the survey!', 'success');
   }
 
   function handlePreSurveyDismiss() {
-    setPreSurveyDismissed(true);
+    setPreSurveyOpen(false);
   }
 
   async function handlePostSurveySubmit(responses) {
     if (!responses) { // skipped
-      setPostSurveyDismissed(true);
+      setPostSurveyOpen(false);
       return;
     }
     try {
@@ -921,11 +842,12 @@ function ResidentPortalShell() {
     localStorage.removeItem('survey_post_pending');
     setPostSurveyDone(true);
     setPostSurveyPending(false);
+    setPostSurveyOpen(false);
     addToast('Thank you for your feedback!', 'success');
   }
 
   function handlePostSurveyDismiss() {
-    setPostSurveyDismissed(true);
+    setPostSurveyOpen(false);
   }
 
   async function handleSignIn(event) {
@@ -1151,6 +1073,7 @@ function ResidentPortalShell() {
     setAuthError('');
     setAuthInfo('');
     setActiveTab('home');
+    setLinkResults([]);
     setSelectedResident(null);
     setNewApplicantForm(EMPTY_NEW_APPLICANT);
   }
@@ -1163,7 +1086,76 @@ function ResidentPortalShell() {
     setBarangayInfo({ barangayId: nextId, barangayName: nextBarangay?.name || '' });
   }
 
+  async function _handleSearchLink(event) {
+    event.preventDefault();
+    setLinkError('');
+    setLinkResults([]);
+    setSelectedResident(null);
+    if (!linkForm.firstName.trim() || !linkForm.lastName.trim() || !linkForm.birthday) {
+      setLinkError('First name, last name, and birthday are required.');
+      return;
+    }
+    setLinkLoading(true);
+    const { data, error } = await supabase.rpc('match_resident', {
+      p_first_name: linkForm.firstName.trim(),
+      p_last_name: linkForm.lastName.trim(),
+      p_birth_date: linkForm.birthday,
+      p_zone_value: linkForm.zone.trim() || null,
+      p_barangay_id: selectedBarangayId || null,
+    });
+    if (error) {
+      if (error.message?.includes('match_resident')) {
+        setLinkError('Resident search is currently unavailable. Please contact your barangay admin or try the "New resident details" tab instead.');
+      } else {
+        setLinkError(error.message);
+      }
+      setLinkLoading(false);
+      return;
+    }
+    const records = Array.isArray(data) ? data : [];
+    const scopedRecords = selectedBarangayId
+      ? records.filter(record => record?.barangay_id === selectedBarangayId)
+      : records;
 
+    const inputDigits = normalizePhoneDigits(linkForm.telephone);
+    const filtered = inputDigits
+      ? scopedRecords.filter(record => {
+          const recordDigits = normalizePhoneDigits(record?.telephone);
+          if (!recordDigits) return true;
+          return recordDigits === inputDigits;
+        })
+      : scopedRecords;
+    if ((inputDigits && filtered.length === 0) || (!inputDigits && scopedRecords.length === 0)) {
+      setLinkError('No matching record found for this barangay.');
+    }
+    setLinkResults(filtered);
+    setLinkLoading(false);
+  }
+
+  async function _handleConfirmExisting() {
+    if (!selectedResident || !session?.user?.id) return;
+    setLinkError('');
+    if (!selectedBarangayId) {
+      setLinkError('Select your barangay before linking your record.');
+      return;
+    }
+    const payload = {
+      user_id: session.user.id,
+      resident_id: selectedResident.id,
+      status: 'verified',
+      verification_request_id: null,
+      barangay_id: selectedBarangayId || null,
+    };
+    const { error } = await supabase
+      .from(PROFILE_TABLE)
+      .upsert(payload, { onConflict: 'user_id' });
+    if (error) {
+      setLinkError(error.message);
+      return;
+    }
+    setProfile(payload);
+    setActiveTab('home');
+  }
 
   function handleNewApplicantChange(event) {
     const { name, value } = event.target;
@@ -1500,39 +1492,6 @@ function ResidentPortalShell() {
       request_source: 'remote',
     };
 
-    // ── Offline: queue locally ──
-    if (!navigator.onLine) {
-      try {
-        const now = new Date();
-        const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-        const offlineRef = `REQ-${datePart}-OFL${String(Math.floor(1000 + Math.random() * 9000))}`;
-        payload.reference_number = offlineRef;
-        await queuePendingRequest(payload);
-        await refreshPendingCount();
-
-        setRequestSaving(false);
-        setRequestForm({ document: '', purpose: '', ctcNumber: '', ctcDate: '', customDocument: '' });
-        setRequestSuccessModal({
-          open: true,
-          message: 'Request saved offline',
-          reference: offlineRef,
-          price: hasPrice ? totalPrice : null,
-          document: selectedDocument,
-        });
-        addToast('Request saved offline. It will be uploaded when internet returns.', 'info');
-
-        if (!postSurveyDone) {
-          localStorage.setItem('survey_post_pending', 'true');
-          setPostSurveyPending(true);
-        }
-        return;
-      } catch {
-        setRequestError('Failed to save request offline.');
-        setRequestSaving(false);
-        return;
-      }
-    }
-
     // Generate unique reference number
     const referenceNumber = await generateReferenceNumber();
     payload.reference_number = referenceNumber;
@@ -1648,29 +1607,6 @@ function ResidentPortalShell() {
           </div>
           <GuideModal guideSrc="/resident-request-guide.png" label="Resident Guide" className="guide-trigger--light" />
         </header>
-
-        {!isOnline && (
-          <div className="resident-broadcast resident-broadcast--warning" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.1rem' }}>&#9888;</span>
-            <div>
-              <p className="resident-broadcast-title">You are offline</p>
-              <p className="resident-broadcast-message">
-                {pendingCount > 0
-                  ? `${pendingCount} request${pendingCount > 1 ? 's' : ''} queued — ${syncing ? 'syncing...' : 'will upload when internet returns.'}`
-                  : 'Using cached data. Requests will be saved locally and uploaded when internet returns.'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {isOnline && pendingCount > 0 && (
-          <div className="resident-broadcast resident-broadcast--info" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.1rem' }}>&#8635;</span>
-            <div>
-              <p className="resident-broadcast-title">{syncing ? 'Syncing offline requests...' : `${pendingCount} offline request${pendingCount > 1 ? 's' : ''} pending upload`}</p>
-            </div>
-          </div>
-        )}
 
         {systemBroadcast && (
           <div className={`resident-broadcast ${
@@ -1987,8 +1923,6 @@ function ResidentPortalShell() {
             supabase={supabase}
             sessionUserId={sessionUserId}
             barangayId={selectedBarangayId}
-            isOnline={isOnline}
-            pendingCount={pendingCount}
           />
         ) : !recoveryMode && !recoveryCompleted && !otpMode && !authLoading ? (
           <>
@@ -2137,7 +2071,7 @@ function ResidentPortalShell() {
 
       {/* Pre-usage survey — shown after login + verified, persists until completed */}
       <SurveyModal
-        open={shouldShowPreSurvey && !preSurveyDismissed && !requestSuccessModal.open}
+        open={preSurveyOpen && !requestSuccessModal.open}
         title="Pre-Usage Survey"
         subtitle="Help us improve! Please rate these statements about your current experience with barangay document requests."
         questions={PRE_SURVEY_QUESTIONS}
@@ -2148,7 +2082,7 @@ function ResidentPortalShell() {
 
       {/* Post-usage survey — shown after first request, persists until completed */}
       <SurveyModal
-        open={shouldShowPostSurvey && !postSurveyDismissed && !requestSuccessModal.open && !(shouldShowPreSurvey && !preSurveyDismissed)}
+        open={postSurveyOpen && !requestSuccessModal.open && !preSurveyOpen}
         title="Post-Usage Survey"
         subtitle="Thank you for using the system! Please share your experience to help us improve."
         questions={POST_SURVEY_QUESTIONS}
