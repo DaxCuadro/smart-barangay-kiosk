@@ -239,6 +239,16 @@ export default function SuperAdminDashboard({ onLogout }) {
   const [manualRatings, setManualRatings] = useState({}); // id → { rating, comment }
   const [manualRateSaving, setManualRateSaving] = useState(false);
   const [manualRateBarangay, setManualRateBarangay] = useState('all');
+  const [dismissedUnrated, setDismissedUnrated] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('sa_dismissed_unrated') || '[]')); } catch { return new Set(); }
+  });
+  const updateDismissedUnrated = useCallback((fn) => {
+    setDismissedUnrated(prev => {
+      const next = fn(prev);
+      localStorage.setItem('sa_dismissed_unrated', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   // ── Data Cleanup state ──
   const [cleanupBarangayId, setCleanupBarangayId] = useState('');
@@ -722,9 +732,10 @@ export default function SuperAdminDashboard({ onLogout }) {
   }, [supabase]);
 
   const filteredUnrated = useMemo(() => {
-    if (manualRateBarangay === 'all') return unratedItems;
-    return unratedItems.filter(i => i.barangay_id === manualRateBarangay);
-  }, [unratedItems, manualRateBarangay]);
+    let out = unratedItems.filter(i => !dismissedUnrated.has(i._id));
+    if (manualRateBarangay !== 'all') out = out.filter(i => i.barangay_id === manualRateBarangay);
+    return out;
+  }, [unratedItems, manualRateBarangay, dismissedUnrated]);
 
   async function submitManualRatings() {
     const entries = Object.entries(manualRatings).filter(([, v]) => v.rating > 0);
@@ -3498,6 +3509,11 @@ export default function SuperAdminDashboard({ onLogout }) {
                     <button type="button" className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100" onClick={loadUnratedItems} disabled={unratedLoading}>
                       {unratedLoading ? 'Loading…' : 'Refresh'}
                     </button>
+                    {dismissedUnrated.size > 0 ? (
+                      <button type="button" className="rounded-full border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50" onClick={() => updateDismissedUnrated(() => new Set())}>
+                        Restore {dismissedUnrated.size} removed
+                      </button>
+                    ) : null}
                     {Object.values(manualRatings).some(v => v.rating > 0) ? (
                       <button type="button" className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700" onClick={submitManualRatings} disabled={manualRateSaving}>
                         {manualRateSaving ? 'Saving…' : `Submit ${Object.values(manualRatings).filter(v => v.rating > 0).length} Rating${Object.values(manualRatings).filter(v => v.rating > 0).length !== 1 ? 's' : ''}`}
@@ -3545,6 +3561,12 @@ export default function SuperAdminDashboard({ onLogout }) {
                                 className="w-40 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 placeholder:text-gray-400"
                               />
                             ) : null}
+                            <button
+                              type="button"
+                              title="Remove from list"
+                              onClick={() => updateDismissedUnrated(prev => new Set(prev).add(item._id))}
+                              className="ml-auto rounded-full border border-gray-200 px-2 py-1 text-[11px] font-semibold text-gray-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
+                            >✕</button>
                           </div>
                         </div>
                       );
