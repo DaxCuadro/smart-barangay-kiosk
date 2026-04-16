@@ -688,7 +688,7 @@ export default function SuperAdminDashboard({ onLogout }) {
       }));
 
     const unratedIntake = (intakeRes.data || [])
-      .filter(r => !ratedRequestIds.has(r.id))
+      .filter(r => !ratedRequestIds.has(r.id) && r.status !== 'cancelled')
       .map(r => ({
         _id: `intake-${r.id}`,
         _type: 'intake',
