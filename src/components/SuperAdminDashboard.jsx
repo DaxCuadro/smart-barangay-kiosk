@@ -261,6 +261,7 @@ export default function SuperAdminDashboard({ onLogout }) {
   const [saRequestsSearch, setSaRequestsSearch] = useState('');
   const [saRequestsBarangayFilter, setSaRequestsBarangayFilter] = useState('all');
   const [saRequestsStatusFilter, setSaRequestsStatusFilter] = useState('all');
+  // Note: count display excludes cancelled (see filteredSaRequests)
   const [saExpandedRequestId, setSaExpandedRequestId] = useState(null);
   const [saChatOpen, setSaChatOpen] = useState(null);
   const [saAuthSession, setSaAuthSession] = useState(null);
@@ -651,28 +652,34 @@ export default function SuperAdminDashboard({ onLogout }) {
   /* ── Manual Rating: load unrated items ───────────────────────── */
   const loadUnratedItems = useCallback(async () => {
     setUnratedLoading(true);
-    // Fetch release_logs and kiosk_feedback + resident_feedback IDs in parallel
-    const [releasesRes, kioskFbRes, residentFbRes, intakeRes, kioskFbReqRes] = await Promise.all([
+    const [releasesRes, residentFbRes, intakeRes, kioskFbAllRes] = await Promise.all([
       supabase.from('release_logs')
         .select('id, barangay_id, resident_id, document, resident_name, released_at')
         .order('released_at', { ascending: false })
         .limit(500),
-      supabase.from('kiosk_feedback')
-        .select('request_id')
-        .not('request_id', 'is', null),
       supabase.from('resident_feedback')
         .select('release_log_id'),
       supabase.from('resident_intake_requests')
         .select('id, barangay_id, document, first_name, last_name, created_at, status')
         .order('created_at', { ascending: false })
         .limit(500),
+      // Fetch ALL kiosk_feedback — both with and without request_id
       supabase.from('kiosk_feedback')
-        .select('request_id')
-        .not('request_id', 'is', null),
+        .select('request_id, barangay_id, resident_name, document'),
     ]);
 
     const ratedReleaseIds = new Set((residentFbRes.data || []).map(r => r.release_log_id));
-    const ratedRequestIds = new Set((kioskFbReqRes.data || []).map(r => r.request_id));
+
+    // Build set of rated request IDs (direct link)
+    const ratedRequestIds = new Set(
+      (kioskFbAllRes.data || []).filter(r => r.request_id).map(r => r.request_id)
+    );
+    // Build set of composite keys for kiosk feedback without request_id (legacy fallback)
+    const ratedByComposite = new Set(
+      (kioskFbAllRes.data || []).map(r =>
+        `${r.barangay_id}||${(r.resident_name || '').toLowerCase()}||${(r.document || '').toLowerCase()}`
+      )
+    );
 
     const unratedReleases = (releasesRes.data || [])
       .filter(r => !ratedReleaseIds.has(r.id))
@@ -688,7 +695,17 @@ export default function SuperAdminDashboard({ onLogout }) {
       }));
 
     const unratedIntake = (intakeRes.data || [])
-      .filter(r => !ratedRequestIds.has(r.id) && r.status !== 'cancelled')
+      .filter(r => {
+        if (r.status === 'cancelled') return false;
+        // Exclude if directly linked by request_id
+        if (ratedRequestIds.has(r.id)) return false;
+        // Exclude if matched by composite key (legacy feedback without request_id)
+        const name = [r.first_name, r.last_name].filter(Boolean).join(' ').toLowerCase();
+        const doc = (r.document || '').toLowerCase();
+        const key = `${r.barangay_id}||${name}||${doc}`;
+        if (ratedByComposite.has(key)) return false;
+        return true;
+      })
       .map(r => ({
         _id: `intake-${r.id}`,
         _type: 'intake',
@@ -831,11 +848,11 @@ export default function SuperAdminDashboard({ onLogout }) {
       setHealthError('');
       const [residentsResult, requestsResult, verificationResult, releaseResult, announcementsResult, lastRequestResult, lastVerificationResult, lastReleaseResult] = await Promise.all([
         supabase.from('residents').select('id', { count: 'exact', head: true }),
-        supabase.from('resident_intake_requests').select('id', { count: 'exact', head: true }),
+        supabase.from('resident_intake_requests').select('id', { count: 'exact', head: true }).neq('status', 'cancelled'),
         supabase.from('resident_verification_requests').select('id', { count: 'exact', head: true }),
         supabase.from('release_logs').select('id', { count: 'exact', head: true }),
         supabase.from('announcements').select('id', { count: 'exact', head: true }),
-        supabase.from('resident_intake_requests').select('created_at').order('created_at', { ascending: false }).limit(1),
+        supabase.from('resident_intake_requests').select('created_at').neq('status', 'cancelled').order('created_at', { ascending: false }).limit(1),
         supabase.from('resident_verification_requests').select('created_at').order('created_at', { ascending: false }).limit(1),
         supabase.from('release_logs').select('released_at').order('released_at', { ascending: false }).limit(1),
       ]);
@@ -887,11 +904,11 @@ export default function SuperAdminDashboard({ onLogout }) {
     setBarangayHealthError('');
     const [residentsResult, requestsResult, verificationResult, releaseResult, announcementsResult, lastRequestResult, lastVerificationResult, lastReleaseResult] = await Promise.all([
       supabase.from('residents').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId),
-      supabase.from('resident_intake_requests').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId),
+      supabase.from('resident_intake_requests').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId).neq('status', 'cancelled'),
       supabase.from('resident_verification_requests').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId),
       supabase.from('release_logs').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId),
       supabase.from('announcements').select('id', { count: 'exact', head: true }).eq('barangay_id', barangayId),
-      supabase.from('resident_intake_requests').select('created_at').eq('barangay_id', barangayId).order('created_at', { ascending: false }).limit(1),
+      supabase.from('resident_intake_requests').select('created_at').eq('barangay_id', barangayId).neq('status', 'cancelled').order('created_at', { ascending: false }).limit(1),
       supabase.from('resident_verification_requests').select('created_at').eq('barangay_id', barangayId).order('created_at', { ascending: false }).limit(1),
       supabase.from('release_logs').select('released_at').eq('barangay_id', barangayId).order('released_at', { ascending: false }).limit(1),
     ]);
@@ -2068,7 +2085,7 @@ export default function SuperAdminDashboard({ onLogout }) {
                   .map(([name, value]) => ({ name, value }));
 
                 // Summary cards
-                const totalRequests = analyticsData.requests.length;
+                const totalRequests = analyticsData.requests.filter(r => r.status !== 'cancelled').length;
                 const totalResidents = analyticsData.residents.length;
                 const totalVerifications = analyticsData.verifications.length;
                 const totalReleases = analyticsData.releases.length;
