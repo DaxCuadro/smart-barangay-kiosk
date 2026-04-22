@@ -92,7 +92,7 @@
     <tspan x="650" dy="24">• Your session is securely established</tspan>
     <tspan x="650" dy="24">• System creates your resident profile</tspan>
     <tspan x="650" dy="24">• You'll be directed to the verification</tspan>
-    <tspan x="650" dy="24">  screen to link your identity</tspan>
+    <tspan x="650" dy="24">  screen to submit your details</tspan>
   </text>
 
   <!-- Arrow 1→2 -->
@@ -113,14 +113,12 @@
   <circle cx="740" cy="684" r="18" fill="#FFFBEB"/>
   <text x="740" y="690" font-family="Segoe UI, Arial, sans-serif" font-size="18" text-anchor="middle">🛡️</text>
   <text x="90" y="730" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" fill="#475569">
-    <tspan x="90" dy="0" font-weight="600" fill="#92400E">Option A – Link to Existing Record (Faster):</tspan>
-    <tspan x="90" dy="22">• Search with your first name, last name, and birthday</tspan>
-    <tspan x="90" dy="22">• Select matching record from results</tspan>
-    <tspan x="90" dy="22">• Confirm &amp; link — instantly verified! ✅</tspan>
-    <tspan x="90" dy="36" font-weight="600" fill="#92400E">Option B – Submit New Details (For New Residents):</tspan>
+    <tspan x="90" dy="0" font-weight="600" fill="#92400E">Submit Your Details for Verification:</tspan>
     <tspan x="90" dy="22">• Fill out complete personal information form</tspan>
+    <tspan x="90" dy="22">• Include valid contact details</tspan>
     <tspan x="90" dy="22">• Submit for admin review</tspan>
     <tspan x="90" dy="22">• Wait for barangay admin approval ⏳</tspan>
+    <tspan x="90" dy="22">• You can request documents after approval</tspan>
   </text>
 
   <!-- Step 4 -->
@@ -407,8 +405,8 @@
   <rect x="800" y="2608" width="340" height="160" fill="white" rx="18" filter="url(#shadow)"/>
   <text x="970" y="2642" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#1E293B" text-anchor="middle" font-weight="700">🏃 For Faster Service</text>
   <text x="830" y="2672" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" fill="#475569">
-    <tspan x="830" dy="0">• Link to existing record (skip</tspan>
-    <tspan x="830" dy="21">  admin approval wait time)</tspan>
+    <tspan x="830" dy="0">• Complete verification details</tspan>
+    <tspan x="830" dy="21">  accurately to avoid delays</tspan>
     <tspan x="830" dy="21">• Use the walk-in kiosk at the</tspan>
     <tspan x="830" dy="21">  barangay hall (works offline!)</tspan>
   </text>
