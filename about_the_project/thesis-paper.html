@@ -780,7 +780,7 @@ The following findings emerged from the document analysis and the administrative
 </p>
 
 <ol>
-  <li><strong>Document templates and formatting:</strong>  Physical document templates were collected from both barangays.  The formats varied slightly between the two (e.g., header layouts, signatory positions, official seal placement), confirming the need for a configurable, per-barangay template system rather than a one-size-fits-all approach.  The system&rsquo;s PDF generation module was designed with this flexibility, supporting customizable barangay name, officials, signatures, seal images, and pricing per document type.</li>
+  <li><strong>Document templates and formatting:</strong>  Physical document templates were collected from both barangays.  The formats varied slightly between the two (e.g., header layouts, signatory positions, official seal placement), confirming the need for a configurable, per-barangay template system rather than a one-size-fits-all approach.  The system&rsquo;s document request module was designed with this flexibility, supporting configurable barangay name, officials, pricing per document type, and per-barangay template layouts.</li>
   <li><strong>Volume and types of requests:</strong>  Both barangays reported that Barangay Certification, Certificate of Indigency, and Barangay Clearance are the three most frequently requested documents.  This was validated during the pilot deployment, where these three types accounted for 76.7% of the 86 documents released (32 Barangay Certifications, 20 Certificates of Indigency, and 14 Barangay Clearances).</li>
   <li><strong>Record-keeping challenges:</strong>  Admin pre-usage survey data confirmed that record-keeping and report generation is the most time-consuming aspect of the current workflow, scoring the highest challenge rating (M = 4.78, SD = 0.44).  Physical logbooks showed inconsistent entries, missing dates, and difficulty locating past records, further underscoring the need for a centralized digital database with searchable release logs.</li>
   <li><strong>Verification difficulties:</strong>  Secretaries reported difficulty verifying resident information for document processing (M = 4.56, SD = 0.73 on the admin pre-usage survey).  The existing process relied on the secretary&rsquo;s personal knowledge of residents or on manually checking registration logbooks.  This informed the system&rsquo;s resident database and verification module, which provides a searchable resident registry with personal details, zone information, and account status.</li>
@@ -819,7 +819,6 @@ The kiosk setup consists of the following hardware:
   <li><strong>Thermal Printing (RawBT + ESC/POS):</strong>  Receipt printing is achieved through the RawBT Android app, which bridges the PWA to the Bluetooth thermal printer via Android intent URL scheme (<code>rawbt:{encoded_text}</code>).  Receipt content is formatted for 32 characters per line (58mm paper width) and includes barangay name, date, reference number, queue number, resident name, document list, pricing, and a footer message.</li>
   <li><strong>SMS Notification (PhilSMS):</strong>  Integration with PhilSMS provides affordable SMS notifications in the Philippines when documents are ready for pickup.  The system also supports Semaphore as an alternative provider.  SMS edge functions handle phone number normalization (PH 63-format), OTP generation for password recovery (6-digit codes, 5-minute expiry), and document-ready notifications.</li>
   <li><strong>Hosting:</strong>  The PWA is hosted on Vercel for the frontend.  Supabase free tier handles the backend, database, and edge functions.  Dynamic manifest switching allows separate PWA installs for kiosk mode (<code>/kiosk</code>), admin mode (<code>/admin</code>), and super-admin mode (<code>/superadmin</code>).</li>
-  <li><strong>PDF Generation (jsPDF):</strong>  Document PDFs are generated client-side using the jsPDF library.  Each document type has a dedicated generator supporting mixed bold/italic text formatting, official signatures and seal images, date formatting, barangay official details, pricing display, and word wrapping.</li>
   <li><strong>Security Measures:</strong>
     <ul>
       <li><em>Authentication:</em> Supabase Auth with email/password for admins and residents; separate bcrypt-hashed kiosk password per barangay stored in <code>app_settings</code>.</li>
@@ -874,7 +873,7 @@ The system operates through four distinct interfaces, each serving a specific us
 
   <li><strong>Resident Portal Flow (Remote Web Access):</strong>  Remote residents authenticate via email and password through Supabase Auth.  New users register and link their account to an existing resident record (by matching name, birthday, zone, and contact details) or register as a new resident.  Once linked, residents can select documents, submit requests (source: <code>resident_portal</code>), view request history and release logs, provide feedback on released documents, and complete pre/post-usage surveys.  The portal supports offline session caching via IndexedDB for continued access during connectivity interruptions.</li>
 
-  <li><strong>Admin Dashboard Flow (Secretary/Staff):</strong>  Barangay officials log in with email and password (verified against the <code>admin_users</code> table).  The dashboard presents a request pipeline with four statuses: <strong>Pending</strong> (new submissions from kiosk and portal) &rarr; <strong>Current</strong> (being processed by staff) &rarr; <strong>Done</strong> (ready for pickup; triggers PDF generation via jsPDF and SMS notification via PhilSMS) &rarr; <strong>Released</strong> (archived with payment recorded in release logs).  Additional management tabs enable resident verification (approve/reject new profiles), resident database management, announcements scheduling, document pricing configuration, barangay information and officials setup, and feedback review.  Admin pre- and post-usage surveys are triggered at login and after the first document release, respectively.</li>
+  <li><strong>Admin Dashboard Flow (Secretary/Staff):</strong>  Barangay officials log in with email and password (verified against the <code>admin_users</code> table).  The dashboard presents a request pipeline with four statuses: <strong>Pending</strong> (new submissions from kiosk and portal) &rarr; <strong>Current</strong> (being processed by staff) &rarr; <strong>Done</strong> (ready for pickup; triggers SMS notification via PhilSMS) &rarr; <strong>Released</strong> (archived with payment recorded in release logs).  Additional management tabs enable resident verification (approve/reject new profiles), resident database management, announcements scheduling, document pricing configuration, barangay information and officials setup, and feedback review.  Admin pre- and post-usage surveys are triggered at login and after the first document release, respectively.</li>
 
   <li><strong>Super Admin Flow (System-wide Management):</strong>  The super admin accesses a centralized panel for multi-tenant oversight, including a health dashboard per barangay, cross-barangay analytics with CSV export, broadcast announcements, tenant creation and configuration, admin user management, audit logs, and system-wide settings.</li>
 </ol>
@@ -889,6 +888,82 @@ The system operates through four distinct interfaces, each serving a specific us
 
 <p style="text-align: center; font-style: italic; margin-top: 0.5em;">
 <strong>Figure 3.3.</strong> System Flowchart of the Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management (see Mermaid diagram rendered separately)
+</p>
+
+<p>
+To document the actual user journey in deployment, step-by-step UI capture slots are provided below.  Each placeholder must be replaced with the corresponding screenshot/photo during final manuscript preparation.
+</p>
+
+<ol>
+  <li><strong>Step 1 - Kiosk Welcome and Service Entry:</strong>  The resident starts at the kiosk welcome screen, reviews announcements, and proceeds to document request services.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4a: Step 1 UI Screenshot - Kiosk Welcome Screen and Start Request Button]
+    </div>
+  </li>
+  <li><strong>Step 2 - Resident Search or New Intake:</strong>  The resident searches an existing profile or enters details using the new applicant intake form when no match is found.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4b: Step 2 UI Screenshot - Resident Search and New Applicant Intake Form]
+    </div>
+  </li>
+  <li><strong>Step 3 - Document Selection and Required Fields:</strong>  The resident chooses document type(s), enters purpose and required fields (e.g., CTC for business clearance), and proceeds to review.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4c: Step 3 UI Screenshot - Document Selection and Input Fields]
+    </div>
+  </li>
+  <li><strong>Step 4 - Request Review and Submission:</strong>  The kiosk displays selected documents, computed fees, and control/queue preview before final submission.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4d: Step 4 UI Screenshot - Request Summary, Pricing, and Submit Action]
+    </div>
+  </li>
+  <li><strong>Step 5 - Admin Processing Workflow:</strong>  Barangay staff process the request from Pending to Current to Done to Released in the admin dashboard.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4e: Step 5 UI Screenshot - Admin Requests Pipeline (Pending to Released)]
+    </div>
+  </li>
+  <li><strong>Step 6 - Online Receipt (Resident Portal Confirmation):</strong>  For remote requests, the resident sees the on-screen confirmation receipt with request reference and status details.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4f: Step 6 UI Screenshot - Online Receipt/Request Confirmation Page]
+    </div>
+  </li>
+  <li><strong>Step 7 - Paper Receipt (Thermal Print Output):</strong>  For kiosk requests, a thermal paper receipt is printed and issued immediately after submission.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4g: Step 7 Photo - Actual Printed Thermal Receipt from GOOJPRT PT-210]
+    </div>
+  </li>
+  <li><strong>Step 8 - Resident Notification and Claim:</strong>  Once marked as Ready for Pickup/Released by admin, residents receive update information and claim documents at the barangay hall.
+    <div class="blank-placeholder" style="min-height: 165pt;">
+      [INSERT Figure 3.4h: Step 8 Evidence - Admin Released Status and Resident Claim Confirmation]
+    </div>
+  </li>
+</ol>
+
+<p class="figure-caption">
+<strong>Figure 3.4.</strong> Step-by-Step System Process Screenshots and Receipt Outputs (to be replaced with actual deployment captures)
+</p>
+
+<p>
+To support the process narrative, finalized visual guides are included below for resident remote requests, kiosk walk-in requests, and barangay admin operations.  Each guide is maintained in both PNG (for direct display) and SVG (for high-resolution print scaling).
+</p>
+
+<div style="text-align:center; margin: 10pt 0;">
+  <img src="../public/resident-request-guide.png" alt="Resident Remote Requests Guide (PNG)" style="max-width:100%; border:1px solid #d0d0d0;"/>
+</div>
+<p class="figure-caption">
+<strong>Figure 3.5.</strong> Resident Remote Requests Guide (PNG display; SVG source: <code>public/resident-request-guide.svg</code>)
+</p>
+
+<div style="text-align:center; margin: 10pt 0;">
+  <img src="../public/kiosk-guide.png" alt="Kiosk Walk-In Request Guide (PNG)" style="max-width:100%; border:1px solid #d0d0d0;"/>
+</div>
+<p class="figure-caption">
+<strong>Figure 3.6.</strong> Kiosk Walk-In Request Guide (PNG display; SVG source: <code>public/kiosk-guide.svg</code>)
+</p>
+
+<div style="text-align:center; margin: 10pt 0;">
+  <img src="../public/admin-guide.png" alt="Barangay Admin Dashboard Guide (PNG)" style="max-width:100%; border:1px solid #d0d0d0;"/>
+</div>
+<p class="figure-caption">
+<strong>Figure 3.7.</strong> Barangay Admin Dashboard Guide (PNG display; SVG source: <code>public/admin-guide.svg</code>)
 </p>
 
 
@@ -990,7 +1065,6 @@ The total hardware investment of &#8369;10,260.00 for two fully assembled kiosk 
   <tr><td>Backend + Database + Hosting</td><td>Supabase (free tier)</td><td>Free</td></tr>
   <tr><td>Frontend Hosting</td><td>Vercel</td><td>Free</td></tr>
   <tr><td>Offline Cache &amp; Sync</td><td>IndexedDB + Workbox Service Workers</td><td>Free</td></tr>
-  <tr><td>PDF Generation</td><td>jsPDF (client-side)</td><td>Free</td></tr>
   <tr><td>Bluetooth Printing</td><td>RawBT + GOOJPRT PT-210</td><td>Free (app)</td></tr>
   <tr><td>SMS Notifications</td><td>PhilSMS</td><td>~&#8369;0.35+ per SMS</td></tr>
 </table>
@@ -1000,7 +1074,7 @@ The total hardware investment of &#8369;10,260.00 for two fully assembled kiosk 
 <div class="third-level-heading">3.4.3. Project Timeline and Development Schedule</div>
 
 <p>
-The project was executed over a period of approximately four months, from January 2026 to April 2026.  Table 3.3a summarizes the actual project timeline, activities, and deliverables for each month.
+The project was executed over a period of approximately four months, from January 2026 to April 2026.  The original target deployment window for field operations was March 30 to April 24, 2026; however, the actual deployment and evaluation period was finalized at March 30 to April 17, 2026 due to adviser availability.  Table 3.3a summarizes the actual project timeline, activities, and deliverables for each month.
 </p>
 
 <table>
@@ -1035,14 +1109,12 @@ The project was executed over a period of approximately four months, from Januar
         <li>Reference number and queue number generation</li>
         <li>Thermal receipt printing integration via RawBT Android app and ESC/POS formatting for GOOJPRT PT-210</li>
         <li>Resident portal development: authentication (Supabase Auth), registration, profile linking, document request, and request history</li>
-        <li>PDF document generation using jsPDF for all certificate types</li>
       </ul>
     </td>
     <td>
       <ul style="margin: 0; padding-left: 1.2em;">
         <li>Working offline-capable kiosk module with receipt printing</li>
         <li>Functional resident portal with authentication and document requests</li>
-        <li>PDF generators for all document types</li>
       </ul>
     </td>
   </tr>
@@ -1071,9 +1143,14 @@ The project was executed over a period of approximately four months, from Januar
     </td>
   </tr>
   <tr>
-    <td><strong>Month 4</strong><br/>(April 1&ndash;17, 2026)</td>
+    <td><strong>Month 4</strong><br/>(March 30&ndash;April 17, 2026)</td>
     <td>
       <ul style="margin: 0; padding-left: 1.2em;">
+        <li>March 30&ndash;31: Staff training and activation of remote/online request access in both pilot barangays</li>
+        <li>April 1&ndash;5: Limited request activity during holiday and Holy Week period</li>
+        <li>April 6&ndash;12: Majority of transactions were submitted through remote/online requests while kiosk units were still pending physical installation</li>
+        <li>April 13&ndash;17: Physical kiosk boxes were deployed in barangay halls, increasing walk-in request volume</li>
+        <li>April 15&ndash;16: Document-request spike occurred when barangay staff facilitated bulk encoding of residents requesting partially damaged assistance documents</li>
         <li>User acceptance testing with actual residents in both barangays (46 resident respondents)</li>
         <li>Pre-usage and post-usage survey administration via built-in survey module (resident and admin surveys)</li>
         <li>Collection of user feedback through the system&rsquo;s feedback module (74 feedback entries)</li>
@@ -1193,7 +1270,7 @@ The resident post-usage results demonstrate strong positive reception of the sys
 </p>
 
 <p>
-The notable exception is SMS Notification (M = 2.41), which scored low because the majority of kiosk walk-in respondents (69.6%) completed their survey immediately after submitting a request&mdash;before the document had been processed and released, and therefore before an SMS notification was triggered.  The SMS feature is sent only when the admin marks a request as &ldquo;Ready for Pickup,&rdquo; so walk-in users who tested the kiosk during the survey session had not yet received their SMS at the time of evaluation.  Among respondents who used the remote portal and had completed the full request lifecycle, SMS scores were higher, confirming the feature functions as designed.
+The notable exception is SMS Notification (M = 2.41), which scored low due to deployment-context constraints rather than system failure.  During pilot testing, PhilSMS notifications were implemented primarily for Globe and TM numbers, which matched the dominant network usage in Barangay Maangas and supported the pilot scope without additional cross-network service expansion.  In addition, many walk-in respondents did not provide mobile numbers or email addresses, especially older adult users who preferred in-person follow-up.  As a result, a portion of participants could not fully experience SMS-based status updates during evaluation, despite successful notification delivery for supported and complete contact records.
 </p>
 
 
@@ -1327,7 +1404,7 @@ The evaluation data demonstrates that the Smart Barangay Kiosk System successful
 </p>
 
 <p>
-The SMS notification dimension (M = 2.41) represents an evaluation timing artifact rather than a functional deficiency: walk-in kiosk users completed the survey before their documents were processed and released.  The feature itself was confirmed operational by admin respondents (M = 4.22) and by remote portal users who experienced the full request-to-pickup lifecycle.
+The SMS notification dimension (M = 2.41) reflects pilot deployment constraints rather than a core functional failure.  During testing, notifications were primarily implemented for Globe and TM recipients within the approved pilot scope, and many walk-in residents did not provide complete mobile or email contact details for automated follow-up.  Despite this limitation in coverage and contact completeness, the feature itself was confirmed operational by admin respondents (M = 4.22) and by users whose requests reached full release status with supported contact records.
 </p>
 
 <p>
@@ -1355,7 +1432,7 @@ Purposive selection, a nonrandom sampling method, was applied.  The purposive sa
 <div class="third-level-heading">3.6.4. Respondent Profile and Sample Size</div>
 
 <p>
-A total of 55 respondents participated in the evaluation of the Smart Barangay Kiosk System across the two pilot barangays.  The respondents were divided into two groups: 46 resident-users and 9 barangay officials/staff.  Each respondent completed both a pre-usage survey (before interacting with the system) and a post-usage survey (after using the system), yielding a total of 110 completed survey forms.
+A total of 55 respondents participated in the evaluation of the Smart Barangay Kiosk System across the two pilot barangays.  The respondents were divided into two groups: 46 resident-users and 9 barangay officials/staff.  Each respondent completed both a pre-usage survey (before interacting with the system) and a post-usage survey (after using the system), yielding a total of 110 completed survey forms.  The deployment and testing period for respondent-based evaluation covered March 30 to April 17, 2026.
 </p>
 
 <table>
@@ -1379,7 +1456,11 @@ Among the 46 resident respondents, 32 (69.6%) used the system via the walk-in ki
 <div class="table-caption"><strong>Table 3.5.</strong> <span>Resident Respondents by Access Mode</span></div>
 
 <p>
-During the pilot testing period (April 13&ndash;16, 2026), a total of 97 residents were registered in the system across both barangays: 64 in Barangay Maangas and 33 in Barangay Sta. Maria.  Among the registered residents, the sex distribution was 40 males (41.2%) and 57 females (58.8%).  The system processed and released a total of 86 documents across 9 document types, with the most requested being Barangay Certification (32), Certificate of Indigency (20), and Barangay Clearance (14).
+During the pilot deployment period (March 30&ndash;April 17, 2026), a total of 97 residents were registered in the system across both barangays: 64 in Barangay Maangas and 33 in Barangay Sta. Maria.  Among the registered residents, the sex distribution was 40 males (41.2%) and 57 females (58.8%).  The system processed and released a total of 86 documents across 9 document types, with the most requested being Barangay Certification (32), Certificate of Indigency (20), and Barangay Clearance (14).
+</p>
+
+<p>
+Field activity progressed in phases: initial staff training and remote-access activation on March 30&ndash;31, reduced transaction volume during the April 1&ndash;5 holiday period, primarily online submissions from April 6&ndash;12, and higher walk-in volume once kiosk boxes were fully deployed from April 13&ndash;17.  The visible increase in requests on April 15&ndash;16 was associated with barangay-assisted encoding of residents processing partially damaged assistance-related document requests.
 </p>
 
 <table>
@@ -1408,7 +1489,6 @@ During the pilot testing period (April 13&ndash;16, 2026), a total of 97 residen
 <p>
 This research maintains strict compliance with ethical standards for research to guarantee the rights, privacy, and welfare of all participants.  The following procedures were instituted:
 </p>
-
 <ul>
   <li><strong>Informed Consent:</strong> An informed consent document, clear and comprehensible, was provided to all respondents before any survey, interview, usability test, or observation session.  Data collection included only individuals who provided written or verbal consent.</li>
   <li><strong>Confidentiality and Anonymity:</strong> Participants&rsquo; confidentiality was strictly upheld.  Responses were anonymized, and identifying details are not published in any reports.</li>
@@ -1426,72 +1506,36 @@ This research maintains strict compliance with ethical standards for research to
 <br>
 
 <p>
-This study developed and evaluated the Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management, deployed across two pilot barangays&mdash;Maangas and Sta. Maria, Presentacion, Camarines Sur.  The system was tested with 46 resident respondents and 9 barangay officials and staff, yielding 86 document releases across 9 document types and 74 feedback entries during the pilot period.  The conclusions addressing each specific objective are as follows:
+This study confirms that the Smart Barangay Kiosk System is a viable barangay-level e-governance solution for document request handling in low-connectivity settings.  During the March 30 to April 17, 2026 deployment in Barangay Maangas and Barangay Sta. Maria, the system registered 97 residents, released 86 documents across 9 document types, and collected 74 feedback entries.
 </p>
 
 <p>
-<strong>Objective 1: Develop a kiosk interface for document requests.</strong>  The walk-in kiosk interface was successfully developed and deployed in both pilot barangays.  Residents rated the system&rsquo;s ease of use at M = 4.19 and interface design at M = 4.28 on a 5-point Likert scale, confirming that the touch-screen interface is intuitive and user-friendly even without prior training.  Of the 46 resident respondents, 69.6% used the kiosk as walk-in users, validating its role as the primary point of interaction.
+The dual-channel design (walk-in kiosk and resident portal) improved access and service efficiency.  Resident post-usage ratings were high in usability (M = 4.19), efficiency (M = 4.21), accessibility (M = 4.35), and reliability (M = 4.33), while overall resident satisfaction reached M = 4.67.  Admin respondents also reported very high overall satisfaction (M = 4.52), with strong scores in request tracking and records management.
 </p>
 
 <p>
-<strong>Objective 2: Construct a secure centralized database.</strong>  The Supabase-powered centralized database was implemented with multi-tenant architecture supporting both pilot barangays under a single deployment.  A total of 97 residents were successfully registered in the system (64 in Maangas, 33 in Sta. Maria), and all 86 document releases were properly recorded with complete audit trails.  Admin respondents rated the system&rsquo;s data reliability at M = 4.48, with no reports of data loss (M = 4.67 on that specific item).
+The system met the core technical objectives: centralized multi-tenant data management, secure role-based access, offline-first request capture with automatic synchronization, and operational admin workflow from request intake to release logging.  No major data-loss incidents were reported during pilot operation, supporting the reliability of the adopted architecture.
 </p>
 
 <p>
-<strong>Objective 3: Create a web-based admin dashboard.</strong>  The admin dashboard was developed and used by 9 barangay officials for processing document requests, managing residents, and releasing documents.  The dashboard received high usability ratings (M = 4.47 for ease of use, M = 4.78 for layout and design), and admin respondents confirmed that it improved their workflow management, particularly for request tracking (M = 4.67) and record-keeping (M = 4.67).
+The lower resident score for SMS notification (M = 2.41) should be interpreted within pilot scope limitations, particularly supported-network coverage and incomplete contact details among many walk-in users.  Despite this, SMS and status updates were operational for supported records, and the overall findings indicate readiness for scaled rollout with minor communication-channel enhancements.
 </p>
-
-<p>
-<strong>Objective 4: Automate receipt printing and SMS notifications.</strong>  Bluetooth thermal receipt printing was integrated with the kiosk for issuing transaction receipts upon document request submission.  SMS notifications were implemented for informing residents when their documents are ready for pickup.  Admin respondents rated the SMS feature&rsquo;s usefulness at M = 4.22.  Resident SMS evaluation scores were low (M = 2.41) due to evaluation timing&mdash;walk-in users completed the survey before documents were processed and SMS was triggered&mdash;rather than a functional deficiency.
-</p>
-
-<p>
-<strong>Objective 5: Develop offline-first functionality.</strong>  The offline-first architecture using service workers and IndexedDB was successfully implemented, enabling the kiosk to accept document requests even during internet outages.  Resident respondents rated reliability at M = 4.33, and the specific item on system performance during slow or unavailable connectivity scored M = 4.41.  Admin respondents similarly validated offline reliability (M = 4.22), confirming the system&rsquo;s suitability for deployment in rural areas with intermittent internet connectivity.
-</p>
-
-<p>
-<strong>Objective 6: Implement authentication and security.</strong>  Role-based access control was implemented with three distinct user roles (Super Admin, Admin, Kiosk), complemented by bcrypt password hashing, automatic 2-minute idle session timeout on the kiosk, OTP-based resident verification via SMS, and Row-Level Security (RLS) policies in the database.  Admin respondents rated the resident verification feature at M = 4.44, confirming its effectiveness in ensuring only legitimate residents can request documents.
-</p>
-
-<p>
-<strong>Objective 7: Test and evaluate usability, reliability, and efficiency in pilot barangays.</strong>  Comprehensive pre- and post-usage surveys were conducted with both resident and admin respondent groups.  The resident grand mean increased from M = 3.38 (pre-usage) to M = 4.11 (post-usage), and the admin grand mean increased from M = 4.09 to M = 4.52, indicating significant improvement in perceived service quality.  The overall user satisfaction was M = 4.67 for residents and M = 4.72 for admin respondents.  The feedback module recorded an overall mean rating of 4.55 out of 5.00, with 73% of respondents giving 5 stars.  These results confirm that the system meets its design objectives of usability, reliability, and efficiency.
-</p>
-
-<p>
-Overall, the Smart Barangay Kiosk System demonstrates that a tablet-based, offline-first digital kiosk with a Bluetooth thermal printer is a viable and effective approach for modernizing document request processing at the barangay level.  The dual-channel design (walk-in kiosk and remote web portal) successfully broadened access to residents with varying schedules and mobility constraints.  The multi-tenant architecture proved scalable across two pilot sites, and the system&rsquo;s consistent high ratings from both residents and administrators indicate strong potential for wider adoption in Philippine local government units seeking to advance e-governance and digital inclusion.
-</p>
-
 
 <!-- ==================== CHAPTER 5 ==================== -->
-<div class="page-break"></div>
 <div class="chapter-heading">Chapter 5</div>
 <div class="first-level-heading">RECOMMENDATION</div>
 <br>
 
 <p>
-Based on the findings and conclusions of this study, the following recommendations are proposed for future research and system enhancement:
+To keep implementation practical for LGUs, the following specific next actions are recommended:
 </p>
 
 <ol>
-  <li><strong>Expansion to Additional Barangays and Municipalities.</strong>  The system should be deployed in additional barangays beyond Presentacion, Camarines Sur to validate scalability and adaptability across diverse local government contexts.  A phased rollout to neighboring municipalities would provide data on multi-site administration and resource sharing.</li>
-
-  <li><strong>Integration with National Government Digital Infrastructure.</strong>  Future iterations should explore integration with the Philippine Identification System (PhilSys) and other national government databases to enable automated identity verification, reducing the need for manual resident registration and improving data accuracy.</li>
-
-  <li><strong>Biometric Authentication for Resident Verification.</strong>  Adding fingerprint or facial recognition as an authentication option on the kiosk would strengthen security and simplify the verification process, particularly for residents who may have difficulty with OTP-based SMS verification.</li>
-
-  <li><strong>Native Mobile Application for Residents.</strong>  While the current system provides a responsive web portal for remote document requests, a dedicated native mobile application (Android/iOS) could offer improved performance, push notification support, and offline access for residents using smartphones.</li>
-
-  <li><strong>Enhanced SMS Notification Coverage.</strong>  Given the low SMS evaluation scores among kiosk walk-in users (M = 2.41), future studies should ensure that the evaluation timeline allows respondents to experience the full document lifecycle, including SMS notification upon release.  Additionally, alternative notification channels (e.g., push notifications, messaging apps) may be explored to supplement SMS.</li>
-
-  <li><strong>Analytics and Reporting Dashboard.</strong>  Implementing advanced data analytics and visualization tools within the admin dashboard would enable barangay officials to generate insights on document request trends, peak demand periods, and resident demographics for data-driven decision-making.</li>
-
-  <li><strong>Long-Term Sustainability and Cost-Effectiveness Study.</strong>  A longitudinal study measuring operational costs, maintenance requirements, and sustained user satisfaction over 12&ndash;24 months of continuous deployment would provide critical data for policy recommendations on digital kiosk adoption in LGUs.</li>
-
-  <li><strong>Multi-Language Support.</strong>  Adding Filipino and Bicol language options for the kiosk interface and resident-facing content would enhance accessibility and inclusivity, particularly for elderly residents and those less comfortable with English.</li>
-
-  <li><strong>Integration with Online Payment Systems.</strong>  Future versions should support cashless payment processing through integration with GCash, Maya, or other local digital payment platforms, enabling end-to-end digital transactions without requiring cash handling at the barangay hall.</li>
-
-  <li><strong>Comprehensive Cybersecurity Assessment.</strong>  A formal penetration testing and security audit should be conducted to identify and address potential vulnerabilities, particularly as the system handles sensitive personal data governed by the Data Privacy Act of 2012 (RA 10173).</li>
+  <li><strong>Scale by Phase.</strong>  Deploy first to additional barangays within Presentacion, then to nearby municipalities, while tracking processing time, release volume, and user satisfaction per site.</li>
+  <li><strong>Improve Notification Coverage.</strong>  Expand SMS routing for broader network compatibility and require at least one verifiable contact field (mobile or email) during intake.</li>
+  <li><strong>Strengthen Identity Verification.</strong>  Add optional biometric verification (fingerprint or facial capture) for high-assurance transactions, while retaining manual fallback for inclusive access.</li>
+  <li><strong>Enable Local-Language Interface.</strong>  Provide Filipino and Bikol UI text options in kiosk and resident portal screens, especially for senior and first-time users.</li>
+  <li><strong>Add Payment and Audit Enhancements.</strong>  Integrate optional digital payments (e.g., GCash/Maya) and perform periodic security audits and penetration testing to sustain Data Privacy Act compliance.</li>
 </ol>
 
 
@@ -1571,61 +1615,530 @@ Based on the findings and conclusions of this study, the following recommendatio
 <div class="first-level-heading">APPENDIX A</div>
 <div class="second-level-heading" style="text-align: center; margin-top: 0;">Survey Questionnaires</div>
 
-<div class="blank-placeholder">
-[INSERT: Pre-test survey questionnaire for residents]
-</div>
+<p style="text-align: center; margin-bottom: 0;"><strong>PRE-TEST SURVEY QUESTIONNAIRE FOR RESIDENTS</strong></p>
+<p style="text-align: center; margin-top: 0; font-size: 0.95em;">Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management</p>
 
-<div class="blank-placeholder">
-[INSERT: Post-evaluation survey questionnaire for residents]
-</div>
+<p style="font-size: 0.9em;">
+<strong>Researchers:</strong> Dennis Leonardo S. Cuadro &nbsp;|&nbsp; Frank John Paul L. Tresvalles &nbsp;|&nbsp; Karl S. Ignacio<br/>
+<strong>Program:</strong> BS Computer Engineering, Ateneo de Naga University<br/>
+<strong>Partner Barangays:</strong> Brgy. Maangas &amp; Brgy. Santa Maria, Presentacion, Camarines Sur
+</p>
 
-<div class="blank-placeholder">
-[INSERT: Interview questionnaire for barangay officials]
-</div>
+<p style="font-size: 0.9em; border: 1px solid #000; padding: 8px;">
+<strong>INFORMED CONSENT</strong><br/>
+Magandang araw po! Kami po ay mga estudyante ng Ateneo de Naga University na kasalukuyang nagsasagawa ng thesis research. Ang survey na ito ay naglalayong malaman ang inyong kasalukuyang karanasan sa pag-request ng mga barangay documents. Ang inyong sagot ay magiging confidential at gagamitin lamang para sa layunin ng pananaliksik.
+</p>
+
+<p style="font-size: 0.9em;">
+<strong>Pangalan (Optional):</strong> ______________________ &nbsp;&nbsp;
+<strong>Edad:</strong> __________ &nbsp;&nbsp;
+<strong>Kasarian:</strong> &#9744; Lalaki &nbsp; &#9744; Babae &nbsp; &#9744; Prefer not to say<br/>
+<strong>Barangay:</strong> &#9744; Brgy. Maangas, Presentacion &nbsp; &#9744; Brgy. Santa Maria, Presentacion
+</p>
+
+<p style="font-size: 0.9em;"><strong>INSTRUCTIONS:</strong> Please rate each statement using the following scale: <strong>1</strong> &ndash; Strongly Disagree (Lubos na Hindi Sumasang-ayon), <strong>2</strong> &ndash; Disagree (Hindi Sumasang-ayon), <strong>3</strong> &ndash; Neutral (Walang Kinikilingan), <strong>4</strong> &ndash; Agree (Sumasang-ayon), <strong>5</strong> &ndash; Strongly Agree (Lubos na Sumasang-ayon)</p>
+
+<p class="no-indent"><strong>Part 1: Current Experience with Barangay Document Requests</strong><br/><em>(Kasalukuyang Karanasan sa Pag-request ng Barangay Documents)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>1</td><td>I am satisfied with the current manual process of requesting barangay documents. <em>(Nasisiyahan ako sa kasalukuyang manual na proseso ng pag-request ng barangay documents.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>2</td><td>The current process of requesting barangay documents is fast and efficient. <em>(Mabilis at episyente ang kasalukuyang proseso ng pag-request ng barangay documents.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>3</td><td>I find it convenient to personally go to the barangay hall every time I need a document. <em>(Maginhawa para sa akin ang personal na pagpunta sa barangay hall tuwing kailangan ko ng dokumento.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>4</td><td>I rarely experience long waiting times when requesting documents at the barangay. <em>(Bihira akong makaranas ng mahabang oras ng paghihintay sa pag-request ng dokumento sa barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>5</td><td>I am always informed about the status of my document request (e.g., if it is ready for pickup). <em>(Lagi akong napapabalitaan tungkol sa status ng aking document request.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 2: Accessibility and Inclusivity of Current Services</strong><br/><em>(Accessibility at Inclusivity ng Kasalukuyang Serbisyo)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>6</td><td>The barangay&rsquo;s current document request process is accessible to all residents, including senior citizens and PWDs. <em>(Ang kasalukuyang proseso ng barangay ay accessible sa lahat ng residente, kasama ang mga senior citizen at PWD.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>7</td><td>I can easily request barangay documents even during my work hours or busy schedule. <em>(Madali akong makapag-request ng barangay documents kahit sa oras ng trabaho o abala akong schedule.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>8</td><td>I have no difficulty communicating my document request needs to barangay staff. <em>(Wala akong hirap sa pakikipag-communicate sa barangay staff tungkol sa aking pangangailangan ng dokumento.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 3: Technology Readiness and Familiarity</strong><br/><em>(Kahandaan at Pamilyaridad sa Teknolohiya)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>9</td><td>I am comfortable using digital devices such as smartphones, tablets, or computers. <em>(Komportable akong gumamit ng mga digital device tulad ng smartphone, tablet, o computer.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>10</td><td>I am familiar with using self-service kiosks or touch-screen machines (e.g., ATMs, payment terminals). <em>(Pamilyar ako sa paggamit ng self-service kiosk o touch-screen machines tulad ng ATM at payment terminals.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>11</td><td>I have access to a smartphone or computer with internet connection at home. <em>(May access ako sa smartphone o computer na may internet connection sa bahay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>12</td><td>I am open to using a computerized system for requesting barangay documents. <em>(Bukas akong gumamit ng computerized system para sa pag-request ng barangay documents.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 4: Perceived Need for Digital Innovation</strong><br/><em>(Pangangailangan sa Digital na Inobasyon)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>13</td><td>I believe the barangay needs a digital/computerized system for processing document requests. <em>(Naniniwala akong kailangan ng barangay ang isang digital/computerized system para sa pagproseso ng document requests.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>14</td><td>A system that allows me to request documents from home (online) would be very helpful. <em>(Ang system na magpapahintulot sa akin na mag-request ng dokumento mula sa bahay ay magiging napakakapaki-pakinabang.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>15</td><td>Receiving SMS notifications about my document request status would improve my experience. <em>(Ang pagtanggap ng SMS notification tungkol sa status ng aking document request ay magpapahusay ng aking karanasan.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p style="font-size: 0.9em; font-style: italic; text-align: center;">Maraming salamat po sa inyong oras at pagtugon! Ang inyong sagot ay malaking tulong sa aming pananaliksik.</p>
+
+<div class="page-break"></div>
+
+<!-- ===== POST-EVALUATION SURVEY ===== -->
+<p style="text-align: center; margin-bottom: 0;"><strong>POST-EVALUATION SURVEY QUESTIONNAIRE FOR RESIDENTS</strong></p>
+<p style="text-align: center; margin-top: 0; font-size: 0.95em;">Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management</p>
+
+<p style="font-size: 0.9em;">
+<strong>Researchers:</strong> Dennis Leonardo S. Cuadro &nbsp;|&nbsp; Frank John Paul L. Tresvalles &nbsp;|&nbsp; Karl S. Ignacio<br/>
+<strong>Program:</strong> BS Computer Engineering, Ateneo de Naga University<br/>
+<strong>Partner Barangays:</strong> Brgy. Maangas &amp; Brgy. Santa Maria, Presentacion, Camarines Sur
+</p>
+
+<p style="font-size: 0.9em; border: 1px solid #000; padding: 8px;">
+<strong>INFORMED CONSENT</strong><br/>
+Magandang araw po! Salamat sa paggamit ng Smart Barangay Kiosk System. Ang survey na ito ay naglalayong malaman ang inyong karanasan at feedback matapos gamitin ang sistema &mdash; maging sa kiosk o online. Ang inyong sagot ay magiging confidential at gagamitin lamang para sa layunin ng pananaliksik.
+</p>
+
+<p style="font-size: 0.9em;">
+<strong>Pangalan (Optional):</strong> ______________________ &nbsp;&nbsp;
+<strong>Edad:</strong> __________ &nbsp;&nbsp;
+<strong>Kasarian:</strong> &#9744; Lalaki &nbsp; &#9744; Babae &nbsp; &#9744; Prefer not to say<br/>
+<strong>Barangay:</strong> &#9744; Brgy. Maangas, Presentacion &nbsp; &#9744; Brgy. Santa Maria, Presentacion<br/>
+<strong>Mode of Request Used:</strong> &#9744; Kiosk (sa Barangay Hall) &nbsp; &#9744; Online (Remote/sa bahay) &nbsp; &#9744; Both
+</p>
+
+<p style="font-size: 0.9em;"><strong>INSTRUCTIONS:</strong> Please rate each statement using the following scale: <strong>1</strong> &ndash; Strongly Disagree (Lubos na Hindi Sumasang-ayon), <strong>2</strong> &ndash; Disagree (Hindi Sumasang-ayon), <strong>3</strong> &ndash; Neutral (Walang Kinikilingan), <strong>4</strong> &ndash; Agree (Sumasang-ayon), <strong>5</strong> &ndash; Strongly Agree (Lubos na Sumasang-ayon)</p>
+
+<p class="no-indent"><strong>Part 1: Ease of Use / Usability</strong><br/><em>(Kaginhawahan sa Paggamit)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>1</td><td>The system was easy to understand and navigate, even without prior training. <em>(Madaling intindihin at i-navigate ang sistema kahit walang naunang pagsasanay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>2</td><td>The on-screen instructions and labels were clear and easy to follow. <em>(Ang mga instructions at labels sa screen ay malinaw at madaling sundin.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>3</td><td>I was able to complete my document request without needing assistance from barangay staff. <em>(Nakumpleto ko ang aking document request nang hindi na kailangan ng tulong mula sa barangay staff.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>4</td><td>The system&rsquo;s interface design is user-friendly and visually appealing. <em>(Ang disenyo ng interface ng sistema ay user-friendly at maganda sa paningin.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>5</td><td>I feel confident that I can use the system again on my own in the future. <em>(Kumpiyansa akong magamit muli ang sistema mag-isa sa susunod.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 2: Efficiency and Speed</strong><br/><em>(Episyensya at Bilis)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>6</td><td>Using the system, I was able to request a document faster compared to the traditional manual process. <em>(Sa paggamit ng sistema, mas mabilis akong nakapag-request ng dokumento kumpara sa tradisyonal na manual na proseso.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>7</td><td>The number of steps required to complete a request was reasonable and not excessive. <em>(Ang bilang ng mga hakbang na kinailangan para makumpleto ang request ay makatuwiran at hindi labis.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>8</td><td>The system processed my request without significant delays or errors. <em>(Naproseso ng sistema ang aking request nang walang malaking delay o error.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 3: Accessibility and Convenience</strong><br/><em>(Accessibility at Kaginhawahan)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>9</td><td>The kiosk at the barangay hall is easy to access and use for walk-in residents. <em>(Ang kiosk sa barangay hall ay madaling puntahan at gamitin ng mga walk-in na residente.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>10</td><td>The option to request documents online (remotely) is very convenient. <em>(Ang opsiyong mag-request ng dokumento online (remotely) ay napakaconvenient.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>11</td><td>The system makes barangay document requests more accessible to senior citizens, PWDs, and busy residents. <em>(Ginagawang mas accessible ng sistema ang document requests para sa senior citizens, PWDs, at mga abala na residente.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>12</td><td>I can request documents at a time that is convenient for me, not limited to office hours. <em>(Makakapag-request ako ng dokumento sa oras na convenient sa akin, hindi limitado sa office hours.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 4: Reliability and Offline Capability</strong><br/><em>(Reliability at Offline na Kakayahan)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>13</td><td>The system worked properly even when internet connection was slow or unavailable. <em>(Gumana nang maayos ang sistema kahit mabagal o walang internet connection.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>14</td><td>I did not experience any system crash or major technical issue during my use. <em>(Hindi ako nakaranas ng anumang system crash o major technical issue habang ginagamit ko ito.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>15</td><td>I trust that my document request was properly recorded and will be processed. <em>(Nagtitiwala akong ang aking document request ay maayos na naitala at ipoproseso.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 5: SMS Notification and Communication</strong><br/><em>(SMS Notification at Komunikasyon)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>16</td><td>I received an SMS notification about the status of my document request. <em>(Nakatanggap ako ng SMS notification tungkol sa status ng aking document request.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>17</td><td>The SMS notification was timely and helped me know when to pick up my document. <em>(Ang SMS notification ay napapanahon at nakatulong sa akin na malaman kung kailan kukunin ang aking dokumento.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>18</td><td>The SMS feature reduced the need for me to follow up in person at the barangay hall. <em>(Ang SMS feature ay nagbawas ng pangangailangan kong mag-follow up nang personal sa barangay hall.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 6: Overall Satisfaction and Impact</strong><br/><em>(Pangkalahatang Kasiyahan at Epekto)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>19</td><td>Overall, I am satisfied with my experience using the Smart Barangay Kiosk System. <em>(Sa pangkalahatan, nasisiyahan ako sa aking karanasan sa paggamit ng Smart Barangay Kiosk System.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>20</td><td>The system significantly improved the way I request barangay documents compared to the old process. <em>(Lubos na pinahusay ng sistema ang paraan ng pag-request ko ng barangay documents kumpara sa lumang proseso.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>21</td><td>I would recommend this system to other residents in our barangay. <em>(Irerekomenda ko ang sistemang ito sa ibang mga residente ng aming barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>22</td><td>I prefer using this system over the traditional manual process for future document requests. <em>(Mas gusto ko ang paggamit ng sistemang ito kaysa sa tradisyonal na manual na proseso para sa mga susunod na document requests.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>23</td><td>I believe this system should be permanently adopted by the barangay. <em>(Naniniwala akong dapat permanenteng gamitin ng barangay ang sistemang ito.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p style="font-size: 0.9em; font-style: italic; text-align: center;">Maraming salamat po sa inyong oras at pagtugon! Ang inyong feedback ay malaking tulong sa pagpapahusay ng aming sistema at pananaliksik.</p>
+
+<div class="page-break"></div>
+
+<!-- ===== ADMIN INTERVIEW / SURVEY QUESTIONNAIRES ===== -->
+<p style="text-align: center; margin-bottom: 0;"><strong>PRE-TEST SURVEY QUESTIONNAIRE FOR BARANGAY OFFICIALS / SECRETARIES</strong></p>
+<p style="text-align: center; margin-top: 0; font-size: 0.95em;">Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management</p>
+
+<p style="font-size: 0.9em;">
+<strong>Researchers:</strong> Dennis Leonardo S. Cuadro &nbsp;|&nbsp; Frank John Paul L. Tresvalles &nbsp;|&nbsp; Karl S. Ignacio<br/>
+<strong>Program:</strong> BS Computer Engineering, Ateneo de Naga University<br/>
+<strong>Partner Barangays:</strong> Brgy. Maangas &amp; Brgy. Santa Maria, Presentacion, Camarines Sur
+</p>
+
+<p style="font-size: 0.9em;">
+<strong>Pangalan:</strong> ______________________ &nbsp;&nbsp;
+<strong>Posisyon:</strong> ______________________ &nbsp;&nbsp;
+<strong>Barangay:</strong> &#9744; Brgy. Maangas &nbsp; &#9744; Brgy. Santa Maria
+</p>
+
+<p style="font-size: 0.9em;"><strong>INSTRUCTIONS:</strong> Please rate each statement using the 5-point Likert scale: <strong>1</strong> &ndash; Strongly Disagree, <strong>2</strong> &ndash; Disagree, <strong>3</strong> &ndash; Neutral, <strong>4</strong> &ndash; Agree, <strong>5</strong> &ndash; Strongly Agree</p>
+
+<p class="no-indent"><strong>Part 1: Current Document Processing Workflow</strong><br/><em>(Kasalukuyang Proseso ng Pagproseso ng Dokumento)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>1</td><td>I am satisfied with the current manual process of handling barangay document requests. <em>(Nasisiyahan ako sa kasalukuyang manual na proseso ng pag-asikaso ng mga document request sa barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>2</td><td>The current manual process allows me to process document requests quickly and efficiently. <em>(Ang kasalukuyang manual na proseso ay nagpapahintulot sa akin na maproseso ang mga document request nang mabilis at episyente.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>3</td><td>It is easy to keep track of all pending, in-progress, and completed document requests manually. <em>(Madaling subaybayan ang lahat ng pending, in-progress, at completed na document requests nang manual.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>4</td><td>I rarely encounter problems with lost or misplaced document requests in the current system. <em>(Bihira akong makatagpo ng problema sa nawawala o natraspapel na document requests sa kasalukuyang sistema.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 2: Challenges in Current Operations</strong><br/><em>(Mga Hamon sa Kasalukuyang Operasyon)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>5</td><td>Managing document requests during peak hours is difficult with the current manual process. <em>(Mahirap pamahalaan ang mga document request sa oras ng dami ng tao gamit ang kasalukuyang manual na proseso.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>6</td><td>Residents frequently follow up in person about the status of their document requests. <em>(Madalas na personal na nag-follow up ang mga residente tungkol sa status ng kanilang document request.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>7</td><td>Record-keeping and generating reports on document requests is time-consuming. <em>(Ang pag-iingat ng rekord at paggawa ng mga ulat tungkol sa document requests ay matagal.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>8</td><td>I sometimes have difficulty verifying resident information for document processing. <em>(Minsan nahihirapan akong i-verify ang impormasyon ng residente para sa pagproseso ng dokumento.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 3: Technology Readiness</strong><br/><em>(Kahandaan sa Teknolohiya)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>9</td><td>I am comfortable using computers and digital tools for my work at the barangay. <em>(Komportable akong gumamit ng mga computer at digital tools para sa aking trabaho sa barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>10</td><td>I am willing to learn and adapt to a new computerized system for managing document requests. <em>(Handa akong matuto at mag-adapt sa bagong computerized system para sa pamamahala ng document requests.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>11</td><td>I believe that a digital system can improve the efficiency of our barangay services. <em>(Naniniwala akong ang isang digital system ay makakapagpahusay ng episyensya ng aming mga serbisyo sa barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 4: Expectations for Digital Innovation</strong><br/><em>(Mga Inaasahan sa Digital na Inobasyon)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>12</td><td>I expect a kiosk system to reduce the workload of barangay staff in processing documents. <em>(Inaasahan ko na ang isang kiosk system ay magbabawas ng workload ng barangay staff sa pagproseso ng mga dokumento.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>13</td><td>A system that allows online/remote document requests would greatly help our barangay operations. <em>(Ang isang system na nagpapahintulot ng online/remote na document request ay lubos na makakatulong sa aming operasyon sa barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>14</td><td>Automated SMS notifications for residents would reduce follow-up inquiries to barangay staff. <em>(Ang automated SMS notifications para sa mga residente ay magbabawas ng follow-up inquiries sa barangay staff.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ===== ADMIN POST-EVALUATION SURVEY ===== -->
+<p style="text-align: center; margin-bottom: 0;"><strong>POST-EVALUATION SURVEY QUESTIONNAIRE FOR BARANGAY OFFICIALS / SECRETARIES</strong></p>
+<p style="text-align: center; margin-top: 0; font-size: 0.95em;">Smart Barangay Kiosk System with Offline-First Document Request Handling and Resident Management</p>
+
+<p style="font-size: 0.9em;">
+<strong>Pangalan:</strong> ______________________ &nbsp;&nbsp;
+<strong>Posisyon:</strong> ______________________ &nbsp;&nbsp;
+<strong>Barangay:</strong> &#9744; Brgy. Maangas &nbsp; &#9744; Brgy. Santa Maria
+</p>
+
+<p style="font-size: 0.9em;"><strong>INSTRUCTIONS:</strong> Please rate each statement using the 5-point Likert scale: <strong>1</strong> &ndash; Strongly Disagree, <strong>2</strong> &ndash; Disagree, <strong>3</strong> &ndash; Neutral, <strong>4</strong> &ndash; Agree, <strong>5</strong> &ndash; Strongly Agree</p>
+
+<p class="no-indent"><strong>Part 1: Ease of Use / Usability</strong><br/><em>(Kaginhawahan sa Paggamit)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>1</td><td>The admin dashboard was easy to understand and navigate, even without extensive training. <em>(Madaling intindihin at i-navigate ang admin dashboard kahit walang masusing pagsasanay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>2</td><td>The interface for managing document requests (view, process, release) is clear and intuitive. <em>(Ang interface para sa pamamahala ng document requests ay malinaw at madaling gamitin.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>3</td><td>I can easily track the status of all requests from pending to released. <em>(Madali kong masubaybayan ang status ng lahat ng requests mula pending hanggang released.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>4</td><td>The overall layout and design of the admin panel is user-friendly and visually organized. <em>(Ang kabuuang layout at disenyo ng admin panel ay user-friendly at maayos ang pagkaka-organize.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 2: Efficiency and Speed</strong><br/><em>(Episyensya at Bilis)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>5</td><td>Using the system, I can process document requests faster compared to the manual process. <em>(Sa paggamit ng sistema, mas mabilis kong napoproseso ang mga document request kumpara sa manual na proseso.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>6</td><td>The request queue system (pending &rarr; in progress &rarr; ready &rarr; released) improved my workflow. <em>(Ang request queue system ay nagpahusay sa aking workflow.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>7</td><td>The system reduced the number of in-person follow-ups from residents about their request status. <em>(Ang sistema ay nagbawas ng bilang ng personal na follow-up mula sa mga residente.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>8</td><td>Record-keeping and viewing release logs is easier with the system than with manual records. <em>(Ang pag-iingat ng rekord at pagtingin ng release logs ay mas madali sa sistema kaysa sa manual na rekord.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 3: System Features</strong><br/><em>(Mga Feature ng Sistema)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>9</td><td>The SMS notification feature is useful for informing residents about their document status. <em>(Ang SMS notification feature ay kapaki-pakinabang para sa pagpapaalam sa mga residente.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>10</td><td>The resident verification feature helps ensure only legitimate residents can request documents. <em>(Ang resident verification feature ay nakakatulong na matiyak na tanging mga lehitimong residente lamang ang makapag-request.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>11</td><td>The calendar and announcements features are useful for managing barangay communications. <em>(Ang calendar at announcements features ay kapaki-pakinabang para sa pamamahala ng komunikasyon sa barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>12</td><td>The feedback from residents displayed in the system helps improve barangay services. <em>(Ang feedback mula sa mga residente na ipinapakita sa sistema ay nakakatulong sa pagpapahusay ng serbisyo.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 4: Reliability and Offline Capability</strong><br/><em>(Reliability at Offline na Kakayahan)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>13</td><td>The system worked reliably even during slow or intermittent internet connections. <em>(Gumana nang maayos ang sistema kahit sa mabagal o pabugso-bugsong internet connection.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>14</td><td>I did not experience system crashes or data loss while processing requests. <em>(Hindi ako nakaranas ng system crash o pagkawala ng data habang nagpoproseso ng mga request.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>15</td><td>I trust that all document requests and release logs are properly saved in the system. <em>(Nagtitiwala akong ang lahat ng document requests at release logs ay maayos na naka-save sa sistema.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p class="no-indent"><strong>Part 5: Overall Satisfaction and Impact</strong><br/><em>(Pangkalahatang Kasiyahan at Epekto)</em></p>
+<table>
+  <tr><th style="width:5%">No.</th><th>Statement</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+  <tr><td>16</td><td>Overall, I am satisfied with the Smart Barangay Kiosk System as a tool for managing document requests. <em>(Sa pangkalahatan, nasisiyahan ako sa sistema bilang isang tool para sa pamamahala ng document requests.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>17</td><td>The system has significantly improved the efficiency of our barangay document processing. <em>(Lubos na pinahusay ng sistema ang episyensya ng aming pagproseso ng dokumento sa barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>18</td><td>I would recommend this system to other barangays for managing their document request services. <em>(Irerekomenda ko ang sistemang ito sa ibang mga barangay.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+  <tr><td>19</td><td>I prefer using this system over the traditional manual process for future document management. <em>(Mas gusto ko ang paggamit ng sistemang ito kaysa sa tradisyonal na manual na proseso para sa pamamahala ng dokumento sa hinaharap.)</em></td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td><td>&#9744;</td></tr>
+</table>
+
+<p style="font-size: 0.9em; font-style: italic; text-align: center;">Maraming salamat po sa inyong oras at pagtugon!</p>
 
 <br>
 <div class="first-level-heading">APPENDIX B</div>
 <div class="second-level-heading" style="text-align: center; margin-top: 0;">System Screenshots</div>
 
-<div class="blank-placeholder">
-[INSERT: Kiosk interface screenshots - Welcome screen, Barangay selection, Document request form, Receipt confirmation]
+<p class="no-indent"><strong>B.1. Resident Remote Requests Guide</strong> (PNG and SVG versions)</p>
+<div style="text-align:center; margin: 8pt 0;">
+  <img src="../public/resident-request-guide.png" alt="Appendix B.1 Resident Guide PNG" style="max-width:100%; border:1px solid #d0d0d0;"/>
+</div>
+<div class="blank-placeholder" style="min-height: 110pt;">
+[INSERT Figure B.1b: Optional print capture or alternate layout of resident-request-guide.svg]
 </div>
 
-<div class="blank-placeholder">
-[INSERT: Admin Dashboard screenshots - Dashboard overview, Requests management, Residents tab, Verification, Announcements, Pricing, Feedback, Barangay Info]
+<p class="no-indent"><strong>B.2. Kiosk Walk-In Request Guide</strong> (PNG and SVG versions)</p>
+<div style="text-align:center; margin: 8pt 0;">
+  <img src="../public/kiosk-guide.png" alt="Appendix B.2 Kiosk Guide PNG" style="max-width:100%; border:1px solid #d0d0d0;"/>
+</div>
+<div class="blank-placeholder" style="min-height: 110pt;">
+[INSERT Figure B.2b: Optional print capture or alternate layout of kiosk-guide.svg]
 </div>
 
-<div class="blank-placeholder">
-[INSERT: Resident Portal screenshots - Home, Request Documents, Request History, Profile]
+<p class="no-indent"><strong>B.3. Barangay Admin Dashboard Guide</strong> (PNG and SVG versions)</p>
+<div style="text-align:center; margin: 8pt 0;">
+  <img src="../public/admin-guide.png" alt="Appendix B.3 Admin Guide PNG" style="max-width:100%; border:1px solid #d0d0d0;"/>
+</div>
+<div class="blank-placeholder" style="min-height: 110pt;">
+[INSERT Figure B.3b: Optional print capture or alternate layout of admin-guide.svg]
 </div>
 
-<div class="blank-placeholder">
-[INSERT: Super-Admin Panel screenshots - Overview, Analytics, Tenants, Admins, Audit Log]
+<div class="blank-placeholder" style="min-height: 180pt;">
+[INSERT Figure B.4: Additional Super Admin workflow screenshots (Overview, Analytics, Tenant Management, Audit Logs)]
+</div>
+
+<div class="blank-placeholder" style="min-height: 160pt;">
+[INSERT Figure B.5: Online Receipt Screenshot (expanded view with control/reference number)]
+</div>
+
+<div class="blank-placeholder" style="min-height: 160pt;">
+[INSERT Figure B.6: Paper Receipt Photo (actual thermal printout from kiosk printer)]
 </div>
 
 <br>
 <div class="first-level-heading">APPENDIX C</div>
 <div class="second-level-heading" style="text-align: center; margin-top: 0;">Physical Kiosk Setup</div>
 
-<div class="blank-placeholder">
-[INSERT: Photos of the physical kiosk setup - Tablet mounted/stationed at barangay hall, Bluetooth thermal printer (GOOJPRT PT-210), Receipt sample photo]
+<div class="blank-placeholder" style="min-height: 220pt;">
+[INSERT Photo C.1: Full kiosk setup in barangay hall (tablet, stand/box, printer placement)]
+</div>
+
+<div class="blank-placeholder" style="min-height: 180pt;">
+[INSERT Photo C.2: Close-up of Bluetooth thermal printer connection and sample print output]
 </div>
 
 <br>
 <div class="first-level-heading">APPENDIX D</div>
 <div class="second-level-heading" style="text-align: center; margin-top: 0;">Sample Generated Documents</div>
 
-<div class="blank-placeholder">
-[INSERT: Sample PDF outputs for each document type - Barangay Clearance, Certificate of Indigency, Certificate of Residency, Good Moral Certificate, First-Time Jobseeker Certificate, Oath of Undertaking]
+<div class="blank-placeholder" style="min-height: 220pt;">
+[INSERT Figure D.1: Sample Released Documents (Barangay Clearance, Indigency, Residency, Good Moral, First-Time Job Seeker)]
+</div>
+
+<div class="blank-placeholder" style="min-height: 160pt;">
+[INSERT Figure D.2: Side-by-side Online Receipt and Paper Receipt linked to a released request]
 </div>
 
 <br>
 <div class="first-level-heading">APPENDIX E</div>
 <div class="second-level-heading" style="text-align: center; margin-top: 0;">Gantt Chart</div>
 
-<div class="blank-placeholder">
-[INSERT: Project Gantt chart showing the planning and scheduling of the thesis project in graphical representation of the duration of tasks against the progression of time]
-</div>
+<p>The following Gantt chart presents the project schedule from January to April 2026, showing each major phase and its duration in weeks.</p>
+
+<table style="font-size: 0.85em; border-collapse: collapse;">
+  <tr>
+    <th rowspan="2" style="width: 28%; vertical-align: bottom;">Task / Activity</th>
+    <th colspan="4" style="text-align: center;">January 2026</th>
+    <th colspan="4" style="text-align: center;">February 2026</th>
+    <th colspan="4" style="text-align: center;">March 2026</th>
+    <th colspan="3" style="text-align: center;">April 2026</th>
+  </tr>
+  <tr>
+    <th>W1</th><th>W2</th><th>W3</th><th>W4</th>
+    <th>W1</th><th>W2</th><th>W3</th><th>W4</th>
+    <th>W1</th><th>W2</th><th>W3</th><th>W4</th>
+    <th>W1</th><th>W2</th><th>W3</th>
+  </tr>
+  <!-- Phase 1: Planning & Requirements -->
+  <tr>
+    <td><strong>Phase 1: Planning &amp; Requirements</strong></td>
+    <td style="background:#4CAF50;"></td><td style="background:#4CAF50;"></td><td style="background:#4CAF50;"></td><td style="background:#4CAF50;"></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Interviews, surveys &amp; observations</td>
+    <td style="background:#81C784;"></td><td style="background:#81C784;"></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Requirements finalization</td>
+    <td></td><td style="background:#81C784;"></td><td style="background:#81C784;"></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Document template collection &amp; analysis</td>
+    <td></td><td></td><td style="background:#81C784;"></td><td style="background:#81C784;"></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">UI/UX design &amp; wireframing</td>
+    <td></td><td></td><td style="background:#81C784;"></td><td style="background:#81C784;"></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Supabase &amp; hosting setup</td>
+    <td></td><td></td><td></td><td style="background:#81C784;"></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <!-- Phase 2: Core Development -->
+  <tr>
+    <td><strong>Phase 2: Core Development</strong></td>
+    <td></td><td></td><td></td><td></td>
+    <td style="background:#2196F3;"></td><td style="background:#2196F3;"></td><td style="background:#2196F3;"></td><td style="background:#2196F3;"></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Kiosk interface (PWA + offline)</td>
+    <td></td><td></td><td></td><td></td>
+    <td style="background:#64B5F6;"></td><td style="background:#64B5F6;"></td><td style="background:#64B5F6;"></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Thermal receipt printing (ESC/POS)</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td style="background:#64B5F6;"></td><td style="background:#64B5F6;"></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Resident portal (auth + requests)</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td style="background:#64B5F6;"></td><td style="background:#64B5F6;"></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <!-- Phase 3: Advanced Features -->
+  <tr>
+    <td><strong>Phase 3: Advanced Features &amp; Integration</strong></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td style="background:#FF9800;"></td><td style="background:#FF9800;"></td><td style="background:#FF9800;"></td><td style="background:#FF9800;"></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Admin dashboard (full features)</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td style="background:#FFB74D;"></td><td style="background:#FFB74D;"></td><td></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Super admin panel</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td style="background:#FFB74D;"></td><td style="background:#FFB74D;"></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">SMS integration (PhilSMS)</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td style="background:#FFB74D;"></td><td></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Hardware assembly (kiosk casing)</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td style="background:#FFB74D;"></td><td style="background:#FFB74D;"></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Security &amp; stress testing</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td style="background:#FFB74D;"></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <!-- Phase 4: Deployment -->
+  <tr>
+    <td><strong>Phase 4: Deployment &amp; Training</strong></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td style="background:#9C27B0; color:#fff;"></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Deployment in Brgy. Maangas</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td style="background:#CE93D8;"></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Deployment in Brgy. Sta. Maria</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td style="background:#CE93D8;"></td>
+    <td></td><td></td><td></td>
+  </tr>
+  <!-- Phase 5: Evaluation -->
+  <tr>
+    <td><strong>Phase 5: Evaluation &amp; Documentation</strong></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td style="background:#F44336; color:#fff;"></td><td style="background:#F44336; color:#fff;"></td><td style="background:#F44336; color:#fff;"></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">User acceptance testing</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td style="background:#EF9A9A;"></td><td style="background:#EF9A9A;"></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Pre/post survey administration</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td style="background:#EF9A9A;"></td><td style="background:#EF9A9A;"></td><td></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Data analysis &amp; statistics</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td style="background:#EF9A9A;"></td><td style="background:#EF9A9A;"></td>
+  </tr>
+  <tr>
+    <td style="padding-left: 1.5em;">Thesis writing &amp; defense prep</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td style="background:#EF9A9A;"></td><td style="background:#EF9A9A;"></td>
+  </tr>
+</table>
+<div class="table-caption"><strong>Figure E.1.</strong> <span>Project Gantt Chart (January&ndash;April 2026)</span></div>
+
+<p style="font-size: 0.85em;">
+<strong>Legend:</strong>
+<span style="display:inline-block; width:14px; height:14px; background:#4CAF50; vertical-align:middle; margin-right:3px;"></span> Planning &amp; Requirements &nbsp;&nbsp;
+<span style="display:inline-block; width:14px; height:14px; background:#2196F3; vertical-align:middle; margin-right:3px;"></span> Core Development &nbsp;&nbsp;
+<span style="display:inline-block; width:14px; height:14px; background:#FF9800; vertical-align:middle; margin-right:3px;"></span> Advanced Features &nbsp;&nbsp;
+<span style="display:inline-block; width:14px; height:14px; background:#9C27B0; vertical-align:middle; margin-right:3px;"></span> Deployment &nbsp;&nbsp;
+<span style="display:inline-block; width:14px; height:14px; background:#F44336; vertical-align:middle; margin-right:3px;"></span> Evaluation &amp; Documentation
+</p>
 
 <br>
 <div class="first-level-heading">APPENDIX F</div>
@@ -1787,16 +2300,28 @@ Based on the findings and conclusions of this study, the following recommendatio
 <div class="first-level-heading">APPENDIX G</div>
 <div class="second-level-heading" style="text-align: center; margin-top: 0;">Informed Consent Forms and Ethical Clearance</div>
 
-<div class="blank-placeholder">
-[INSERT: Signed informed consent forms template, ethical clearance/approval documentation]
+<div class="blank-placeholder" style="min-height: 180pt;">
+[INSERT Figure G.1: Informed Consent Form Template (resident and admin versions)]
+</div>
+
+<div class="blank-placeholder" style="min-height: 160pt;">
+[INSERT Figure G.2: Ethics Clearance/Approval Document]
 </div>
 
 <br>
 <div class="first-level-heading">APPENDIX H</div>
 <div class="second-level-heading" style="text-align: center; margin-top: 0;">Endorsement and Deployment Letters</div>
 
-<div class="blank-placeholder">
-[INSERT: Research endorsement letter, deployment certificate, letter of request to barangay officials]
+<div class="blank-placeholder" style="min-height: 160pt;">
+[INSERT Figure H.1: Research Endorsement Letter]
+</div>
+
+<div class="blank-placeholder" style="min-height: 160pt;">
+[INSERT Figure H.2: Deployment Certificate/Permission Letter from Barangay]
+</div>
+
+<div class="blank-placeholder" style="min-height: 160pt;">
+[INSERT Figure H.3: Request Letter to Barangay Officials]
 </div>
 
 </body>

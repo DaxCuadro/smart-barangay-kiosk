@@ -183,7 +183,7 @@
     <tspan x="650" dy="23">  auto-created in the Residents table</tspan>
     <tspan x="650" dy="23">• Request moves to "In Progress" queue</tspan>
     <tspan x="650" dy="23">• Prepare the physical document offline</tspan>
-    <tspan x="650" dy="23">• For kiosk requests: SMS sent to resident</tspan>
+    <tspan x="650" dy="23">• No SMS yet at this step (still processing)</tspan>
     <tspan x="650" dy="23">• Use Chat to communicate with portal users</tspan>
   </text>
 
@@ -201,6 +201,7 @@
     <tspan x="90" dy="23">• Request moves to the "Done" queue</tspan>
     <tspan x="90" dy="23">• SMS automatically sent to resident:</tspan>
     <tspan x="90" dy="23">  "Your [document] is ready for pickup"</tspan>
+    <tspan x="90" dy="23">• SMS coverage currently supports Globe/TM</tspan>
     <tspan x="90" dy="23">• Chat message auto-sent to portal users</tspan>
   </text>
 
@@ -240,7 +241,7 @@
     <tspan x="90" dy="23">• See list of residents awaiting approval</tspan>
     <tspan x="90" dy="23">• Review submitted details and documents</tspan>
     <tspan x="90" dy="23">• Click "Approve" to grant portal access</tspan>
-    <tspan x="90" dy="23">• Or "Reject" with a reason (SMS sent)</tspan>
+    <tspan x="90" dy="23">• Or "Reject" request (SMS sent if phone exists)</tspan>
     <tspan x="90" dy="23">• Verification history kept as audit trail</tspan>
   </text>
 

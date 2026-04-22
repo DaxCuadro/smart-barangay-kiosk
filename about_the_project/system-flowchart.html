@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>System Flowchart</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { margin: 0; padding: 20px; background: white; display: flex; justify-content: center; }
+  #diagram { max-width: 100%; }
+</style>
+</head>
+<body>
+<div id="diagram" class="mermaid">
+flowchart TD
+    Start([Start]) --> Choice{How does the resident access the system?}
+
+    Choice -->|Walk-in Kiosk| K1[Welcome Screen with Announcements]
+    K1 --> K2{Resident exists in database?}
+    K2 -->|Yes| K3[Auto-populate Resident Profile]
+    K2 -->|No| K4[Fill Out New Applicant Form]
+    K4 --> K3
+    K3 --> K5[Select Document Type and Fill Details]
+    K5 --> K6[Review Request and Pricing]
+    K6 --> K7[Submit Request]
+    K7 --> K8{Internet Available?}
+    K8 -->|Yes| K9[Send to Supabase Cloud Database]
+    K8 -->|No| K10[Queue in IndexedDB for Later Sync]
+    K10 --> K11[Auto-sync When Online]
+    K11 --> K9
+    K9 --> K12[Print Thermal Receipt]
+    K12 --> K13[Rate Experience and Survey]
+    K13 --> K14[Idle Reset after 2 min]
+
+    Choice -->|Remote Portal| R1[Login / Register via Supabase Auth]
+    R1 --> R2{Account Verified?}
+    R2 -->|No| R3[Submit Verification Request to Admin]
+    R3 --> R2
+    R2 -->|Yes| R4[Resident Dashboard]
+    R4 --> R5[Select Document Type and Fill Details]
+    R5 --> R6[Review Request and Pricing]
+    R6 --> R7[Submit Request]
+    R7 --> R8{Internet Available?}
+    R8 -->|Yes| R9[Send to Supabase Cloud Database]
+    R8 -->|No| R10[Queue Offline with OFL- Reference]
+    R10 --> R11[Auto-sync When Online]
+    R11 --> R9
+
+    K9 --> Admin
+    R9 --> Admin
+    Admin[Admin Dashboard Receives Request] --> P1["Process Request: Pending → Current → Done"]
+    P1 --> SMS["Send SMS Notification: Document Ready"]
+    SMS --> Pickup[Resident Picks Up Document at Barangay]
+    Pickup --> Release[Admin Records Release with Payment]
+    Release --> Done([End])
+
+    style Start fill:#4CAF50,color:#fff,stroke:#388E3C
+    style Done fill:#4CAF50,color:#fff,stroke:#388E3C
+    style Choice fill:#FF9800,color:#fff,stroke:#F57C00
+    style K8 fill:#2196F3,color:#fff,stroke:#1565C0
+    style R8 fill:#2196F3,color:#fff,stroke:#1565C0
+    style K10 fill:#FFC107,color:#000,stroke:#FFA000
+    style R10 fill:#FFC107,color:#000,stroke:#FFA000
+    style Admin fill:#9C27B0,color:#fff,stroke:#6A1B9A
+    style SMS fill:#00BCD4,color:#fff,stroke:#00838F
+</div>
+<script>mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{curve:'basis'}});</script>
+</body>
+</html>

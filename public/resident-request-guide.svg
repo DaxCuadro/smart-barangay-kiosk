@@ -178,6 +178,7 @@
     <tspan x="90" dy="22" fill="#065F46" font-weight="600">• Solo Parent Cert.</tspan>
     <tspan x="90" dy="22" fill="#065F46" font-weight="600">• Certification PDA</tspan>
     <tspan x="90" dy="22" fill="#065F46" font-weight="600">• Business Clearance</tspan>
+    <tspan x="90" dy="24">• Available list depends on barangay setup</tspan>
   </text>
 
   <!-- Arrow 5→6 -->
@@ -227,6 +228,7 @@
     <tspan x="850" dy="22">  ✓ Total amount</tspan>
     <tspan x="850" dy="28">• Download receipt as image</tspan>
     <tspan x="850" dy="22">• Keep for pickup reference</tspan>
+    <tspan x="850" dy="22">• SMS ready alerts are Globe/TM only</tspan>
   </text>
 
   <!-- ============================================================ -->
