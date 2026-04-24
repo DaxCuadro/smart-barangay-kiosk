@@ -840,7 +840,7 @@ The system is architected as a multi-tenant PWA with four primary interfaces:
 
 <ol>
   <li><strong>Kiosk Interface (<code>/kiosk</code>):</strong>  The public-facing self-service terminal deployed on the tablet.  Residents search their name, select document types, fill in required fields (purpose, CTC number for business clearances), and submit.  The system generates a control number, prints a thermal receipt, and queues the request for admin processing.  If the system is offline, the request is saved to IndexedDB and synced when connectivity returns.</li>
-  <li><strong>Resident Portal (<code>/resident</code>):</strong>  A login-protected interface for verified residents to submit document requests remotely from their phones, view request history with status tracking, submit feedback and ratings on released documents, and manage their profile information.  After a resident&rsquo;s account is verified at least once while online, the portal caches session credentials, profile data, barangay information, document options, pricing, announcements, and request history in IndexedDB.  Subsequent logins can proceed entirely offline using the cached session, and document requests submitted offline are queued locally with an offline reference number and automatically uploaded when internet connectivity returns.  An offline status banner informs the user of connectivity state and pending request count.</li>
+  <li><strong>Resident Portal (<code>/</code>):</strong>  A login-protected interface for verified residents to submit document requests remotely from their phones, view request history with status tracking, submit feedback and ratings on released documents, and manage their profile information.  After a resident&rsquo;s account is verified at least once while online, the portal caches session credentials, profile data, barangay information, document options, pricing, announcements, and request history in IndexedDB.  Subsequent logins can proceed entirely offline using the cached session, and document requests submitted offline are queued locally with an offline reference number and automatically uploaded when internet connectivity returns.  An offline status banner informs the user of connectivity state and pending request count.</li>
   <li><strong>Admin Dashboard (<code>/admin</code>):</strong>  A comprehensive management panel with nine tabs:
     <ul>
       <li><em>Dashboard:</em> Daily summary with key metrics (new submissions, pending verifications, announcements, pricing gaps), officials status, and calendar events.</li>
@@ -856,6 +856,20 @@ The system is architected as a multi-tenant PWA with four primary interfaces:
   </li>
   <li><strong>Super-Admin Panel (<code>/superadmin</code>):</strong>  A system-wide management interface with thirteen tabs for overview, analytics, broadcast announcements, tenant management (create/edit/delete barangays), admin user management, system-wide resident and request views, document configuration, audit logs, feedback aggregation, data cleanup utilities, access and security settings, and thesis document generation.</li>
 </ol>
+
+<p>
+For deployment and demonstration consistency, the production web access links used during pilot operation are listed below:
+</p>
+
+<table>
+  <tr><th>Interface</th><th>Actual Web Link</th><th>Access Notes</th></tr>
+  <tr><td>Resident Remote Access Portal</td><td><a href="https://smart-barangay-kiosk.vercel.app/" target="_blank">https://smart-barangay-kiosk.vercel.app/</a></td><td>Resident sign-in/sign-up and remote request submission</td></tr>
+  <tr><td>Kiosk Interface</td><td><a href="https://smart-barangay-kiosk.vercel.app/kiosk" target="_blank">https://smart-barangay-kiosk.vercel.app/kiosk</a></td><td>Barangay tablet kiosk mode</td></tr>
+  <tr><td>Barangay Admin Dashboard</td><td><a href="https://smart-barangay-kiosk.vercel.app/admin" target="_blank">https://smart-barangay-kiosk.vercel.app/admin</a></td><td>Admin login for barangay-assigned accounts</td></tr>
+  <tr><td>Super Admin Panel</td><td><a href="https://smart-barangay-kiosk.vercel.app/superadmin" target="_blank">https://smart-barangay-kiosk.vercel.app/superadmin</a></td><td>System-wide tenant and platform management</td></tr>
+  <tr><td>Dummy Barangay Admin Access</td><td><a href="https://smart-barangay-kiosk.vercel.app/admin" target="_blank">https://smart-barangay-kiosk.vercel.app/admin</a></td><td>Use the dummy barangay admin credentials after creating the tenant/account in Super Admin</td></tr>
+</table>
+<div class="table-caption"><strong>Table 3.1a.</strong> <span>Production Web Access Links for System Interfaces</span></div>
 
 
 <div class="third-level-heading">3.3.4. System Flowchart</div>
@@ -1192,6 +1206,64 @@ The prototype was tested in two pilot barangays selected based on availability, 
   <li><strong>Feedback Collection:</strong> Post-use surveys and interviews with users and officials to gather opinions on effectiveness, ease of use, and satisfaction.</li>
   <li><strong>Administrative Efficiency Metrics:</strong> Measuring processing time before and after kiosk deployment.</li>
 </ul>
+
+<div class="third-level-heading">3.5.a. Statistical Treatment of Data</div>
+
+<p>
+To ensure methodological transparency and reproducibility, all survey and feedback results reported in this chapter were computed using descriptive statistics.  The 5-point Likert scale was encoded as: 1 = Strongly Disagree, 2 = Disagree, 3 = Neutral, 4 = Agree, and 5 = Strongly Agree.  The following formulas were used:
+</p>
+
+<p class="no-indent"><strong>1. Item Mean (Likert Weighted Mean)</strong></p>
+<p class="no-indent" style="text-align:center;">
+\[\bar{X}_{i}=\frac{\sum_{k=1}^{5} f_{ik}w_{k}}{N}\]
+</p>
+
+<p class="no-indent"><strong>2. Item Standard Deviation</strong></p>
+<p class="no-indent" style="text-align:center;">
+\[s_{i}=\sqrt{\frac{\sum_{r=1}^{N}(x_{ir}-\bar{X}_{i})^{2}}{N-1}}\]
+</p>
+
+<p class="no-indent"><strong>3. Part Overall Mean</strong></p>
+<p class="no-indent" style="text-align:center;">
+\[\bar{X}_{\text{part}}=\frac{\sum_{i=1}^{m}\bar{X}_{i}}{m}\]
+</p>
+
+<p class="no-indent"><strong>4. Grand Mean</strong></p>
+<p class="no-indent" style="text-align:center;">
+\[\bar{X}_{\text{grand}}=\frac{\sum_{j=1}^{p}\bar{X}_{\text{part},j}}{p}\]
+</p>
+
+<p class="no-indent"><strong>5. Frequency and Percentage Distribution</strong></p>
+<p class="no-indent" style="text-align:center;">
+\[\%_{k}=\frac{f_{k}}{N}\times 100\]
+</p>
+
+<p class="no-indent"><strong>6. Mean Rating for 1-5 Star Feedback</strong></p>
+<p class="no-indent" style="text-align:center;">
+\[\bar{X}_{\text{feedback}}=\frac{\sum_{r=1}^{n}x_{r}}{n}\]
+</p>
+
+<p>
+Where: \(\bar{X}_{i}\) = mean of item \(i\), \(f_{ik}\) = frequency of responses in category \(k\) for item \(i\), \(w_{k}\) = Likert weight (1 to 5), \(N\) = number of respondents in the group, \(x_{ir}\) = response of respondent \(r\) to item \(i\), \(m\) = number of items in one survey part, and \(p\) = number of survey parts included in a specific instrument.
+</p>
+
+<p>
+For result interpretation, the following descriptive equivalent scale was applied to the computed means:
+</p>
+
+<table>
+  <tr><th>Mean Range</th><th>Descriptive Interpretation</th></tr>
+  <tr><td>4.21 &ndash; 5.00</td><td>Strongly Agree / Very High</td></tr>
+  <tr><td>3.41 &ndash; 4.20</td><td>Agree / High</td></tr>
+  <tr><td>2.61 &ndash; 3.40</td><td>Neutral / Moderate</td></tr>
+  <tr><td>1.81 &ndash; 2.60</td><td>Disagree / Low</td></tr>
+  <tr><td>1.00 &ndash; 1.80</td><td>Strongly Disagree / Very Low</td></tr>
+</table>
+<div class="table-caption"><strong>Table 3.6a.</strong> <span>Mean Range Interpretation for 5-Point Likert Responses</span></div>
+
+<p>
+The computation workflow used in generating the Chapter 3 and Chapter 4 statistics was as follows: (1) export response records per instrument and respondent group, (2) clean and validate records by removing incomplete entries outside the study scope, (3) compute item-level means and standard deviations, (4) compute part-level means from item means, (5) compute grand means per instrument, (6) compute frequency and percentage distributions for categorical summaries (e.g., access mode, rating counts), and (7) cross-check computed values against final report tables for consistency.
+</p>
 
 <div class="third-level-heading">3.5.1. Resident Pre-Usage Survey Results</div>
 

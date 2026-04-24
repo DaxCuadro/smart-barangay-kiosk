@@ -7,6 +7,7 @@ import DailySummaryPanel from './ui/DailySummaryPanel';
 import ThesisDocumentsTab from './admin-dashboard-tabs/ThesisDocumentsTab';
 import SurveyResponsesTab from './admin-dashboard-tabs/SurveyResponsesTab';
 import { useToast } from '../hooks/useToast';
+import SuperAdminTrendPanel from './SuperAdminTrendPanel';
 
 const SUPERADMIN_TABS = [
   { key: 'overview', label: 'Overview' },
@@ -487,10 +488,10 @@ export default function SuperAdminDashboard({ onLogout }) {
   const loadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
     const [reqResult, resResult, verResult, relResult] = await Promise.all([
-      supabase.from('resident_intake_requests').select('id, barangay_id, document, status, created_at').order('created_at', { ascending: false }).limit(1000),
-      supabase.from('residents').select('id, barangay_id, sex, birthday, created_at').limit(2000),
-      supabase.from('resident_verification_requests').select('id, barangay_id, status, created_at').limit(1000),
-      supabase.from('release_logs').select('id, barangay_id, document, released_at').limit(1000),
+      supabase.from('resident_intake_requests').select('id, barangay_id, document, status, created_at').order('created_at', { ascending: false }).limit(2000),
+      supabase.from('residents').select('id, barangay_id, sex, birthday, created_at').limit(3000),
+      supabase.from('resident_verification_requests').select('id, barangay_id, status, created_at').limit(2000),
+      supabase.from('release_logs').select('id, barangay_id, document, released_at').order('released_at', { ascending: false }).limit(3000),
     ]);
     setAnalyticsData({
       requests: reqResult.data || [],
@@ -1999,6 +2000,7 @@ export default function SuperAdminDashboard({ onLogout }) {
         {/* ── Feature 2: Analytics Tab ── */}
         {activeTab === 'analytics' ? (
           <section className="space-y-6">
+            <SuperAdminTrendPanel supabase={supabase} barangays={barangays} />
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -2041,7 +2043,8 @@ export default function SuperAdminDashboard({ onLogout }) {
                 // Compute charts
                 const requestsByBarangay = barangays.map(b => ({
                   name: b.name,
-                  value: analyticsData.requests.filter(r => r.barangay_id === b.id).length,
+                  value: analyticsData.requests.filter(r => r.barangay_id === b.id).length + 
+                         analyticsData.releases.filter(r => r.barangay_id === b.id).length,
                 })).sort((a, b) => b.value - a.value);
 
                 const residentsByBarangay = barangays.map(b => ({
@@ -2054,16 +2057,22 @@ export default function SuperAdminDashboard({ onLogout }) {
                   const doc = r.document || 'Unknown';
                   docTypeCounts[doc] = (docTypeCounts[doc] || 0) + 1;
                 }
+                for (const r of analyticsData.releases) {
+                  const doc = r.document || 'Unknown';
+                  docTypeCounts[doc] = (docTypeCounts[doc] || 0) + 1;
+                }
                 const requestsByDocType = Object.entries(docTypeCounts)
                   .map(([name, value]) => ({ name, value }))
                   .sort((a, b) => b.value - a.value);
 
-                const statusCounts = {};
+                const statusCounts = { 'released': analyticsData.releases.length };
                 for (const r of analyticsData.requests) {
                   const st = r.status || 'unknown';
                   statusCounts[st] = (statusCounts[st] || 0) + 1;
                 }
+                // Filter out statuses with 0 counts (like released if there are none)
                 const requestsByStatus = Object.entries(statusCounts)
+                  .filter(([, value]) => value > 0)
                   .map(([name, value]) => ({ name, value }))
                   .sort((a, b) => b.value - a.value);
 
@@ -2102,7 +2111,7 @@ export default function SuperAdminDashboard({ onLogout }) {
                   .map(([name, value]) => ({ name, value }));
 
                 // Summary cards
-                const totalRequests = analyticsData.requests.filter(r => r.status !== 'cancelled').length;
+                const totalRequests = analyticsData.requests.length + analyticsData.releases.length;
                 const totalResidents = analyticsData.residents.length;
                 const totalVerifications = analyticsData.verifications.length;
                 const totalReleases = analyticsData.releases.length;

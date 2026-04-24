@@ -462,7 +462,13 @@ export default function AdminDashboard({ onLogout }) {
         subtitle="Please rate the following statements about the current barangay document processing workflow before using the system."
         questions={ADMIN_PRE_SURVEY_QUESTIONS}
         onSubmit={handleAdminPreSubmit}
+        onDismiss={() => {
+          sessionStorage.setItem('sbk-admin-survey-pre-done', 'true');
+          setAdminPreDone(true);
+          setShowAdminPreSurvey(false);
+        }}
         variant="remote"
+        optional
       />
       <SurveyModal
         open={showAdminPostSurvey && !manualSurveyType}
@@ -470,7 +476,13 @@ export default function AdminDashboard({ onLogout }) {
         subtitle="You've completed your first document release! Please rate the following statements about your experience using the system."
         questions={ADMIN_POST_SURVEY_QUESTIONS}
         onSubmit={handleAdminPostSubmit}
+        onDismiss={() => {
+          sessionStorage.setItem('sbk-admin-survey-post-done', 'true');
+          setAdminPostDone(true);
+          setShowAdminPostSurvey(false);
+        }}
         variant="remote"
+        optional
       />
       <SurveyModal
         open={!!manualSurveyType}
